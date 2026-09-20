@@ -1,0 +1,25 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Modelos entrenados
+*.joblib
+
+# Datos sensibles
+data/*.csv
+*.db
+
+# Entorno
+.env
+
+# Node / frontend
+node_modules/
+dist/
+
+# Editor / OS
+.vscode/
+.idea/
+*.log
