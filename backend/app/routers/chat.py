@@ -7,6 +7,7 @@ from app.database import get_session
 from app.models import InteraccionMinutito, Ticket
 from app.schemas import ChatMensaje, ChatRespuesta
 from app.services.assistant import responder
+from app.services.gamification_rules import evaluar_evento
 
 router = APIRouter()
 
@@ -19,6 +20,7 @@ def chat_ticket(
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
+    ya_estaba_resuelto = ticket.estado == "resuelto"
     resultado = responder(ticket, data.mensaje, session)
 
     if resultado["resuelto"]:
@@ -40,6 +42,9 @@ def chat_ticket(
     session.add(ticket)
     session.commit()
     session.refresh(ticket)
+
+    if not ya_estaba_resuelto and ticket.estado == "resuelto":
+        evaluar_evento(ticket, ticket.cliente_id, session)
 
     return ChatRespuesta(
         respuesta=resultado["respuesta"],

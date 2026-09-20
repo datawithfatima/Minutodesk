@@ -35,3 +35,17 @@ class TicketRead(SQLModel):
     resuelto_por: Optional[str] = None
     creado_en: datetime
     cerrado_en: Optional[datetime] = None
+
+
+class EventoGamificacionRead(SQLModel):
+    id: int
+    ticket_id: Optional[int] = None
+    puntos_otorgados: int
+    motivo: str
+    creado_en: datetime
+
+
+class ClienteGamificacion(SQLModel):
+    puntos: int
+    nivel: str
+    historial: list[EventoGamificacionRead]
