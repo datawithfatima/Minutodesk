@@ -4,21 +4,49 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, func, select
 
 from app.database import get_session
-from app.models import InteraccionMinutito, Ticket
-from app.schemas import ChatMensaje, ChatRespuesta
+from app.models import Cliente, InteraccionMinutito, Ticket
+from app.schemas import ChatMensaje, ChatRespuesta, InteraccionRead
 from app.services.assistant import responder
+from app.services.auth import obtener_usuario_actual
 from app.services.gamification_rules import evaluar_evento
 
 router = APIRouter()
 
 
-@router.post("/{ticket_id}/chat", response_model=ChatRespuesta)
-def chat_ticket(
-    ticket_id: int, data: ChatMensaje, session: Session = Depends(get_session)
+def _verificar_acceso_ticket(ticket: Ticket, usuario: Cliente) -> None:
+    if usuario.rol != "tecnico" and ticket.cliente_id != usuario.id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
+
+
+@router.get("/{ticket_id}/interacciones", response_model=list[InteraccionRead])
+def listar_interacciones(
+    ticket_id: int,
+    usuario: Cliente = Depends(obtener_usuario_actual),
+    session: Session = Depends(get_session),
 ):
     ticket = session.get(Ticket, ticket_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    _verificar_acceso_ticket(ticket, usuario)
+    return session.exec(
+        select(InteraccionMinutito)
+        .where(InteraccionMinutito.ticket_id == ticket_id)
+        .order_by(InteraccionMinutito.creado_en)
+    ).all()
+
+
+@router.post("/{ticket_id}/chat", response_model=ChatRespuesta)
+def chat_ticket(
+    ticket_id: int,
+    data: ChatMensaje,
+    usuario: Cliente = Depends(obtener_usuario_actual),
+    session: Session = Depends(get_session),
+):
+    ticket = session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    if ticket.cliente_id != usuario.id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
 
     ya_estaba_resuelto = ticket.estado == "resuelto"
     resultado = responder(ticket, data.mensaje, session)

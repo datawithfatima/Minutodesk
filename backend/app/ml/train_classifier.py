@@ -9,6 +9,7 @@ Ejecutar desde backend/: python -m app.ml.train_classifier
 """
 import re
 import string
+import unicodedata
 from pathlib import Path
 
 import joblib
@@ -26,8 +27,19 @@ MODEL_DIR = Path(__file__).resolve().parent / "model"
 UMBRAL_PRECISION = 0.80
 MIN_EJEMPLOS_POR_CLASE = 2  # mínimo para poder hacer train/test split
 
+def quitar_tildes(texto: str) -> str:
+    """Quita acentos y normaliza la ñ->n (ej. contraseña/contrasena deben
+    contar como la misma palabra para el clasificador). Es el criterio
+    estándar de normalización de texto en buscadores/clasificadores en
+    español; se acepta el riesgo mínimo de casos como año/ano porque en
+    un ticket real la palabra siempre viene acompañada de contexto."""
+    texto = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in texto if not unicodedata.combining(c))
+
+
 # Lista manual de stopwords en español (nltk/spacy no están en requirements.txt).
-STOPWORDS_ES = {
+# Se normaliza sin tildes porque preprocesar_texto() quita tildes antes de filtrar.
+_STOPWORDS_CON_TILDES = {
     "de", "la", "que", "el", "en", "y", "a", "los", "del", "se", "las", "por",
     "un", "para", "con", "no", "una", "su", "al", "lo", "como", "más", "pero",
     "sus", "le", "ya", "o", "este", "sí", "porque", "esta", "entre", "cuando",
@@ -40,13 +52,14 @@ STOPWORDS_ES = {
     "tú", "te", "ti", "tu", "tus", "ellas", "nosotras", "vosotros", "vosotras",
     "os", "es", "son", "fue", "ser", "está", "están",
 }
+STOPWORDS_ES = {quitar_tildes(w) for w in _STOPWORDS_CON_TILDES}
 
 PUNTUACION_RE = re.compile(f"[{re.escape(string.punctuation)}¿¡«»]")
 ESPACIOS_RE = re.compile(r"\s+")
 
 
 def preprocesar_texto(texto: str) -> str:
-    texto = texto.lower()
+    texto = quitar_tildes(texto.lower())
     texto = PUNTUACION_RE.sub(" ", texto)
     palabras = [p for p in texto.split() if p not in STOPWORDS_ES]
     return ESPACIOS_RE.sub(" ", " ".join(palabras)).strip()

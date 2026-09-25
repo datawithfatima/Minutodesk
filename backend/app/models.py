@@ -8,6 +8,9 @@ class Cliente(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str
     area: str
+    email: str = Field(unique=True, index=True)
+    password_hash: str
+    rol: str = Field(default="colaborador")  # "colaborador" | "tecnico"
     puntos: int = Field(default=0)
     creado_en: datetime = Field(default_factory=datetime.now)
 

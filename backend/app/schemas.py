@@ -6,7 +6,6 @@ from sqlmodel import SQLModel
 
 class TicketCreate(SQLModel):
     texto: str
-    cliente_id: int
 
 
 class TicketUpdate(SQLModel):
@@ -22,6 +21,42 @@ class ChatRespuesta(SQLModel):
     respuesta: str
     resuelto: bool
     estado_ticket: str
+
+
+class ClienteRead(SQLModel):
+    id: int
+    nombre: str
+    area: str
+    email: str
+    rol: str
+    puntos: int
+
+
+class RegistroRequest(SQLModel):
+    nombre: str
+    area: str
+    email: str
+    password: str
+
+
+class LoginRequest(SQLModel):
+    email: str
+    password: str
+
+
+class TokenResponse(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+    cliente: ClienteRead
+
+
+class InteraccionRead(SQLModel):
+    id: int
+    ticket_id: int
+    mensaje_cliente: str
+    respuesta_minutito: str
+    marco_resuelto: bool
+    creado_en: datetime
 
 
 class TicketRead(SQLModel):
