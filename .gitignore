@@ -12,8 +12,10 @@ __pycache__/
 data/*.csv
 *.db
 
-# Entorno
+# Entorno y secretos
 .env
+.secret_key
+correos_enviados/
 
 # Node / frontend
 node_modules/

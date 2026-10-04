@@ -1,6 +1,8 @@
-import { obtenerToken } from "./auth";
+import { cerrarSesion, obtenerToken } from "./auth";
 
-const API_BASE = "http://localhost:8000";
+// En el mismo equipo usa localhost; si se abre desde otro equipo de la red, usa ese mismo host.
+const API_BASE =
+  import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
 
 function headers(conJson = true) {
   const h = {};
@@ -12,89 +14,69 @@ function headers(conJson = true) {
 
 async function manejarRespuesta(res) {
   if (!res.ok) {
+    if (res.status === 401 && !res.url.endsWith("/auth/login")) {
+      cerrarSesion();
+      window.location.assign("/login");
+      throw new Error("Tu sesión expiró. Inicia sesión de nuevo.");
+    }
     const detalle = await res.json().catch(() => null);
-    throw new Error(detalle?.detail || `Error ${res.status}`);
+    throw new Error(typeof detalle?.detail === "string" ? detalle.detail : `Error ${res.status}`);
   }
   return res.json();
 }
 
-export function registrarse({ nombre, area, email, password }) {
-  return fetch(`${API_BASE}/auth/registro`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({ nombre, area, email, password }),
-  }).then(manejarRespuesta);
+function consulta(params = {}) {
+  const p = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") p.set(k, v);
+  });
+  const texto = p.toString();
+  return texto ? `?${texto}` : "";
 }
 
-export function iniciarSesion({ email, password }) {
-  return fetch(`${API_BASE}/auth/login`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({ email, password }),
-  }).then(manejarRespuesta);
-}
-
-export function listarTickets({ estado, categoria_predicha, cliente_id } = {}) {
-  const params = new URLSearchParams();
-  if (estado) params.set("estado", estado);
-  if (categoria_predicha) params.set("categoria_predicha", categoria_predicha);
-  if (cliente_id != null) params.set("cliente_id", cliente_id);
-  const query = params.toString() ? `?${params}` : "";
-  return fetch(`${API_BASE}/tickets${query}`, { headers: headers(false) }).then(
+function get(ruta, params) {
+  return fetch(`${API_BASE}${ruta}${consulta(params)}`, { headers: headers(false) }).then(
     manejarRespuesta
   );
 }
 
-export function obtenerTicket(id) {
-  return fetch(`${API_BASE}/tickets/${id}`, { headers: headers(false) }).then(
-    manejarRespuesta
-  );
-}
-
-export function crearTicket({ texto }) {
-  return fetch(`${API_BASE}/tickets`, {
-    method: "POST",
+function enviar(metodo, ruta, cuerpo) {
+  return fetch(`${API_BASE}${ruta}`, {
+    method: metodo,
     headers: headers(),
-    body: JSON.stringify({ texto }),
+    body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
   }).then(manejarRespuesta);
 }
 
-export function actualizarTicket(id, data) {
-  return fetch(`${API_BASE}/tickets/${id}`, {
-    method: "PATCH",
-    headers: headers(),
-    body: JSON.stringify(data),
-  }).then(manejarRespuesta);
-}
+// --- Acceso ---
+export const iniciarSesion = ({ email, password }) => enviar("POST", "/auth/login", { email, password });
+export const olvidePassword = (email) => enviar("POST", "/auth/olvide-password", { email });
+export const establecerPassword = ({ token, password }) =>
+  enviar("POST", "/auth/establecer-password", { token, password });
 
-export function listarInteracciones(ticketId) {
-  return fetch(`${API_BASE}/tickets/${ticketId}/interacciones`, {
-    headers: headers(false),
-  }).then(manejarRespuesta);
-}
+// --- Tickets ---
+export const listarTickets = (filtros = {}) => get("/tickets", filtros);
+export const obtenerTicket = (id) => get(`/tickets/${id}`);
+export const crearTicket = ({ texto }) => enviar("POST", "/tickets", { texto });
+export const actualizarTicket = (id, data) => enviar("PATCH", `/tickets/${id}`, data);
+export const listarInteracciones = (ticketId) => get(`/tickets/${ticketId}/interacciones`);
+export const listarHistorial = (ticketId) => get(`/tickets/${ticketId}/historial`);
+export const enviarMensajeChat = (ticketId, mensaje) =>
+  enviar("POST", `/tickets/${ticketId}/chat`, { mensaje });
 
-export function enviarMensajeChat(ticketId, mensaje) {
-  return fetch(`${API_BASE}/tickets/${ticketId}/chat`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({ mensaje }),
-  }).then(manejarRespuesta);
-}
+// --- Clientes y gamificación ---
+export const listarClientes = () => get("/clientes");
+export const obtenerCliente = (id) => get(`/clientes/${id}`);
+export const obtenerGamificacion = (clienteId) => get(`/clientes/${clienteId}/gamificacion`);
 
-export function listarClientes() {
-  return fetch(`${API_BASE}/clientes`, { headers: headers(false) }).then(
-    manejarRespuesta
-  );
-}
+// --- Reportes ---
+export const obtenerResumen = () => get("/reportes/resumen");
 
-export function obtenerCliente(id) {
-  return fetch(`${API_BASE}/clientes/${id}`, { headers: headers(false) }).then(
-    manejarRespuesta
-  );
-}
-
-export function obtenerGamificacion(clienteId) {
-  return fetch(`${API_BASE}/clientes/${clienteId}/gamificacion`, {
-    headers: headers(false),
-  }).then(manejarRespuesta);
-}
+// --- Administración ---
+export const listarUsuarios = (filtros = {}) => get("/admin/usuarios", filtros);
+export const crearUsuario = (data) => enviar("POST", "/admin/usuarios", data);
+export const actualizarUsuario = (id, data) => enviar("PATCH", `/admin/usuarios/${id}`, data);
+export const enviarEnlaceDeAcceso = (id) => enviar("POST", `/admin/usuarios/${id}/invitacion`);
+export const listarAreas = () => get("/admin/areas");
+export const crearArea = ({ nombre }) => enviar("POST", "/admin/areas", { nombre });
+export const actualizarArea = (id, data) => enviar("PATCH", `/admin/areas/${id}`, data);

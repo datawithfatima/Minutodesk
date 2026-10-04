@@ -22,8 +22,8 @@ export default function GamificacionPage() {
     <>
       <PageHeader
         icon={Trophy}
-        title="Mi gamificación"
-        subtitle="Revisa tus puntos e historial por usar el autoservicio."
+        title="Mis logros"
+        subtitle="Tu nivel, tus puntos y cómo los ganaste por usar el autoservicio."
       />
       {error && <Alert variant="danger">{error}</Alert>}
       {!detalle && !error && <Spinner size="sm" />}

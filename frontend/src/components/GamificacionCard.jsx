@@ -19,7 +19,7 @@ export default function GamificacionCard({ detalle }) {
         <hr className="mb-3 border-gray-200" />
         <h2 className="mb-2 text-sm font-semibold text-gray-700">Historial</h2>
         {detalle.historial.length === 0 && (
-          <Alert variant="secondary">Todavía no tiene eventos de gamificación.</Alert>
+          <Alert variant="secondary">Todavía no hay logros registrados.</Alert>
         )}
         {detalle.historial.map((e) => (
           <div

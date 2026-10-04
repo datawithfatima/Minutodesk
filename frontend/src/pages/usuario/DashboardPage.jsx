@@ -1,4 +1,4 @@
-import { BookOpen, MessageCircle, Plus, Ticket } from "lucide-react";
+import { History, MessageCircle, Plus, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listarTickets } from "../../api";
@@ -22,10 +22,10 @@ const ACCIONES = [
     texto: "Revisa el estado de tus solicitudes.",
   },
   {
-    icon: BookOpen,
-    titulo: "Base de conocimiento",
-    texto: "Próximamente.",
-    disabled: true,
+    to: "/usuario/historico",
+    icon: History,
+    titulo: "Mi histórico",
+    texto: "Revisa tus consultas ya resueltas.",
   },
   {
     to: "/usuario",

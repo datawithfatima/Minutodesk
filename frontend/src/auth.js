@@ -19,3 +19,9 @@ export function cerrarSesion() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USUARIO_KEY);
 }
+
+export function rutaInicio(rol) {
+  if (rol === "administrador") return "/admin";
+  if (rol === "tecnico") return "/tecnico";
+  return "/usuario";
+}

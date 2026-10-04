@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { iniciarSesion } from "../api";
-import { guardarSesion } from "../auth";
+import { guardarSesion, rutaInicio } from "../auth";
 import AuthShell from "../components/AuthShell";
 import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       const { access_token, cliente } = await iniciarSesion({ email, password });
       guardarSesion(access_token, cliente);
-      navegar(cliente.rol === "tecnico" ? "/tecnico" : "/usuario");
+      navegar(rutaInicio(cliente.rol));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -39,14 +39,14 @@ export default function LoginPage() {
       )}
       <form onSubmit={manejarEnvio} className="flex flex-col gap-3">
         <div>
-          <label className={labelClass}>Correo corporativo</label>
+          <label className={labelClass}>Correo electrónico</label>
           <input
             type="email"
             className={inputClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="nombre.apellido@ejemplo.com"
+            placeholder="correo@ejemplo.com"
           />
         </div>
         <div>
@@ -64,10 +64,13 @@ export default function LoginPage() {
         </Button>
       </form>
       <div className="mt-4 border-t border-gray-100 pt-3 text-center text-sm text-gray-500">
-        ¿No tienes cuenta?{" "}
-        <Link to="/registro" className="text-blue-600 hover:underline">
-          Regístrate
+        <Link to="/olvide-password" className="text-blue-600 hover:underline">
+          ¿Olvidaste tu contraseña?
         </Link>
+        <p className="mt-2 text-xs text-gray-400">
+          Las cuentas las crea el administrador. Si aún no activaste la tuya, usa el enlace del
+          correo de invitación.
+        </p>
       </div>
     </AuthShell>
   );

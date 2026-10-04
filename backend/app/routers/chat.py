@@ -5,16 +5,17 @@ from sqlmodel import Session, func, select
 
 from app.database import get_session
 from app.models import Cliente, InteraccionMinutito, Ticket
+from app.routers.tickets import registrar_estado
 from app.schemas import ChatMensaje, ChatRespuesta, InteraccionRead
 from app.services.assistant import responder
-from app.services.auth import obtener_usuario_actual
+from app.services.auth import es_personal, obtener_usuario_actual
 from app.services.gamification_rules import evaluar_evento
 
 router = APIRouter()
 
 
 def _verificar_acceso_ticket(ticket: Ticket, usuario: Cliente) -> None:
-    if usuario.rol != "tecnico" and ticket.cliente_id != usuario.id:
+    if not es_personal(usuario) and ticket.cliente_id != usuario.id:
         raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
 
 
@@ -49,6 +50,7 @@ def chat_ticket(
         raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
 
     ya_estaba_resuelto = ticket.estado == "resuelto"
+    estado_anterior = ticket.estado
     resultado = responder(ticket, data.mensaje, session)
 
     if resultado["resuelto"]:
@@ -64,8 +66,11 @@ def chat_ticket(
                 InteraccionMinutito.marco_resuelto == False,  # noqa: E712
             )
         ).one()
-        if sin_resolver > 3:
+        if sin_resolver > 3 and ticket.estado == "abierto":
             ticket.estado = "en_proceso"
+
+    if ticket.estado != estado_anterior:
+        registrar_estado(session, ticket.id, estado_anterior, ticket.estado, None)
 
     session.add(ticket)
     session.commit()

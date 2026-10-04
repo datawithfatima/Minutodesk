@@ -1,15 +1,12 @@
 import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { listarClientes } from "../../api";
+import { ETIQUETA_ROL } from "../../texto";
 import Alert from "../../components/ui/Alert";
+import Badge from "../../components/ui/Badge";
 import Card from "../../components/ui/Card";
 import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
-
-const ROL_LABEL = {
-  colaborador: "Colaborador",
-  tecnico: "Técnico",
-};
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState([]);
@@ -27,8 +24,8 @@ export default function ClientesPage() {
     <>
       <PageHeader
         icon={Users}
-        title="Clientes / Usuarios"
-        subtitle="Colaboradores y técnicos registrados en MinutoDesk."
+        title="Usuarios"
+        subtitle="Personas registradas en MinutoDesk (solo lectura). La gestión de cuentas la hace el administrador."
       />
 
       {error && (
@@ -47,6 +44,7 @@ export default function ClientesPage() {
                 <th className="px-3 py-2">Área</th>
                 <th className="px-3 py-2">Correo</th>
                 <th className="px-3 py-2">Rol</th>
+                <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2">Puntos</th>
               </tr>
             </thead>
@@ -56,7 +54,10 @@ export default function ClientesPage() {
                   <td className="px-3 py-2 font-medium text-gray-900">{c.nombre}</td>
                   <td className="px-3 py-2">{c.area}</td>
                   <td className="px-3 py-2 text-gray-500">{c.email}</td>
-                  <td className="px-3 py-2">{ROL_LABEL[c.rol] || c.rol}</td>
+                  <td className="px-3 py-2">{ETIQUETA_ROL[c.rol] || c.rol}</td>
+                  <td className="px-3 py-2">
+                    <Badge color={c.activo ? "green" : "gray"}>{c.activo ? "Activo" : "Inactivo"}</Badge>
+                  </td>
                   <td className="px-3 py-2">{c.puntos}</td>
                 </tr>
               ))}

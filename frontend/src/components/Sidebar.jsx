@@ -36,7 +36,9 @@ export default function Sidebar({ navItems, onLogout, footer, dark = false, chil
             );
           }
 
-          const activo = location.pathname === item.to;
+          const activo = item.isActive
+            ? item.isActive(location.pathname)
+            : location.pathname === item.to;
           const activoCls = dark
             ? "bg-slate-800 font-medium text-white"
             : "bg-gray-100 font-medium text-gray-900";

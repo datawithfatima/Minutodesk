@@ -1,16 +1,21 @@
-import { BarChart3, BookOpen, HelpCircle, Home, Plus, Ticket, Trophy } from "lucide-react";
+import { BarChart3, HelpCircle, History, Home, Plus, Ticket, Trophy } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
 
 const NAV_ITEMS = [
   { to: "/usuario", label: "Inicio", icon: Home },
-  { to: "/usuario/mis-tickets", label: "Mis tickets", icon: Ticket },
+  {
+    to: "/usuario/mis-tickets",
+    label: "Mis tickets",
+    icon: Ticket,
+    isActive: (p) => p.startsWith("/usuario/mis-tickets") || p.startsWith("/usuario/tickets/"),
+  },
   { to: "/usuario", label: "Crear ticket", icon: Plus },
-  { to: "/usuario/gamificacion", label: "Mi gamificación", icon: Trophy },
-  { label: "Base de conocimiento", icon: BookOpen, disabled: true },
-  { label: "FAQs", icon: HelpCircle, disabled: true },
-  { label: "Reportes", icon: BarChart3, disabled: true },
+  { to: "/usuario/logros", label: "Mis logros", icon: Trophy },
+  { to: "/usuario/historico", label: "Mi histórico", icon: History },
+  { to: "/usuario/faqs", label: "FAQs", icon: HelpCircle },
+  { to: "/usuario/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 export default function UsuarioLayout() {
@@ -26,7 +31,7 @@ export default function UsuarioLayout() {
     <AppShell
       navItems={NAV_ITEMS}
       usuario={usuario}
-      rolLabel="Colaborador"
+      rutaBusqueda="/usuario/mis-tickets"
       onLogout={salir}
       footer="Pequeños clics, grandes soluciones"
     >

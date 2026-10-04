@@ -10,12 +10,7 @@ export default function InicioPage() {
       <p className="mb-6 text-gray-500">
         Mesa de ayuda con clasificación automática y Minutito.
       </p>
-      <div className="flex justify-center gap-3">
-        <Button onClick={() => navegar("/login")}>Iniciar sesión</Button>
-        <Button variant="outlineSecondary" onClick={() => navegar("/registro")}>
-          Crear cuenta
-        </Button>
-      </div>
+      <Button onClick={() => navegar("/login")}>Iniciar sesión</Button>
     </div>
   );
 }

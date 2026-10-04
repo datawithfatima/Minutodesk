@@ -1,4 +1,4 @@
-import { Trophy } from "lucide-react";
+import { Medal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { listarClientes, obtenerGamificacion } from "../../api";
 import Alert from "../../components/ui/Alert";
@@ -16,7 +16,9 @@ export default function GamificacionPage() {
   useEffect(() => {
     listarClientes()
       .then((lista) => {
-        const ordenada = [...lista].sort((a, b) => b.puntos - a.puntos);
+        const ordenada = lista
+          .filter((c) => c.rol === "usuario" && c.activo)
+          .sort((a, b) => b.puntos - a.puntos);
         setClientes(ordenada);
         if (ordenada.length > 0) setClienteId(ordenada[0].id);
       })
@@ -33,9 +35,9 @@ export default function GamificacionPage() {
   return (
     <>
       <PageHeader
-        icon={Trophy}
-        title="Gamificación"
-        subtitle="Tabla de posiciones y detalle de puntos de cada colaborador."
+        icon={Medal}
+        title="Ranking de logros"
+        subtitle="Posiciones por puntos de los usuarios y el detalle de cómo los ganaron."
       />
       {error && (
         <Alert variant="danger" className="mb-3">
@@ -48,7 +50,7 @@ export default function GamificacionPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
-                <th className="px-3 py-2">Colaborador</th>
+                <th className="px-3 py-2">Usuario</th>
                 <th className="px-3 py-2">Puntos</th>
               </tr>
             </thead>

@@ -1,16 +1,25 @@
-import { BarChart3, BookOpen, Bot, Inbox, Settings, Trophy, UserCog, Users } from "lucide-react";
+import { BarChart3, Bot, History, Inbox, Medal, UserCog, Users } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
 
 const NAV_ITEMS = [
-  { to: "/tecnico", label: "Tickets", icon: Inbox },
-  { label: "Mis asignados", icon: UserCog, disabled: true },
-  { to: "/tecnico/clientes", label: "Clientes / Usuarios", icon: Users },
-  { to: "/tecnico/gamificacion", label: "Gamificación", icon: Trophy },
-  { label: "Base de conocimiento", icon: BookOpen, disabled: true },
-  { label: "Reportes", icon: BarChart3, disabled: true },
-  { label: "Configuración", icon: Settings, disabled: true },
+  {
+    to: "/tecnico/tickets",
+    label: "Tickets",
+    icon: Inbox,
+    isActive: (p) => p.startsWith("/tecnico/tickets"),
+  },
+  {
+    to: "/tecnico/asignados",
+    label: "Mis asignados",
+    icon: UserCog,
+    isActive: (p) => p.startsWith("/tecnico/asignados"),
+  },
+  { to: "/tecnico/historico", label: "Mi histórico", icon: History },
+  { to: "/tecnico/usuarios", label: "Usuarios", icon: Users },
+  { to: "/tecnico/ranking", label: "Ranking", icon: Medal },
+  { to: "/tecnico/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 function MinutitoMiniWidget() {
@@ -43,7 +52,7 @@ export default function TecnicoLayout() {
     <AppShell
       navItems={NAV_ITEMS}
       usuario={usuario}
-      rolLabel="Técnico de Soporte TI"
+      rutaBusqueda="/tecnico/tickets"
       onLogout={salir}
       dark
       sidebarExtra={<MinutitoMiniWidget />}

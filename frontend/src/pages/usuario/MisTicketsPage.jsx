@@ -1,17 +1,25 @@
-import { Ticket } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Search, Ticket } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { listarTickets } from "../../api";
+import { normalizarTexto } from "../../texto";
 import Alert from "../../components/ui/Alert";
 import Card from "../../components/ui/Card";
 import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
+import { inputClass } from "../../components/ui/formStyles";
 import EstadoBadge from "../../components/EstadoBadge";
 
 export default function MisTicketsPage() {
+  const [params] = useSearchParams();
   const [tickets, setTickets] = useState([]);
+  const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setBusqueda(params.get("q") ?? "");
+  }, [params]);
 
   useEffect(() => {
     listarTickets()
@@ -19,6 +27,14 @@ export default function MisTicketsPage() {
       .catch((e) => setError(e.message))
       .finally(() => setCargando(false));
   }, []);
+
+  const visibles = useMemo(
+    () =>
+      tickets.filter(
+        (t) => !busqueda || normalizarTexto(t.texto).includes(normalizarTexto(busqueda))
+      ),
+    [tickets, busqueda]
+  );
 
   return (
     <>
@@ -35,13 +51,36 @@ export default function MisTicketsPage() {
       )}
       {cargando && <Spinner size="sm" />}
 
+      {!cargando && tickets.length > 0 && (
+        <Card className="mb-4">
+          <Card.Body>
+            <div className="relative max-w-md">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                className={`${inputClass} pl-9`}
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar en mis tickets..."
+              />
+            </div>
+          </Card.Body>
+        </Card>
+      )}
+
       {!cargando && tickets.length === 0 && (
         <Alert variant="secondary">
-          Todavía no has creado ningún ticket. Usa "Hablar con Minutito" en el menú.
+          Todavía no has creado ningún ticket. Escribe tu consulta en el chat de Inicio.
         </Alert>
       )}
 
-      {!cargando && tickets.length > 0 && (
+      {!cargando && tickets.length > 0 && visibles.length === 0 && (
+        <Alert variant="secondary">Ningún ticket coincide con la búsqueda.</Alert>
+      )}
+
+      {!cargando && visibles.length > 0 && (
         <Card className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600">
@@ -54,7 +93,7 @@ export default function MisTicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {tickets.map((t) => (
+              {visibles.map((t) => (
                 <tr key={t.id} className="hover:bg-gray-50">
                   <td className="px-3 py-2">
                     <Link to={`/usuario/tickets/${t.id}`} className="text-blue-600 hover:underline">

@@ -1,5 +1,5 @@
 """Reglas de gamificación: otorga puntos cuando un ticket se resuelve,
-según qué tanto usó el colaborador el autoservicio antes de escalar.
+según qué tanto usó la persona el autoservicio antes de escalar.
 """
 from typing import Optional
 

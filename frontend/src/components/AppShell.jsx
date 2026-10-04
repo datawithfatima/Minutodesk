@@ -4,7 +4,7 @@ import TopBar from "./TopBar";
 export default function AppShell({
   navItems,
   usuario,
-  rolLabel,
+  rutaBusqueda,
   onLogout,
   footer,
   dark,
@@ -13,12 +13,12 @@ export default function AppShell({
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopBar usuario={usuario} rolLabel={rolLabel} />
+      <TopBar usuario={usuario} rutaBusqueda={rutaBusqueda} />
       <div className="flex">
         <Sidebar navItems={navItems} onLogout={onLogout} footer={footer} dark={dark}>
           {sidebarExtra}
         </Sidebar>
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );
