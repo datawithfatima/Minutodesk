@@ -71,29 +71,17 @@ export default function DashboardPage() {
         </Card>
 
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {ACCIONES.map((a) =>
-            a.disabled ? (
-              <div
-                key={a.titulo}
-                className="cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-60"
-                title="Próximamente"
-              >
-                <a.icon className="mb-2 text-gray-400" size={22} />
-                <div className="font-semibold text-gray-400">{a.titulo}</div>
-                <div className="text-sm text-gray-400">{a.texto}</div>
-              </div>
-            ) : (
-              <Link key={a.titulo} to={a.to}>
-                <Card className="h-full transition-shadow hover:shadow-md">
-                  <Card.Body>
-                    <a.icon className="mb-2 text-gray-900" size={22} />
-                    <div className="font-semibold text-gray-900">{a.titulo}</div>
-                    <div className="text-sm text-gray-500">{a.texto}</div>
-                  </Card.Body>
-                </Card>
-              </Link>
-            )
-          )}
+          {ACCIONES.map((a) => (
+            <Link key={a.titulo} to={a.to}>
+              <Card className="h-full transition-shadow hover:shadow-md">
+                <Card.Body>
+                  <a.icon className="mb-2 text-gray-900" size={22} />
+                  <div className="font-semibold text-gray-900">{a.titulo}</div>
+                  <div className="text-sm text-gray-500">{a.texto}</div>
+                </Card.Body>
+              </Card>
+            </Link>
+          ))}
         </div>
 
         <div className="mb-2 flex items-center justify-between">
