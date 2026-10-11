@@ -257,3 +257,163 @@ def test_reporte_del_usuario_solo_cuenta_sus_tickets(client, crear_cuenta, entra
     assert propio["total"] == 1 and propio["resueltos"] == 1
     assert global_["total"] == 2 and global_["abiertos"] == 1
     assert global_["pct_resolucion_autonoma"] == 0.0 and global_["tiempo_medio_resolucion_horas"] is not None
+
+
+def test_admin_elimina_cuenta_sin_actividad_y_sus_enlaces(client, crear_cuenta, entrar, session):
+    from app.models import Cliente, TokenAcceso
+
+    admin = crear_cuenta("adm@ejemplo.com", "administrador")
+    h = entrar("adm@ejemplo.com")
+    creado = client.post(
+        "/admin/usuarios",
+        json={"nombre": "Nueva", "email": "nueva@ejemplo.com", "area_id": admin.area_id, "rol": "usuario"},
+        headers=h,
+    ).json()["usuario"]
+    assert session.exec(select(TokenAcceso).where(TokenAcceso.cliente_id == creado["id"])).first()
+
+    r = client.delete(f"/admin/usuarios/{creado['id']}", headers=h)
+    assert r.status_code == 200
+    assert session.get(Cliente, creado["id"]) is None
+    assert session.exec(select(TokenAcceso).where(TokenAcceso.cliente_id == creado["id"])).first() is None
+    assert client.delete(f"/admin/usuarios/{creado['id']}", headers=h).status_code == 404
+
+
+def test_no_se_elimina_a_si_mismo_ni_a_quien_tiene_actividad(client, crear_cuenta, entrar):
+    admin = crear_cuenta("adm@ejemplo.com", "administrador")
+    usuario = crear_cuenta("usr@ejemplo.com", "usuario")
+    tecnico = crear_cuenta("tec@ejemplo.com", "tecnico")
+    ha = entrar("adm@ejemplo.com")
+    ticket = _crear_ticket(client, entrar("usr@ejemplo.com"))
+    client.patch(f"/tickets/{ticket['id']}", json={"estado": "en_proceso"}, headers=entrar("tec@ejemplo.com"))
+
+    assert client.delete(f"/admin/usuarios/{admin.id}", headers=ha).status_code == 400
+    # el usuario tiene un ticket; el técnico lo tomó y cambió su estado
+    assert client.delete(f"/admin/usuarios/{usuario.id}", headers=ha).status_code == 409
+    assert client.delete(f"/admin/usuarios/{tecnico.id}", headers=ha).status_code == 409
+    assert client.get("/admin/usuarios", headers=ha).status_code == 200
+
+
+def test_solo_el_administrador_puede_eliminar_usuarios(client, crear_cuenta, entrar):
+    crear_cuenta("tec@ejemplo.com", "tecnico")
+    victima = crear_cuenta("usr@ejemplo.com", "usuario")
+    assert client.delete(f"/admin/usuarios/{victima.id}", headers=entrar("tec@ejemplo.com")).status_code == 403
+    assert client.delete(f"/admin/usuarios/{victima.id}", headers=entrar("usr@ejemplo.com")).status_code == 403
+
+
+CSV_HISTORICO = (
+    '"ID","Seleccione una opción para la respectiva atención.","Categoría","Prioridad",'
+    '"Creado","Solicitante","Estado","Fecha Solución"\n'
+    '"1","Incidencia o problema técnico","Internet","Alta","03/09/2026 14:29","Alguien Real","Completado","05/09/2026"\n'
+    '"2","Solicitud de servicio","","","04/09/2026 09:22","Otra Persona","En Curso",""\n'
+    '"3","Incidencia o problema técnico","SAP","Normal","fecha-rota","Alguien","Nuevo",""\n'
+)
+
+
+def test_importar_historico_es_repetible_y_no_guarda_nombres(session, tmp_path):
+    from app.models import TicketHistorico
+    from app.services.historico import importar_csv
+
+    csv = tmp_path / "export.csv"
+    csv.write_text(CSV_HISTORICO, encoding="utf-8-sig")
+
+    primero = importar_csv(csv, session)
+    assert (primero["nuevos"], primero["actualizados"], primero["omitidos"]) == (2, 0, 1)
+
+    # el mes siguiente: el ticket 2 ya se completó y llega el 4 nuevo
+    csv.write_text(
+        CSV_HISTORICO.replace('"En Curso",""', '"Completado","06/09/2026"')
+        + '"4","Solicitud de servicio","Office","Baja","10/09/2026 08:00","X","Nuevo",""\n',
+        encoding="utf-8-sig",
+    )
+    segundo = importar_csv(csv, session)
+    assert (segundo["nuevos"], segundo["actualizados"], segundo["omitidos"]) == (1, 1, 1)
+    assert segundo["total_en_base"] == 3
+
+    filas = session.exec(select(TicketHistorico)).all()
+    assert {f.estado for f in filas} == {"Completado", "Nuevo"}
+    assert not any("Alguien" in str(f.model_dump()) for f in filas)  # sin datos personales
+
+
+def test_importar_historico_rechaza_csv_sin_columnas(session, tmp_path):
+    import pytest as _pytest
+
+    from app.services.historico import importar_csv
+
+    csv = tmp_path / "malo.csv"
+    csv.write_text('"A","B"\n"1","2"\n', encoding="utf-8")
+    with _pytest.raises(ValueError):
+        importar_csv(csv, session)
+
+
+def test_reporte_historico_solo_para_personal_y_calcula_indicadores(
+    client, crear_cuenta, entrar, session, tmp_path
+):
+    from app.services.historico import importar_csv
+
+    crear_cuenta("usr@ejemplo.com", "usuario")
+    crear_cuenta("adm@ejemplo.com", "administrador")
+    csv = tmp_path / "export.csv"
+    csv.write_text(CSV_HISTORICO, encoding="utf-8-sig")
+    importar_csv(csv, session)
+
+    assert client.get("/reportes/historico", headers=entrar("usr@ejemplo.com")).status_code == 403
+    datos = client.get("/reportes/historico", headers=entrar("adm@ejemplo.com")).json()
+    assert datos["total"] == 2 and datos["completados"] == 1
+    assert datos["dias_medio_resolucion"] == 2.0  # del 03/09 al 05/09
+    assert datos["por_mes"] == [{"etiqueta": "2026-09", "total": 2}]
+    assert {c["etiqueta"] for c in datos["por_categoria"]} == {"Internet", "Sin categoría"}
+
+
+CSV_SUCIO = (
+    '"ID","Seleccione una opción para la respectiva atención.","Categoría","Prioridad",'
+    '"Creado","Solicitante","Estado","Fecha Solución"\n'
+    '" 10 ","Incidencia","internet","critica","03/09/2026 14:29","A","completado","05/09/2026"\n'
+    '"11","Incidencia","  Internet ","  Alta  ","04/09/2026 09:22","B","En  Curso","01/09/2026"\n'
+    '"12","Incidencia","SAP","Normal","04/09/2026 09:22","C","Nuevo",""\n'
+    '"12","Incidencia","SAP","Baja","04/09/2026 09:22","C","Nuevo",""\n'
+    '"","Incidencia","SAP","Normal","04/09/2026 09:22","D","Nuevo",""\n'
+    '"13","Incidencia","SAP","Normal","","E","Nuevo",""\n'
+)
+
+
+def _subir(client, headers, csv, aplicar):
+    return client.post(
+        f"/admin/historico?aplicar={'true' if aplicar else 'false'}",
+        content=csv.encode("utf-8"),
+        headers={**headers, "Content-Type": "text/csv"},
+    )
+
+
+def test_limpieza_unifica_valores_descarta_filas_malas_y_no_escribe_en_vista_previa(
+    client, crear_cuenta, entrar, session
+):
+    from app.models import TicketHistorico
+
+    crear_cuenta("adm@ejemplo.com", "administrador")
+    h = entrar("adm@ejemplo.com")
+
+    previa = _subir(client, h, CSV_SUCIO, aplicar=False).json()
+    assert previa["aplicado"] is False
+    assert (previa["nuevos"], previa["omitidos"], previa["duplicados_en_archivo"]) == (3, 2, 1)
+    assert previa["fechas_solucion_descartadas"] == 1  # el 11 se "resolvió" antes de crearse
+    assert session.exec(select(TicketHistorico)).all() == []  # la vista previa no guarda nada
+
+    real = _subir(client, h, CSV_SUCIO, aplicar=True).json()
+    assert real["aplicado"] is True and real["total_en_base"] == 3
+    filas = {t.id_externo: t for t in session.exec(select(TicketHistorico)).all()}
+    assert filas["10"].estado == "Completado" and filas["10"].prioridad == "Crítica"
+    assert filas["11"].estado == "En Curso" and filas["11"].resuelto_en is None
+    assert filas["10"].categoria == filas["11"].categoria == "Internet"  # misma categoría, una escritura
+    assert filas["12"].prioridad == "Baja"  # gana la última fila repetida
+
+    otra_vez = _subir(client, h, CSV_SUCIO, aplicar=True).json()
+    assert (otra_vez["nuevos"], otra_vez["actualizados"], otra_vez["sin_cambios"]) == (0, 0, 3)
+
+
+def test_subida_de_csv_solo_admin_y_rechaza_archivos_invalidos(client, crear_cuenta, entrar):
+    crear_cuenta("tec@ejemplo.com", "tecnico")
+    crear_cuenta("adm@ejemplo.com", "administrador")
+    assert _subir(client, entrar("tec@ejemplo.com"), CSV_SUCIO, aplicar=False).status_code == 403
+    h = entrar("adm@ejemplo.com")
+    assert _subir(client, h, "", aplicar=False).status_code == 400
+    assert _subir(client, h, '"A","B"\n"1","2"\n', aplicar=False).status_code == 400

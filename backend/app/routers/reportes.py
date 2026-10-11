@@ -7,10 +7,20 @@ from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models import Cliente, Ticket
-from app.schemas import CategoriaConteo, ReporteResumen
-from app.services.auth import es_personal, obtener_usuario_actual
+from app.schemas import CategoriaConteo, HistoricoResumen, ReporteResumen
+from app.services.auth import es_personal, obtener_usuario_actual, requerir_personal
+from app.services.historico import resumen_historico
 
 router = APIRouter()
+
+
+@router.get("/historico", response_model=HistoricoResumen)
+def historico(
+    usuario: Cliente = Depends(requerir_personal),
+    session: Session = Depends(get_session),
+):
+    """Indicadores del histórico importado desde el CSV mensual (solo personal)."""
+    return resumen_historico(session)
 
 
 @router.get("/resumen", response_model=ReporteResumen)

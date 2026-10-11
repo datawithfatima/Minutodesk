@@ -8,6 +8,8 @@ const VARIANTES = {
     "border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50",
   outlineSuccess:
     "border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50",
+  outlineDanger:
+    "border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-50",
 };
 
 export default function Button({

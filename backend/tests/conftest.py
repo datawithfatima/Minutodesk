@@ -2,6 +2,7 @@ import re
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
@@ -19,6 +20,14 @@ def engine():
     motor = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
+
+    # Igual que la base real: SQLite no valida claves foráneas si no se piden.
+    @event.listens_for(motor, "connect")
+    def _activar_claves_foraneas(dbapi_connection, _registro):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     SQLModel.metadata.create_all(motor)
     return motor
 

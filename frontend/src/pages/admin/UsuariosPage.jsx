@@ -1,8 +1,9 @@
-import { Mail, Plus, Search, Users } from "lucide-react";
+import { Mail, Plus, Search, Trash2, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   actualizarUsuario,
   crearUsuario,
+  eliminarUsuario,
   enviarEnlaceDeAcceso,
   listarAreas,
   listarUsuarios,
@@ -122,6 +123,23 @@ export default function UsuariosPage() {
     try {
       const r = await enviarEnlaceDeAcceso(usuario.id);
       setAviso(textoDeCorreo(r.correo, usuario.email, "Enlace de acceso generado."));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function eliminar(usuario) {
+    const confirmado = window.confirm(
+      `¿Eliminar a ${usuario.nombre} (${usuario.email})? Esta acción no se puede deshacer.`
+    );
+    if (!confirmado) return;
+    setError(null);
+    setAviso(null);
+    try {
+      await eliminarUsuario(usuario.id);
+      setAviso(`Se eliminó a ${usuario.nombre}.`);
+      if (panel?.usuario?.id === usuario.id) setPanel(null);
+      await cargar();
     } catch (e) {
       setError(e.message);
     }
@@ -338,6 +356,11 @@ export default function UsuariosPage() {
                         {u.activo && (
                           <Button variant="outlineSecondary" size="sm" onClick={() => enviarEnlace(u)}>
                             <Mail size={14} /> Enviar enlace
+                          </Button>
+                        )}
+                        {u.id !== yo.id && (
+                          <Button variant="outlineDanger" size="sm" onClick={() => eliminar(u)}>
+                            <Trash2 size={14} /> Eliminar
                           </Button>
                         )}
                       </div>

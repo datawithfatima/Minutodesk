@@ -2,24 +2,35 @@
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from app.database import get_session
 from app.ml.train_classifier import quitar_tildes
-from app.models import Area, Cliente
+from app.models import (
+    Area,
+    Cliente,
+    EventoGamificacion,
+    HistorialEstadoTicket,
+    TokenAcceso,
+    Ticket,
+)
 from app.schemas import (
     AreaCreate,
     AreaRead,
     AreaUpdate,
     ClienteRead,
+    ImportacionReporte,
     InvitacionRespuesta,
+    MensajeRespuesta,
     UsuarioCreado,
     UsuarioCreate,
     UsuarioUpdate,
 )
 from app.services import correo, tokens_acceso
 from app.services.auth import requerir_admin
+from app.services.historico import leer_csv, procesar
 from app.services.usuarios import a_cliente_read, mapa_areas
 
 router = APIRouter()
@@ -140,6 +151,58 @@ def actualizar_usuario(
     return a_cliente_read(cliente, mapa_areas(session))
 
 
+@router.delete("/usuarios/{usuario_id}", response_model=MensajeRespuesta)
+def eliminar_usuario(
+    usuario_id: int,
+    admin: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    """Borra una cuenta sin actividad (p. ej. creada por error o nunca usada).
+
+    Quien ya participó en tickets, cambios de estado o gamificación no se puede
+    eliminar porque dejaría huérfano el historial; para esos casos se desactiva.
+    """
+    cliente = session.get(Cliente, usuario_id)
+    if cliente is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if cliente.id == admin.id:
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta")
+
+    tiene_actividad = (
+        session.exec(
+            select(Ticket.id).where(
+                or_(Ticket.cliente_id == cliente.id, Ticket.tecnico_id == cliente.id)
+            )
+        ).first()
+        is not None
+        or session.exec(
+            select(HistorialEstadoTicket.id).where(
+                HistorialEstadoTicket.cambiado_por_id == cliente.id
+            )
+        ).first()
+        is not None
+        or session.exec(
+            select(EventoGamificacion.id).where(EventoGamificacion.cliente_id == cliente.id)
+        ).first()
+        is not None
+    )
+    if tiene_actividad:
+        raise HTTPException(
+            status_code=409,
+            detail="Esta persona ya tiene actividad registrada (tickets, cambios o puntos) y "
+            "no se puede eliminar sin perder el historial. Desactiva su cuenta en su lugar.",
+        )
+
+    for token in session.exec(
+        select(TokenAcceso).where(TokenAcceso.cliente_id == cliente.id)
+    ).all():
+        session.delete(token)
+    session.flush()  # los tokens deben salir antes que la cuenta a la que apuntan
+    session.delete(cliente)
+    session.commit()
+    return MensajeRespuesta(mensaje="Usuario eliminado.")
+
+
 @router.post("/usuarios/{usuario_id}/invitacion", response_model=InvitacionRespuesta)
 def enviar_enlace_de_acceso(
     usuario_id: int,
@@ -163,6 +226,30 @@ def enviar_enlace_de_acceso(
         )
         modo = correo.enviar_recuperacion(cliente.email, cliente.nombre, token)
     return InvitacionRespuesta(correo=modo)
+
+
+MAX_BYTES_CSV = 10 * 1024 * 1024
+
+
+@router.post("/historico", response_model=ImportacionReporte)
+async def importar_historico(
+    request: Request,
+    aplicar: bool = False,
+    admin: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    """Limpia el CSV recibido (cuerpo de la petición) y, con aplicar=true, lo guarda.
+
+    Sin aplicar solo devuelve la vista previa de lo que pasaría.
+    """
+    contenido = await request.body()
+    if len(contenido) > MAX_BYTES_CSV:
+        raise HTTPException(status_code=413, detail="El archivo supera los 10 MB")
+    try:
+        tabla = leer_csv(contenido)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return procesar(tabla, session, aplicar)
 
 
 @router.get("/areas", response_model=list[AreaRead])

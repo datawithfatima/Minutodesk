@@ -21,6 +21,7 @@ import UsuariosSoloLecturaPage from "./pages/tecnico/ClientesPage";
 import AdminLayout from "./components/AdminLayout";
 import UsuariosPage from "./pages/admin/UsuariosPage";
 import AreasPage from "./pages/admin/AreasPage";
+import ImportarPage from "./pages/admin/ImportarPage";
 
 import HistoricoPage from "./pages/compartido/HistoricoPage";
 import ReportesPage from "./pages/compartido/ReportesPage";
@@ -99,6 +100,7 @@ export default function App() {
           <Route path="historico" element={<HistoricoPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="areas" element={<AreasPage />} />
+          <Route path="datos" element={<ImportarPage />} />
           <Route path="ranking" element={<RankingPage />} />
         </Route>
       </Route>

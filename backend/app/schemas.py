@@ -148,6 +148,40 @@ class CategoriaConteo(SQLModel):
     total: int
 
 
+class ConteoEtiqueta(SQLModel):
+    etiqueta: str
+    total: int
+
+
+class HistoricoResumen(SQLModel):
+    total: int
+    completados: int
+    cancelados: int
+    dias_medio_resolucion: Optional[float] = None
+    desde: Optional[datetime] = None
+    hasta: Optional[datetime] = None
+    ultima_importacion: Optional[datetime] = None
+    por_estado: list[ConteoEtiqueta]
+    por_categoria: list[ConteoEtiqueta]
+    por_prioridad: list[ConteoEtiqueta]
+    por_mes: list[ConteoEtiqueta]
+
+
+class ImportacionReporte(SQLModel):
+    aplicado: bool
+    filas: int
+    validas: int
+    nuevos: int
+    actualizados: int
+    sin_cambios: int
+    omitidos: int
+    duplicados_en_archivo: int
+    fechas_solucion_descartadas: int
+    completados_sin_fecha: int
+    incidencias: list[str]
+    total_en_base: int
+
+
 class ReporteResumen(SQLModel):
     total: int
     abiertos: int

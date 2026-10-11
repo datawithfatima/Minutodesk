@@ -97,6 +97,25 @@ class InteraccionMinutito(SQLModel, table=True):
     creado_en: datetime = Field(default_factory=datetime.now)
 
 
+class TicketHistorico(SQLModel, table=True):
+    """Ticket del export mensual de la herramienta anterior.
+
+    Solo sirve para reportes: no guarda nombres de personas ni el texto del ticket.
+    """
+
+    __tablename__ = "ticket_historico"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    id_externo: str = Field(unique=True, index=True)  # columna "ID" del CSV
+    tipo: Optional[str] = Field(default=None)
+    categoria: Optional[str] = Field(default=None, index=True)
+    prioridad: Optional[str] = Field(default=None)
+    estado: str
+    creado_en: datetime
+    resuelto_en: Optional[datetime] = Field(default=None)
+    importado_en: datetime = Field(default_factory=datetime.now)
+
+
 class EventoGamificacion(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     cliente_id: int = Field(foreign_key="cliente.id")

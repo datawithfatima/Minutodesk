@@ -54,10 +54,10 @@ uvicorn app.main:app --reload
 ```
 
 - Verificar: <http://localhost:8000/health> debe devolver `{"status": "ok"}`.
-- `seed_data.py` crea las áreas, cuentas de demostración (contraseña
-  `minutodesk123`) y tu administrador **sin contraseña**: te genera un enlace
-  de activación. Sin argumentos crea un administrador de demostración
-  (`admin@ejemplo.com`), solo para desarrollo.
+- `seed_data.py` crea las áreas y tu administrador **sin contraseña**: te genera
+  un enlace de activación. Desde ahí, el administrador crea las demás cuentas
+  en la página (Usuarios). Con `--demo` agrega además cuentas de prueba
+  (contraseña `minutodesk123`), solo para desarrollo.
 - **Correo:** sin `SMTP_HOST` en `backend/.env` los correos no se envían, se
   guardan como `.txt` en `backend/correos_enviados/` (ahí está el enlace de
   activación o de recuperación). Para correos reales configura las variables
@@ -88,11 +88,25 @@ El modelo se cambia en `MODELO_OLLAMA` (`backend/app/services/assistant.py`).
 Sin Ollama activo, el chat con Minutito no responde (`iniciar.bat` avisa si no
 lo detecta).
 
-## Entrenar el clasificador
+## Actualización mensual con el CSV de tickets
 
-Coloca el export crudo en `data/tickets_historicos_raw.csv` y, desde `backend/`:
+**Desde la página:** como administrador, menú "Importar histórico". Eliges el CSV,
+el sistema lo limpia y muestra una vista previa (nuevos, actualizados, descartados y
+el porqué); solo al pulsar "Confirmar e importar" se guarda. Esto alimenta los
+reportes; el reentrenamiento del clasificador se hace con el script.
+
+**Con el script**, desde `backend/` (importa y además reentrena):
 
 ```bash
-python -m app.ml.prepare_dataset
-python -m app.ml.train_classifier
+python scripts/actualizar_mensual.py ruta\al\export.csv
 ```
+
+Esto, en orden: guarda el CSV en `data/tickets_historicos_raw.csv`, lo importa a
+la base para la sección "Histórico importado" de Reportes (los tickets se
+identifican por su ID: los existentes se actualizan y los nuevos se agregan, sin
+duplicar; no se guardan nombres de personas ni descripciones) y reentrena el
+clasificador. Usa `--sin-entrenar` para omitir el reentrenamiento. Después de
+reentrenar, reinicia el backend.
+
+Para entrenar a mano: `python -m app.ml.prepare_dataset` y
+`python -m app.ml.train_classifier`.

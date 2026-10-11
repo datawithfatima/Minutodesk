@@ -1,4 +1,14 @@
-import { BarChart3, Bot, Building2, History, Inbox, Medal, UserCog, Users } from "lucide-react";
+import {
+  BarChart3,
+  Bot,
+  Building2,
+  FileUp,
+  History,
+  Inbox,
+  Medal,
+  UserCog,
+  Users,
+} from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
@@ -21,6 +31,7 @@ const NAV_ITEMS = [
   { to: "/admin/usuarios", label: "Usuarios", icon: Users },
   { to: "/admin/areas", label: "Áreas", icon: Building2 },
   { to: "/admin/ranking", label: "Ranking", icon: Medal },
+  { to: "/admin/datos", label: "Importar histórico", icon: FileUp },
 ];
 
 function MinutitoMiniWidget() {
