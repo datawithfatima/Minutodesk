@@ -14,6 +14,9 @@ data/reporte_*.md
 data/*.csv
 *.db
 
+# Documentación de la tesis: se mantiene solo en local
+docs/
+
 # Entorno y secretos
 .env
 .secret_key

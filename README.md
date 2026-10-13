@@ -7,21 +7,25 @@ en Ingeniería en Sistemas.
 
 1. **Clasificador automático** (TF-IDF + SVM): predice tipo (solicitud,
    incidencia, acceso) y categoría de cada ticket. Meta: precisión ≥80 %.
-2. **Asistente conversacional "Minutito"**: corre sobre un modelo de lenguaje
-   local vía Ollama (no se entrena, se configura con prompts). Meta: ≥30 % de
-   resolución autónoma de consultas de primer nivel.
+2. **Asistente conversacional "Minutito"**: responde al instante las consultas
+   frecuentes (contraseñas, VPN, impresoras, Office, videollamadas…) con pasos
+   verificados, y para lo demás usa un modelo de lenguaje local vía Ollama (no se
+   entrena, se configura con prompts). Meta: ≥30 % de resolución autónoma de
+   consultas de primer nivel. Un ticket solo cuenta como resuelto por Minutito si
+   el usuario lo confirma.
 3. **Gamificación**: lógica de negocio simple (sin IA) que da puntos por usar
    el autoservicio ("Mis logros" para el usuario, "Ranking" para el personal).
 
 Prototipo de alcance acotado: corre en una sola máquina, sin servicios en la nube.
+La interfaz está en español y se adapta a móvil, tablet y escritorio.
 
 ## Roles
 
 | Rol | Qué puede hacer |
 |---|---|
-| Usuario final | Crear tickets, chatear con Minutito, ver sus tickets, logros, histórico, FAQs y reportes propios |
-| Técnico | Ver y atender todos los tickets (tomarlos, resolverlos), ver usuarios, ranking y reportes |
-| Administrador | Todo lo anterior, más crear/editar usuarios y áreas |
+| Usuario final | Crear tickets (con el formulario o hablando con Minutito), ver sus tickets, logros, histórico, FAQs y reportes propios |
+| Técnico | Ver y atender todos los tickets (tomarlos, resolverlos, cancelarlos con motivo, corregir categoría y prioridad), ver usuarios, ranking y reportes de tickets |
+| Administrador | Todo lo anterior, más crear/editar/eliminar usuarios y áreas, ver la calidad del clasificador e importar el CSV histórico |
 
 No hay registro público: las cuentas las crea el administrador. Al crear una
 cuenta el sistema genera una **contraseña temporal** que el administrador ve una
@@ -29,7 +33,8 @@ sola vez y le entrega a la persona; al iniciar sesión por primera vez el sistem
 le exige cambiarla antes de usar nada (se valida en el servidor). Si la olvida,
 "¿Olvidaste tu contraseña?" le envía un enlace de recuperación a su correo, y el
 administrador también puede generar otra temporal ("Restablecer contraseña").
-Cualquier usuario puede cambiar su contraseña desde el ícono de la llave.
+Cualquier usuario puede cambiar su contraseña o cerrar sesión desde el menú de su
+cuenta (arriba a la derecha).
 
 ## Crear un ticket
 
@@ -49,13 +54,26 @@ así el administrador ve el **acierto real en uso** (Reportes → Calidad del cl
 opciones del formulario (listas, aplicaciones, licencias, extensiones) están en
 `backend/app/services/catalogos.py`. Los archivos se guardan en `backend/uploads/` (ignorado por git).
 
+## Estados de un ticket
+
+| Estado | Significado |
+|---|---|
+| Nuevo | Recién creado, nadie lo atiende todavía (en la base se guarda como `abierto`) |
+| En proceso | Un técnico lo tomó |
+| Resuelto | Lo cerró Minutito (con la confirmación del usuario) o el equipo de soporte |
+| Cancelado | El personal lo cerró sin resolverlo, siempre con un motivo que el usuario ve |
+
+Solo el técnico o el administrador pueden cancelar un ticket, y pueden reabrirlo si fue
+un error. Un ticket cancelado no cuenta como resuelto, no entra en el tiempo medio de
+resolución ni en el % de resolución autónoma, y no da puntos. Cada cambio de estado queda
+en el historial del ticket con quién lo hizo.
+
 ## Estructura del proyecto
 
 ```
 backend/    API FastAPI + SQLModel + clasificador ML + pruebas (pytest)
 frontend/   React + Vite + Tailwind
 data/       Export de tickets históricos (no se sube a git)
-docs/       Casos de uso, modelo relacional y documentación
 ```
 
 ## Arranque rápido (Windows)
@@ -86,7 +104,7 @@ uvicorn app.main:app --reload
   (ahí está el enlace de recuperación). Para correos reales configura las
   variables `SMTP_*` (ver `.env.example`).
 - Las bases creadas con una versión anterior se actualizan solas al arrancar
-  (columnas nuevas), sin perder datos.
+  (columnas nuevas y el estado «cancelado»), sin perder datos.
 - **Pruebas:** `python -m pytest` desde `backend/`.
 
 ## Frontend
@@ -98,7 +116,8 @@ npm run dev
 ```
 
 Abre <http://localhost:5173>. La URL del backend se deduce del host actual
-(puerto 8000) o de `VITE_API_URL`.
+(puerto 8000) o de `VITE_API_URL`. La tipografía (Inter) se instala con npm, así
+que la interfaz funciona sin conexión a internet.
 
 ## Minutito (Ollama)
 
@@ -109,9 +128,11 @@ corriendo en `localhost:11434`:
 ollama pull llama3.2:3b
 ```
 
-El modelo se cambia en `MODELO_OLLAMA` (`backend/app/services/assistant.py`).
-Sin Ollama activo, el chat con Minutito no responde (`iniciar.bat` avisa si no
-lo detecta).
+El modelo se cambia en `MODELO_OLLAMA` (`backend/app/services/assistant.py`), y las
+respuestas para los problemas frecuentes en `backend/app/services/conocimiento.py`.
+Sin Ollama activo, Minutito sigue respondiendo lo frecuente; para el resto avisa que
+no está disponible y el ticket queda para el equipo de soporte (`iniciar.bat` avisa
+si no lo detecta).
 
 ## Actualización mensual con el CSV de tickets
 
@@ -121,7 +142,7 @@ tickets uno por uno, solo de lectura y con prefijo `H-`, sin mezclarse con los d
 plataforma). Eliges el CSV,
 el sistema lo limpia y muestra una vista previa (nuevos, actualizados, descartados y
 el porqué); solo al pulsar "Confirmar e importar" se guarda. Esto alimenta los
-reportes; el reentrenamiento del clasificador se hace con el script.
+análisis del histórico; el reentrenamiento del clasificador se hace con el script.
 
 **Con el script**, desde `backend/` (importa y además reentrena):
 
@@ -130,11 +151,14 @@ python scripts/actualizar_mensual.py ruta\al\export.csv
 ```
 
 Esto, en orden: guarda el CSV en `data/tickets_historicos_raw.csv`, lo importa a
-la base para la sección "Histórico importado" de Reportes (los tickets se
-identifican por su ID: los existentes se actualizan y los nuevos se agregan, sin
-duplicar; no se guardan nombres de personas ni descripciones) y reentrena el
+la base para "Datos históricos" (los tickets se identifican por su ID: los
+existentes se actualizan y los nuevos se agregan, sin duplicar) y reentrena el
 clasificador. Usa `--sin-entrenar` para omitir el reentrenamiento. Después de
 reentrenar, reinicia el backend.
+
+De cada ticket importado se guardan, además de los datos para los indicadores, la
+descripción, el solicitante y quién lo atendió, solo para que el administrador los
+consulte. La base de datos y los CSV no se suben a git.
 
 Para entrenar a mano: `python -m app.ml.prepare_dataset` y
 `python -m app.ml.train_classifier`.
