@@ -21,3 +21,11 @@ export function formatearDuracion(inicio, fin) {
   if (horas < 24) return `${horas} h ${minutos % 60} min`;
   return `${Math.floor(horas / 24)} d ${horas % 24} h`;
 }
+
+// En la base el primer estado se guarda como «abierto»; en pantalla se llama «Nuevo».
+export const ETIQUETA_ESTADO = {
+  abierto: "Nuevo",
+  en_proceso: "En proceso",
+  resuelto: "Resuelto",
+  cancelado: "Cancelado",
+};

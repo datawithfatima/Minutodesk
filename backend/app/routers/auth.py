@@ -4,6 +4,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.models import Cliente
 from app.schemas import (
+    CambiarPasswordRequest,
     ClienteRead,
     EstablecerPasswordRequest,
     LoginRequest,
@@ -16,7 +17,7 @@ from app.services.auth import (
     HASH_FALSO,
     crear_token,
     hashear_password,
-    obtener_usuario_actual,
+    obtener_usuario_sesion,
     validar_password,
     verificar_password,
 )
@@ -84,6 +85,7 @@ def establecer_password(
         raise HTTPException(status_code=400, detail=ENLACE_INVALIDO)
 
     cliente.password_hash = hashear_password(data.password)
+    cliente.debe_cambiar_password = False  # eligió una contraseña propia
     cliente.version_token += 1
     tokens_acceso.marcar_usado(session, registro)
     session.add(cliente)
@@ -91,9 +93,38 @@ def establecer_password(
     return MensajeRespuesta(mensaje="Tu contraseña quedó establecida. Ya puedes iniciar sesión.")
 
 
+@router.post("/cambiar-password", response_model=TokenResponse)
+def cambiar_password(
+    data: CambiarPasswordRequest,
+    usuario: Cliente = Depends(obtener_usuario_sesion),
+    session: Session = Depends(get_session),
+):
+    """Cambio de contraseña con sesión iniciada; es obligatorio tras recibir una temporal."""
+    if usuario.password_hash is None or not verificar_password(
+        data.password_actual, usuario.password_hash
+    ):
+        raise HTTPException(status_code=400, detail="La contraseña actual no es correcta")
+    if data.password_nueva == data.password_actual:
+        raise HTTPException(
+            status_code=400, detail="La contraseña nueva debe ser distinta de la actual"
+        )
+    validar_password(data.password_nueva)
+
+    usuario.password_hash = hashear_password(data.password_nueva)
+    usuario.debe_cambiar_password = False
+    usuario.version_token += 1  # cierra las demás sesiones; esta recibe un token nuevo
+    session.add(usuario)
+    session.commit()
+    session.refresh(usuario)
+    return TokenResponse(
+        access_token=crear_token(usuario),
+        cliente=a_cliente_read(usuario, mapa_areas(session)),
+    )
+
+
 @router.get("/yo", response_model=ClienteRead)
 def yo(
-    usuario: Cliente = Depends(obtener_usuario_actual),
+    usuario: Cliente = Depends(obtener_usuario_sesion),
     session: Session = Depends(get_session),
 ):
     return a_cliente_read(usuario, mapa_areas(session))

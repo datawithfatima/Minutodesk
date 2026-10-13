@@ -8,7 +8,7 @@ const VARIANTES = {
 export default function Badge({ color = "gray", children, className = "" }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+      className={`inline-flex max-w-full items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
         VARIANTES[color] || VARIANTES.gray
       } ${className}`}
     >

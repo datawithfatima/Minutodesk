@@ -8,6 +8,9 @@ export default function RequireAuth({ rol }) {
   if (!token || !usuario) {
     return <Navigate to="/login" replace />;
   }
+  if (usuario.debe_cambiar_password) {
+    return <Navigate to="/cambiar-password" replace />;
+  }
   if (rol && usuario.rol !== rol) {
     return <Navigate to={rutaInicio(usuario.rol)} replace />;
   }

@@ -19,5 +19,6 @@ def a_cliente_read(cliente: Cliente, areas_por_id: dict[int, Area]) -> ClienteRe
         rol=cliente.rol,
         activo=cliente.activo,
         pendiente_activacion=cliente.password_hash is None,
+        debe_cambiar_password=cliente.debe_cambiar_password,
         puntos=cliente.puntos,
     )

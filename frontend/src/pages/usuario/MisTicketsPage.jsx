@@ -72,7 +72,8 @@ export default function MisTicketsPage() {
 
       {!cargando && tickets.length === 0 && (
         <Alert variant="secondary">
-          Todavía no has creado ningún ticket. Escribe tu consulta en el chat de Inicio.
+          Todavía no has creado ningún ticket. Puedes <Link to="/usuario/nuevo-ticket" className="font-medium underline">crear uno</Link> directamente
+          o escribir tu consulta a Minutito en Inicio.
         </Alert>
       )}
 
@@ -81,9 +82,26 @@ export default function MisTicketsPage() {
       )}
 
       {!cargando && visibles.length > 0 && (
-        <Card className="overflow-x-auto">
+        <Card className="divide-y divide-gray-100 overflow-hidden md:hidden">
+          {visibles.map((t) => (
+            <Link key={t.id} to={`/usuario/tickets/${t.id}`} className="block px-4 py-3 hover:bg-marfil">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-acento">#{t.id}</span>
+                <EstadoBadge estado={t.estado} />
+              </div>
+              <div className="line-clamp-2 text-sm text-gray-800">{t.texto}</div>
+              <div className="mt-1 truncate text-xs text-gray-500">
+                {[t.tipo_predicho, t.categoria_predicha].filter(Boolean).join(" · ") || "Sin clasificar"}
+              </div>
+            </Link>
+          ))}
+        </Card>
+      )}
+
+      {!cargando && visibles.length > 0 && (
+        <Card className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
               <tr>
                 <th className="px-3 py-2">#</th>
                 <th className="px-3 py-2">Texto</th>
@@ -94,9 +112,9 @@ export default function MisTicketsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {visibles.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50">
+                <tr key={t.id} className="hover:bg-marfil">
                   <td className="px-3 py-2">
-                    <Link to={`/usuario/tickets/${t.id}`} className="text-blue-600 hover:underline">
+                    <Link to={`/usuario/tickets/${t.id}`} className="text-acento hover:underline">
                       {t.id}
                     </Link>
                   </td>

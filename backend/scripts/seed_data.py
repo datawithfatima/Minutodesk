@@ -4,9 +4,9 @@ Uso (desde backend/):
     python scripts/seed_data.py --admin-email tu@correo.com --admin-nombre "Tu Nombre"
     python scripts/seed_data.py --demo
 
-Con --admin-email crea el administrador SIN contraseña y le envía el enlace de
-activación a ese correo (o lo guarda en backend/correos_enviados/ si no hay SMTP
-configurado). El resto de cuentas las crea ese administrador desde la página.
+Con --admin-email crea el administrador con una contraseña temporal, que se
+imprime una sola vez; debe cambiarla al iniciar sesión. El resto de cuentas las
+crea ese administrador desde la página.
 
 --demo agrega cuentas de demostración con contraseña conocida (solo para
 desarrollo local). Sin --admin-email, también crea un administrador de demostración.
@@ -21,8 +21,7 @@ from sqlmodel import Session, select
 
 from app.database import engine, init_db
 from app.models import Area, Cliente
-from app.services import correo, tokens_acceso
-from app.services.auth import hashear_password
+from app.services.auth import generar_password_temporal, hashear_password
 
 PASSWORD_DEMO = "minutodesk123"
 
@@ -72,21 +71,21 @@ def seed(admin_email: str | None, admin_nombre: str, demo: bool) -> None:
             session.commit()
 
         if admin_email:
-            admin = Cliente(
-                nombre=admin_nombre,
-                email=admin_email.strip().lower(),
-                area_id=areas["Sistemas"].id,
-                rol="administrador",
+            temporal = generar_password_temporal()
+            session.add(
+                Cliente(
+                    nombre=admin_nombre,
+                    email=admin_email.strip().lower(),
+                    area_id=areas["Sistemas"].id,
+                    rol="administrador",
+                    password_hash=hashear_password(temporal),
+                    debe_cambiar_password=True,
+                )
             )
-            session.add(admin)
             session.commit()
-            session.refresh(admin)
-            token = tokens_acceso.generar(
-                session, admin, "activacion", tokens_acceso.MINUTOS_ACTIVACION
-            )
-            modo = correo.enviar_activacion(admin.email, admin.nombre, token)
-            destino = "a tu correo" if modo == "smtp" else "en backend/correos_enviados/"
-            print(f"Administrador creado sin contraseña: enlace de activación enviado {destino}.")
+            print(f"Administrador creado: {admin_email.strip().lower()}")
+            print(f"Contraseña temporal (solo se muestra ahora): {temporal}")
+            print("Al iniciar sesión por primera vez se te pedirá cambiarla.")
 
         print(f"Áreas creadas: {len(AREAS)}.")
         if demo:

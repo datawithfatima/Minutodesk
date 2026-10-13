@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.ml.train_classifier import quitar_tildes
 from app.models import (
+    Adjunto,
     Area,
     Cliente,
     EventoGamificacion,
@@ -22,14 +23,13 @@ from app.schemas import (
     AreaUpdate,
     ClienteRead,
     ImportacionReporte,
-    InvitacionRespuesta,
     MensajeRespuesta,
+    PasswordTemporalRespuesta,
     UsuarioCreado,
     UsuarioCreate,
     UsuarioUpdate,
 )
-from app.services import correo, tokens_acceso
-from app.services.auth import requerir_admin
+from app.services.auth import generar_password_temporal, hashear_password, requerir_admin
 from app.services.historico import leer_csv, procesar
 from app.services.usuarios import a_cliente_read, mapa_areas
 
@@ -100,14 +100,21 @@ def crear_usuario(
     if session.exec(select(Cliente).where(Cliente.email == email)).first():
         raise HTTPException(status_code=400, detail="Ese correo ya está registrado")
 
-    cliente = Cliente(nombre=nombre, email=email, area_id=area.id, rol=data.rol)
+    temporal = generar_password_temporal()
+    cliente = Cliente(
+        nombre=nombre,
+        email=email,
+        area_id=area.id,
+        rol=data.rol,
+        password_hash=hashear_password(temporal),
+        debe_cambiar_password=True,
+    )
     session.add(cliente)
     session.commit()
     session.refresh(cliente)
-
-    token = tokens_acceso.generar(session, cliente, "activacion", tokens_acceso.MINUTOS_ACTIVACION)
-    modo = correo.enviar_activacion(cliente.email, cliente.nombre, token)
-    return UsuarioCreado(usuario=a_cliente_read(cliente, {area.id: area}), correo=modo)
+    return UsuarioCreado(
+        usuario=a_cliente_read(cliente, {area.id: area}), password_temporal=temporal
+    )
 
 
 @router.patch("/usuarios/{usuario_id}", response_model=ClienteRead)
@@ -185,6 +192,8 @@ def eliminar_usuario(
             select(EventoGamificacion.id).where(EventoGamificacion.cliente_id == cliente.id)
         ).first()
         is not None
+        or session.exec(select(Adjunto.id).where(Adjunto.subido_por_id == cliente.id)).first()
+        is not None
     )
     if tiene_actividad:
         raise HTTPException(
@@ -203,29 +212,31 @@ def eliminar_usuario(
     return MensajeRespuesta(mensaje="Usuario eliminado.")
 
 
-@router.post("/usuarios/{usuario_id}/invitacion", response_model=InvitacionRespuesta)
-def enviar_enlace_de_acceso(
+@router.post("/usuarios/{usuario_id}/restablecer-password", response_model=PasswordTemporalRespuesta)
+def restablecer_password(
     usuario_id: int,
     admin: Cliente = Depends(requerir_admin),
     session: Session = Depends(get_session),
 ):
+    """Genera una contraseña temporal nueva (p. ej. si la persona no puede usar el enlace
+    por correo). Se muestra una sola vez; la persona debe cambiarla al ingresar."""
     cliente = session.get(Cliente, usuario_id)
     if cliente is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if cliente.id == admin.id:
+        raise HTTPException(
+            status_code=400, detail="Para tu propia cuenta usa «Cambiar contraseña»"
+        )
     if not cliente.activo:
         raise HTTPException(status_code=400, detail="La cuenta está desactivada")
 
-    if cliente.password_hash is None:
-        token = tokens_acceso.generar(
-            session, cliente, "activacion", tokens_acceso.MINUTOS_ACTIVACION
-        )
-        modo = correo.enviar_activacion(cliente.email, cliente.nombre, token)
-    else:
-        token = tokens_acceso.generar(
-            session, cliente, "recuperacion", tokens_acceso.MINUTOS_RECUPERACION
-        )
-        modo = correo.enviar_recuperacion(cliente.email, cliente.nombre, token)
-    return InvitacionRespuesta(correo=modo)
+    temporal = generar_password_temporal()
+    cliente.password_hash = hashear_password(temporal)
+    cliente.debe_cambiar_password = True
+    cliente.version_token += 1  # cierra sus sesiones abiertas
+    session.add(cliente)
+    session.commit()
+    return PasswordTemporalRespuesta(password_temporal=temporal)
 
 
 MAX_BYTES_CSV = 10 * 1024 * 1024

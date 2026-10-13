@@ -1,10 +1,11 @@
-"""Importación del CSV mensual de tickets históricos (solo para reportes).
+"""Importación del CSV mensual de tickets históricos (consulta y reportes del administrador).
 
 El archivo pasa por una limpieza antes de guardarse y se puede repetir cada
 mes con el export completo o parcial: los tickets se identifican por la
 columna "ID", así que los que ya existen se actualizan (p. ej. cuando pasan a
-"Completado") y los nuevos se agregan. No se guardan nombres de personas ni la
-descripción del ticket.
+"Completado") y los nuevos se agregan. Se guarda también la descripción (sin
+HTML), el solicitante y quién atendió, para poder consultarlos; esos tickets no
+forman parte de la plataforma (ver TicketHistorico).
 
 Reglas de limpieza:
 - Se descartan filas sin ID, sin estado o con fecha de creación ilegible.
@@ -13,7 +14,9 @@ Reglas de limpieza:
   prioridad y categoría ("critica" -> "Crítica", "internet" -> "Internet").
 - La fecha de solución se ignora si es ilegible o anterior a la creación.
 """
+import html
 import io
+import re
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -33,6 +36,10 @@ COL_PRIORIDAD = "Prioridad"
 COL_CREADO = "Creado"
 COL_SOLUCION = "Fecha Solución"
 COL_ESTADO = "Estado"
+COL_DESCRIPCION = "Descripción"
+COL_SOLICITANTE = "Solicitante"
+COL_ASIGNADO = "Asignado a"
+MAX_DESCRIPCION = 8000
 
 COLUMNAS_OBLIGATORIAS = [COL_ID, COL_CREADO, COL_ESTADO]
 FORMATOS_FECHA = ("%d/%m/%Y %H:%M", "%d/%m/%Y")
@@ -47,6 +54,21 @@ def _texto(valor) -> Optional[str]:
         return None
     limpio = " ".join(str(valor).split())
     return limpio or None
+
+
+_SALTOS_HTML = re.compile(r"<\s*(?:br|/p|/div|/li|/tr|/h\d)\s*/?\s*>", re.IGNORECASE)
+_ETIQUETAS_HTML = re.compile(r"<[^>]+>")
+
+
+def _descripcion(valor) -> Optional[str]:
+    """Texto plano de la descripción: quita el HTML, conserva los saltos de línea."""
+    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+        return None
+    texto = _SALTOS_HTML.sub("\n", str(valor))
+    texto = html.unescape(_ETIQUETAS_HTML.sub(" ", texto))
+    lineas = (" ".join(linea.split()) for linea in texto.splitlines())
+    limpio = "\n".join(linea for linea in lineas if linea)
+    return limpio[:MAX_DESCRIPCION] or None
 
 
 def _clave(texto: str) -> str:
@@ -152,6 +174,9 @@ def procesar(df: pd.DataFrame, session: Session, aplicar: bool) -> dict:
             "estado": ESTADOS.get(_clave(estado_crudo), estado_crudo),
             "creado_en": creado,
             "resuelto_en": resuelto,
+            "descripcion": _descripcion(fila.get(COL_DESCRIPCION)),
+            "solicitante": _texto(fila.get(COL_SOLICITANTE)),
+            "asignado_a": _texto(fila.get(COL_ASIGNADO)),
         }
 
     nuevos = actualizados = sin_cambios = 0
@@ -212,6 +237,10 @@ def resumen_historico(session: Session) -> dict:
     meses = sorted(por_mes)[-12:]
     importados = [t.importado_en for t in tickets]
 
+    dias_por_mes: dict[str, list[int]] = {}
+    for t, d in zip(completados, dias):
+        dias_por_mes.setdefault(t.creado_en.strftime("%Y-%m"), []).append(d)
+
     return {
         "total": len(tickets),
         "completados": por_estado.get("Completado", 0),
@@ -230,4 +259,8 @@ def resumen_historico(session: Session) -> dict:
             for p, n in Counter(t.prioridad or "Sin prioridad" for t in tickets).most_common()
         ],
         "por_mes": [{"etiqueta": m, "total": por_mes[m]} for m in meses],
+        "resolucion_por_mes": [
+            {"etiqueta": m, "valor": round(mean(dias_por_mes[m]), 1) if dias_por_mes.get(m) else None}
+            for m in meses
+        ],
     }

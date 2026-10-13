@@ -1,15 +1,21 @@
 const VARIANTES = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300",
-  dark: "bg-slate-800 text-white hover:bg-slate-900 disabled:bg-slate-400",
+  primary: "bg-acento text-white shadow-sm hover:bg-acento-600 disabled:bg-acento/40",
+  dark: "bg-noche text-white shadow-sm hover:bg-noche-700 disabled:bg-noche/40",
   secondary: "bg-gray-600 text-white hover:bg-gray-700 disabled:bg-gray-300",
   outlineSecondary:
-    "border border-gray-400 text-gray-700 hover:bg-gray-100 disabled:opacity-50",
+    "border border-linea bg-white text-noche hover:border-gray-300 hover:bg-marfil disabled:opacity-50",
   outlinePrimary:
-    "border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50",
+    "border border-acento/40 bg-white text-acento hover:bg-acento-50 disabled:opacity-50",
   outlineSuccess:
-    "border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50",
+    "border border-green-600/50 bg-white text-green-700 hover:bg-green-50 disabled:opacity-50",
   outlineDanger:
-    "border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-50",
+    "border border-red-500/50 bg-white text-red-600 hover:bg-red-50 disabled:opacity-50",
+};
+
+const TAMANOS = {
+  sm: "h-8 px-3 text-sm",
+  md: "h-10 px-4 text-sm",
+  lg: "h-12 px-5 text-[15px]",
 };
 
 export default function Button({
@@ -19,11 +25,10 @@ export default function Button({
   ...props
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:cursor-not-allowed";
-  const sizeCls = size === "sm" ? "px-3 py-1.5 text-sm" : "px-4 py-2 text-sm";
+    "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors duration-150 disabled:cursor-not-allowed";
   return (
     <button
-      className={`${base} ${sizeCls} ${VARIANTES[variant] || VARIANTES.primary} ${className}`}
+      className={`${base} ${TAMANOS[size] || TAMANOS.md} ${VARIANTES[variant] || VARIANTES.primary} ${className}`}
       {...props}
     />
   );

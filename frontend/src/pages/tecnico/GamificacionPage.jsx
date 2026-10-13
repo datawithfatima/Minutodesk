@@ -48,7 +48,7 @@ export default function GamificacionPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card className="overflow-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
               <tr>
                 <th className="px-3 py-2">Usuario</th>
                 <th className="px-3 py-2">Puntos</th>
@@ -59,8 +59,8 @@ export default function GamificacionPage() {
                 <tr
                   key={c.id}
                   onClick={() => setClienteId(c.id)}
-                  className={`cursor-pointer hover:bg-gray-50 ${
-                    c.id === clienteId ? "bg-blue-50" : ""
+                  className={`cursor-pointer hover:bg-marfil ${
+                    c.id === clienteId ? "bg-acento-50" : ""
                   }`}
                 >
                   <td className="px-3 py-2">

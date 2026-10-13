@@ -5,8 +5,10 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# Modelos entrenados
+# Modelos entrenados y sus métricas/reportes
 *.joblib
+backend/app/ml/model/metricas.json
+data/reporte_*.md
 
 # Datos sensibles
 data/*.csv
@@ -16,6 +18,7 @@ data/*.csv
 .env
 .secret_key
 correos_enviados/
+backend/uploads/
 
 # Node / frontend
 node_modules/

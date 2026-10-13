@@ -2,7 +2,7 @@ import {
   BarChart3,
   Bot,
   Building2,
-  FileUp,
+  Database,
   History,
   Inbox,
   Medal,
@@ -31,22 +31,22 @@ const NAV_ITEMS = [
   { to: "/admin/usuarios", label: "Usuarios", icon: Users },
   { to: "/admin/areas", label: "Áreas", icon: Building2 },
   { to: "/admin/ranking", label: "Ranking", icon: Medal },
-  { to: "/admin/datos", label: "Importar histórico", icon: FileUp },
+  { to: "/admin/datos", label: "Datos históricos", icon: Database },
 ];
 
+// Minutito para el personal todavía no existe: se muestra, pero indicando que llega pronto.
 function MinutitoMiniWidget() {
   return (
-    <div className="mx-3 mb-3 rounded-lg bg-slate-800 p-3 opacity-60" title="Próximamente">
-      <div className="mb-1 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-white">
-          <Bot size={16} />
+    <div className="mx-3 mb-3 rounded-xl border border-white/10 p-3" title="Próximamente">
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06] text-noche-300">
+          <Bot size={16} aria-hidden="true" />
         </div>
-        <div>
-          <div className="text-xs font-semibold text-white">Minutito</div>
-          <div className="text-[10px] text-slate-400">Tu asistente de soporte</div>
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-white/80">Minutito</div>
+          <div className="text-[11px] text-noche-300">Próximamente</div>
         </div>
       </div>
-      <span className="text-[10px] text-slate-500">Próximamente</span>
     </div>
   );
 }

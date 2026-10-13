@@ -9,15 +9,15 @@ import Spinner from "../../components/ui/Spinner";
 
 function Dato({ titulo, valor, detalle }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-3">
+    <div className="rounded-lg border border-linea p-3">
       <div className="text-xs text-gray-500">{titulo}</div>
-      <div className="text-xl font-bold text-gray-900">{valor}</div>
+      <div className="text-xl font-bold text-noche">{valor}</div>
       {detalle && <div className="text-xs text-gray-400">{detalle}</div>}
     </div>
   );
 }
 
-export default function ImportarPage() {
+export default function ImportarPage({ embebido = false }) {
   const [archivo, setArchivo] = useState(null);
   const [reporte, setReporte] = useState(null);
   const [error, setError] = useState(null);
@@ -44,11 +44,17 @@ export default function ImportarPage() {
 
   return (
     <>
-      <PageHeader
-        icon={FileUp}
-        title="Importar histórico"
-        subtitle="Sube el CSV mensual de tickets. Se limpia y se revisa antes de guardarse."
-      />
+      {embebido ? (
+        <p className="mb-3 text-sm text-gray-500">
+          Sube el CSV mensual de tickets. Se limpia y se revisa antes de guardarse.
+        </p>
+      ) : (
+        <PageHeader
+          icon={FileUp}
+          title="Importar histórico"
+          subtitle="Sube el CSV mensual de tickets. Se limpia y se revisa antes de guardarse."
+        />
+      )}
 
       {error && (
         <Alert variant="danger" className="mb-3">
@@ -59,19 +65,20 @@ export default function ImportarPage() {
       <Card className="mb-4">
         <Card.Body>
           <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[240px] flex-1">
+            <div className="w-full min-w-0 sm:w-auto sm:min-w-[240px] sm:flex-1">
               <label className="mb-1 block text-sm font-medium text-gray-700">Archivo CSV</label>
               <input
                 type="file"
                 accept=".csv,text/csv"
                 onChange={elegir}
-                className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-gray-200"
+                className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-gray-200"
               />
             </div>
             <Button
               variant="dark"
               disabled={!archivo || trabajando}
               onClick={() => ejecutar(false)}
+              className="w-full sm:w-auto"
             >
               {trabajando && !reporte ? <Spinner size="sm" /> : "Revisar archivo"}
             </Button>
@@ -81,7 +88,10 @@ export default function ImportarPage() {
             <li>Se descartan filas sin ID, sin estado o con fecha de creación ilegible.</li>
             <li>Se unifican mayúsculas, tildes y espacios en estado, prioridad y categoría.</li>
             <li>La fecha de solución se ignora si es ilegible o anterior a la creación.</li>
-            <li>No se guardan nombres de personas ni la descripción de los tickets.</li>
+            <li>
+              Se guarda también la descripción, el solicitante y quién atendió, solo para que tú los
+              consultes en «Tickets importados». No afectan los indicadores de la plataforma.
+            </li>
           </ul>
         </Card.Body>
       </Card>
@@ -134,7 +144,7 @@ export default function ImportarPage() {
                 <summary className="cursor-pointer text-sm font-medium text-gray-700">
                   Ver detalle (primeras {reporte.incidencias.length})
                 </summary>
-                <ul className="mt-2 space-y-1 pl-5 text-xs text-gray-500">
+                <ul className="mt-2 space-y-1 break-words pl-5 text-xs text-gray-500">
                   {reporte.incidencias.map((i) => (
                     <li key={i} className="list-disc">
                       {i}
@@ -145,7 +155,7 @@ export default function ImportarPage() {
             )}
 
             {!reporte.aplicado && (
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Button
                   variant="dark"
                   disabled={trabajando || reporte.validas === 0}

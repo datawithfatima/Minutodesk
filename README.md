@@ -23,9 +23,31 @@ Prototipo de alcance acotado: corre en una sola máquina, sin servicios en la nu
 | Técnico | Ver y atender todos los tickets (tomarlos, resolverlos), ver usuarios, ranking y reportes |
 | Administrador | Todo lo anterior, más crear/editar usuarios y áreas |
 
-No hay registro público: las cuentas las crea el administrador y cada persona
-recibe un enlace por correo para activarla y elegir su contraseña. El login
-incluye "¿Olvidaste tu contraseña?".
+No hay registro público: las cuentas las crea el administrador. Al crear una
+cuenta el sistema genera una **contraseña temporal** que el administrador ve una
+sola vez y le entrega a la persona; al iniciar sesión por primera vez el sistema
+le exige cambiarla antes de usar nada (se valida en el servidor). Si la olvida,
+"¿Olvidaste tu contraseña?" le envía un enlace de recuperación a su correo, y el
+administrador también puede generar otra temporal ("Restablecer contraseña").
+Cualquier usuario puede cambiar su contraseña desde el ícono de la llave.
+
+## Crear un ticket
+
+«Crear ticket» (usuario final) reemplaza el formulario anterior de tickets:
+
+1. La persona elige el **tipo** (incidencia, solicitud o gestión de usuarios y accesos); si
+   no está segura, escribe la descripción y el SVM le **sugiere** uno.
+2. Escribe la **descripción**; el SVM propone la **categoría** (con su confianza y las más
+   probables) y ella la confirma o la cambia. Si la confianza es baja, se le pide elegir.
+3. Elige la **prioridad** (por defecto Normal) y puede **adjuntar hasta 3 archivos de 10 MB**
+   (Word, Excel, PowerPoint, PDF, imagen, video, audio o texto).
+4. «Gestión de usuarios y accesos» abre el **alta de colaborador** (datos estructurados, con
+   validación de cédula); esos tickets no pasan por el SVM.
+
+Lo que la persona confirma, y lo que el técnico corrige, se compara con la sugerencia del SVM:
+así el administrador ve el **acierto real en uso** (Reportes → Calidad del clasificador). Las
+opciones del formulario (listas, aplicaciones, licencias, extensiones) están en
+`backend/app/services/catalogos.py`. Los archivos se guardan en `backend/uploads/` (ignorado por git).
 
 ## Estructura del proyecto
 
@@ -54,14 +76,17 @@ uvicorn app.main:app --reload
 ```
 
 - Verificar: <http://localhost:8000/health> debe devolver `{"status": "ok"}`.
-- `seed_data.py` crea las áreas y tu administrador **sin contraseña**: te genera
-  un enlace de activación. Desde ahí, el administrador crea las demás cuentas
-  en la página (Usuarios). Con `--demo` agrega además cuentas de prueba
-  (contraseña `minutodesk123`), solo para desarrollo.
-- **Correo:** sin `SMTP_HOST` en `backend/.env` los correos no se envían, se
-  guardan como `.txt` en `backend/correos_enviados/` (ahí está el enlace de
-  activación o de recuperación). Para correos reales configura las variables
-  `SMTP_*` (ver `.env.example`).
+- `seed_data.py` crea las áreas y tu administrador con una **contraseña
+  temporal** que imprime una sola vez; la cambias al primer ingreso. Desde ahí,
+  el administrador crea las demás cuentas en la página (Usuarios). Con `--demo`
+  agrega además cuentas de prueba (contraseña `minutodesk123`), solo para
+  desarrollo.
+- **Correo (solo recuperación de contraseña):** sin `SMTP_HOST` en `backend/.env`
+  los correos no se envían, se guardan como `.txt` en `backend/correos_enviados/`
+  (ahí está el enlace de recuperación). Para correos reales configura las
+  variables `SMTP_*` (ver `.env.example`).
+- Las bases creadas con una versión anterior se actualizan solas al arrancar
+  (columnas nuevas), sin perder datos.
 - **Pruebas:** `python -m pytest` desde `backend/`.
 
 ## Frontend
@@ -90,7 +115,10 @@ lo detecta).
 
 ## Actualización mensual con el CSV de tickets
 
-**Desde la página:** como administrador, menú "Importar histórico". Eliges el CSV,
+**Desde la página:** como administrador, menú "Datos históricos" → pestaña "Importar CSV"
+(la pestaña "Análisis" muestra los gráficos del histórico y "Tickets importados" los
+tickets uno por uno, solo de lectura y con prefijo `H-`, sin mezclarse con los de la
+plataforma). Eliges el CSV,
 el sistema lo limpia y muestra una vista previa (nuevos, actualizados, descartados y
 el porqué); solo al pulsar "Confirmar e importar" se guarda. Esto alimenta los
 reportes; el reentrenamiento del clasificador se hace con el script.

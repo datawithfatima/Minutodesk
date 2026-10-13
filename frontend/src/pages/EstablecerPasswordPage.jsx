@@ -4,8 +4,9 @@ import { establecerPassword } from "../api";
 import AuthShell from "../components/AuthShell";
 import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
+import CampoPassword from "../components/ui/CampoPassword";
 import Spinner from "../components/ui/Spinner";
-import { inputClass, labelClass } from "../components/ui/formStyles";
+import { labelClass } from "../components/ui/formStyles";
 
 export default function EstablecerPasswordPage() {
   const [params] = useSearchParams();
@@ -35,63 +36,74 @@ export default function EstablecerPasswordPage() {
   }
 
   return (
-    <AuthShell>
-      <h2 className="mb-1 text-base font-semibold text-gray-900">Elige tu contraseña</h2>
-
+    <AuthShell
+      titulo="Elige tu contraseña"
+      descripcion={token && !mensaje ? "Mínimo 8 caracteres, con letras y números." : undefined}
+      pie={
+        !mensaje && (
+          <Link to="/login" className="rounded text-acento hover:underline">
+            Volver a iniciar sesión
+          </Link>
+        )
+      }
+    >
       {!token && (
-        <Alert variant="danger" className="mb-3">
-          Falta el enlace de activación. Solicita uno nuevo desde "¿Olvidaste tu contraseña?".
+        <Alert variant="danger" className="mb-4">
+          Falta el enlace de recuperación. Solicita uno nuevo desde{" "}
+          <Link to="/olvide-password" className="font-medium underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
         </Alert>
       )}
 
       {error && (
-        <Alert variant="danger" className="mb-3">
+        <Alert variant="danger" className="mb-4">
           {error}
         </Alert>
       )}
 
       {mensaje ? (
         <>
-          <Alert variant="success" className="mb-3">
+          <Alert variant="success" className="mb-4">
             {mensaje}
           </Alert>
           <Link
             to="/login"
-            className="block rounded-md bg-slate-800 px-4 py-2 text-center text-sm font-medium text-white hover:bg-slate-900"
+            className="flex h-12 items-center justify-center rounded-lg bg-acento px-5 text-[15px] font-medium text-white shadow-sm transition-colors duration-150 hover:bg-acento-600"
           >
             Ir a iniciar sesión
           </Link>
         </>
       ) : (
         token && (
-          <form onSubmit={manejarEnvio} className="flex flex-col gap-3">
-            <p className="text-sm text-gray-500">
-              Mínimo 8 caracteres, con letras y números.
-            </p>
+          <form onSubmit={manejarEnvio} className="flex flex-col gap-4">
             <div>
-              <label className={labelClass}>Contraseña nueva</label>
-              <input
-                type="password"
-                className={inputClass}
+              <label htmlFor="nueva-password" className={labelClass}>
+                Contraseña nueva
+              </label>
+              <CampoPassword
+                id="nueva-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
                 autoComplete="new-password"
+                autoFocus
               />
             </div>
             <div>
-              <label className={labelClass}>Repite la contraseña</label>
-              <input
-                type="password"
-                className={inputClass}
+              <label htmlFor="nueva-password-2" className={labelClass}>
+                Repite la contraseña
+              </label>
+              <CampoPassword
+                id="nueva-password-2"
                 value={confirmacion}
                 onChange={(e) => setConfirmacion(e.target.value)}
                 required
                 autoComplete="new-password"
               />
             </div>
-            <Button type="submit" variant="dark" disabled={enviando} className="w-full">
+            <Button type="submit" size="lg" disabled={enviando} className="mt-1 w-full">
               {enviando ? <Spinner size="sm" /> : "Guardar contraseña"}
             </Button>
           </form>

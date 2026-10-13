@@ -69,7 +69,7 @@ export default function AreasPage() {
           <Card className="mb-4">
             <Card.Body>
               <form onSubmit={agregar} className="flex flex-wrap items-end gap-3">
-                <div className="min-w-[220px] flex-1">
+                <div className="w-full min-w-0 sm:w-auto sm:min-w-[220px] sm:flex-1">
                   <label className={labelClass}>Nueva área</label>
                   <input
                     className={inputClass}
@@ -79,7 +79,7 @@ export default function AreasPage() {
                     required
                   />
                 </div>
-                <Button type="submit" variant="dark">
+                <Button type="submit" variant="dark" className="w-full sm:w-auto">
                   <Plus size={16} /> Agregar
                 </Button>
               </form>
@@ -88,16 +88,16 @@ export default function AreasPage() {
 
           <Card className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
+              <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
                 <tr>
                   <th className="px-3 py-2">Área</th>
-                  <th className="px-3 py-2">Estado</th>
+                  <th className="hidden px-3 py-2 sm:table-cell">Estado</th>
                   <th className="px-3 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {areas.map((a) => (
-                  <tr key={a.id} className="hover:bg-gray-50">
+                  <tr key={a.id} className="hover:bg-marfil">
                     <td className="px-3 py-2">
                       {editando?.id === a.id ? (
                         <input
@@ -107,16 +107,22 @@ export default function AreasPage() {
                           autoFocus
                         />
                       ) : (
-                        <span className="font-medium text-gray-900">{a.nombre}</span>
+                        <span className="font-medium text-noche">{a.nombre}</span>
                       )}
+                      {/* En móvil el estado va bajo el nombre (la columna se oculta). */}
+                      <div className="mt-1 sm:hidden">
+                        <Badge color={a.activo ? "green" : "gray"}>
+                          {a.activo ? "Activa" : "Inactiva"}
+                        </Badge>
+                      </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="hidden px-3 py-2 sm:table-cell">
                       <Badge color={a.activo ? "green" : "gray"}>
                         {a.activo ? "Activa" : "Inactiva"}
                       </Badge>
                     </td>
                     <td className="px-3 py-2">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
                         {editando?.id === a.id ? (
                           <>
                             <Button size="sm" variant="dark" onClick={guardarNombre}>

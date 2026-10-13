@@ -5,6 +5,7 @@ import { guardarSesion, rutaInicio } from "../auth";
 import AuthShell from "../components/AuthShell";
 import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
+import CampoPassword from "../components/ui/CampoPassword";
 import Spinner from "../components/ui/Spinner";
 import { inputClass, labelClass } from "../components/ui/formStyles";
 
@@ -22,7 +23,7 @@ export default function LoginPage() {
     try {
       const { access_token, cliente } = await iniciarSesion({ email, password });
       guardarSesion(access_token, cliente);
-      navegar(rutaInicio(cliente.rol));
+      navegar(cliente.debe_cambiar_password ? "/cambiar-password" : rutaInicio(cliente.rol));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -31,47 +32,60 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell>
+    <AuthShell
+      titulo="Inicia sesión"
+      descripcion="Accede con la cuenta que te entregó el administrador."
+      pie="¿Primer ingreso? Usa tu contraseña temporal; te pediremos cambiarla."
+    >
       {error && (
-        <Alert variant="danger" className="mb-3">
+        <Alert variant="danger" className="mb-4">
           {error}
         </Alert>
       )}
-      <form onSubmit={manejarEnvio} className="flex flex-col gap-3">
+      <form onSubmit={manejarEnvio} className="flex flex-col gap-4">
         <div>
-          <label className={labelClass}>Correo electrónico</label>
+          <label htmlFor="login-email" className={labelClass}>
+            Correo electrónico
+          </label>
           <input
+            id="login-email"
             type="email"
             className={inputClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="correo@ejemplo.com"
+            autoComplete="username"
+            autoFocus
+            placeholder="nombre@empresa.com"
           />
         </div>
         <div>
-          <label className={labelClass}>Contraseña</label>
-          <input
-            type="password"
-            className={inputClass}
+          <div className="mb-1.5 flex items-baseline justify-between gap-3">
+            <label htmlFor="login-password" className="text-sm font-medium text-noche">
+              Contraseña
+            </label>
+            <Link to="/olvide-password" className="rounded text-sm text-acento hover:underline">
+              ¿La olvidaste?
+            </Link>
+          </div>
+          <CampoPassword
+            id="login-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
           />
         </div>
-        <Button type="submit" variant="dark" disabled={enviando} className="mt-1 w-full">
-          {enviando ? <Spinner size="sm" /> : "Ingresar"}
+        <Button type="submit" size="lg" disabled={enviando} className="mt-1 w-full">
+          {enviando ? (
+            <>
+              <Spinner size="sm" /> Ingresando…
+            </>
+          ) : (
+            "Ingresar"
+          )}
         </Button>
       </form>
-      <div className="mt-4 border-t border-gray-100 pt-3 text-center text-sm text-gray-500">
-        <Link to="/olvide-password" className="text-blue-600 hover:underline">
-          ¿Olvidaste tu contraseña?
-        </Link>
-        <p className="mt-2 text-xs text-gray-400">
-          Las cuentas las crea el administrador. Si aún no activaste la tuya, usa el enlace del
-          correo de invitación.
-        </p>
-      </div>
     </AuthShell>
   );
 }

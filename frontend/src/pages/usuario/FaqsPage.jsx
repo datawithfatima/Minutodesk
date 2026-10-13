@@ -13,11 +13,11 @@ const PREGUNTAS = [
   },
   {
     p: "¿Qué significan los estados de un ticket?",
-    r: "Abierto: recibimos tu consulta y aún no se atiende. En proceso: alguien del equipo de soporte la está trabajando. Resuelto: la consulta quedó cerrada, ya sea por Minutito o por el equipo.",
+    r: "Nuevo: recibimos tu consulta y aún no se atiende. En proceso: alguien del equipo de soporte la está trabajando. Resuelto: la consulta quedó cerrada, ya sea por Minutito o por el equipo. Cancelado: el equipo de soporte la cerró sin resolverla (por ejemplo, porque estaba duplicada o ya no hacía falta); en el ticket verás el motivo.",
   },
   {
     p: "¿Qué pasa si Minutito no resuelve mi consulta?",
-    r: "Minutito te lo indica y tu ticket sigue abierto para el equipo de soporte. Si después de varios intentos con Minutito sigue sin resolverse, el ticket pasa a “en proceso” para que lo tome una persona.",
+    r: "Minutito te lo indica y tu ticket sigue pendiente para el equipo de soporte. Si después de varios intentos con Minutito sigue sin resolverse, el ticket pasa a “en proceso” para que lo tome una persona.",
   },
   {
     p: "¿Cómo gano puntos?",
@@ -49,7 +49,7 @@ export default function FaqsPage() {
         {PREGUNTAS.map((item) => (
           <Card key={item.p}>
             <details className="group">
-              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-gray-900 marker:hidden">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-noche marker:hidden">
                 <span className="mr-2 inline-block text-gray-400 transition-transform group-open:rotate-90">
                   ›
                 </span>

@@ -36,9 +36,28 @@ export default function ClientesPage() {
       {cargando && <Spinner size="sm" />}
 
       {!cargando && (
-        <Card className="overflow-x-auto">
+        <Card className="divide-y divide-gray-100 overflow-hidden md:hidden">
+          {clientes.map((c) => (
+            <div key={c.id} className="px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate font-medium text-noche">{c.nombre}</div>
+                  <div className="truncate text-sm text-gray-500">{c.email}</div>
+                </div>
+                <Badge color={c.activo ? "green" : "gray"}>{c.activo ? "Activo" : "Inactivo"}</Badge>
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                {ETIQUETA_ROL[c.rol] || c.rol} · {c.area} · {c.puntos} pts
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {!cargando && (
+        <Card className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
               <tr>
                 <th className="px-3 py-2">Nombre</th>
                 <th className="px-3 py-2">Área</th>
@@ -50,8 +69,8 @@ export default function ClientesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {clientes.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 font-medium text-gray-900">{c.nombre}</td>
+                <tr key={c.id} className="hover:bg-marfil">
+                  <td className="px-3 py-2 font-medium text-noche">{c.nombre}</td>
                   <td className="px-3 py-2">{c.area}</td>
                   <td className="px-3 py-2 text-gray-500">{c.email}</td>
                   <td className="px-3 py-2">{ETIQUETA_ROL[c.rol] || c.rol}</td>

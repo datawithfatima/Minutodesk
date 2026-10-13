@@ -1,4 +1,4 @@
-"""Envío de correos (activación de cuenta y recuperación de contraseña).
+"""Envío de correos (recuperación de contraseña).
 
 Con SMTP_HOST definido en .env se envía por SMTP. Sin él (modo desarrollo) el
 correo se guarda como archivo en backend/correos_enviados/ y se avisa en el log,
@@ -72,17 +72,6 @@ def enviar_correo(destino: str, asunto: str, cuerpo: str) -> str:
             logger.exception("No se pudo enviar el correo por SMTP")
     _guardar_archivo(destino, asunto, cuerpo)
     return "archivo"
-
-
-def enviar_activacion(destino: str, nombre: str, token: str) -> str:
-    cuerpo = (
-        f"Hola {nombre},\n\n"
-        "Se creó una cuenta para ti en MinutoDesk, la mesa de ayuda con asistente virtual.\n"
-        "Para activarla y elegir tu contraseña entra a este enlace (vence en 72 horas):\n\n"
-        f"{enlace_establecer_password(token)}\n\n"
-        "Si no esperabas este mensaje, puedes ignorarlo."
-    )
-    return enviar_correo(destino, "Activa tu cuenta de MinutoDesk", cuerpo)
 
 
 def enviar_recuperacion(destino: str, nombre: str, token: str) -> str:

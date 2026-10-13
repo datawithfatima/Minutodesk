@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import models  # noqa: F401 (registra las tablas en SQLModel.metadata)
 from app.database import init_db
-from app.routers import admin, auth, chat, clientes, reportes, tickets
+from app.routers import adjuntos, admin, auth, chat, clientes, historico, reportes, tickets
 
 app = FastAPI(title="MinutoDesk")
 
@@ -19,9 +19,11 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(tickets.router, prefix="/tickets", tags=["tickets"])
+app.include_router(adjuntos.router, tags=["adjuntos"])  # /tickets/{id}/adjuntos y /adjuntos/{id}
 app.include_router(chat.router, prefix="/tickets", tags=["chat"])
 app.include_router(clientes.router, prefix="/clientes", tags=["clientes"])
 app.include_router(reportes.router, prefix="/reportes", tags=["reportes"])
+app.include_router(historico.router, prefix="/historico", tags=["historico"])
 
 
 @app.on_event("startup")

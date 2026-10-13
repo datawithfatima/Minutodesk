@@ -1,12 +1,12 @@
-import { Mail, Plus, Search, Trash2, Users } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, Copy, KeyRound, Plus, Search, Trash2, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   actualizarUsuario,
   crearUsuario,
   eliminarUsuario,
-  enviarEnlaceDeAcceso,
   listarAreas,
   listarUsuarios,
+  restablecerPassword,
 } from "../../api";
 import { obtenerUsuario } from "../../auth";
 import { ETIQUETA_ROL, normalizarTexto } from "../../texto";
@@ -20,10 +20,75 @@ import { inputClass, labelClass } from "../../components/ui/formStyles";
 
 const FORM_VACIO = { nombre: "", email: "", area_id: "", rol: "usuario", activo: true };
 
-function textoDeCorreo(modo, destino, accion) {
-  return modo === "smtp"
-    ? `${accion} Enviamos el enlace a ${destino}.`
-    : `${accion} El correo no está configurado: el enlace quedó guardado en backend/correos_enviados/ (modo desarrollo).`;
+function PasswordTemporal({ datos, onCerrar }) {
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(datos.password);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      /* sin permiso para el portapapeles: se puede seleccionar el texto a mano */
+    }
+  }
+
+  return (
+    <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4">
+      <div>
+        <h2 className="mb-1 text-sm font-semibold text-noche">{datos.titulo}</h2>
+        <p className="mb-3 text-sm text-gray-600">
+          Entrégale esta contraseña temporal a <strong>{datos.nombre}</strong> ({datos.email}).
+          Al ingresar tendrá que cambiarla. <strong>Solo se muestra ahora</strong>: si se pierde,
+          genera una nueva con «Restablecer contraseña».
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="w-full select-all break-all rounded-lg border border-amber-300 bg-white px-3 py-2 font-mono text-lg tracking-wider text-noche sm:w-auto">
+            {datos.password}
+          </code>
+          <Button variant="outlineSecondary" size="sm" onClick={copiar}>
+            {copiado ? <Check size={14} /> : <Copy size={14} />} {copiado ? "Copiada" : "Copiar"}
+          </Button>
+          <Button variant="outlineSecondary" size="sm" onClick={onCerrar}>
+            Listo, ya la anoté
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EstadoCuenta({ usuario: u }) {
+  if (!u.activo) return <Badge color="gray">Inactivo</Badge>;
+  if (u.pendiente_activacion) return <Badge color="amber">Sin contraseña</Badge>;
+  if (u.debe_cambiar_password) return <Badge color="amber">Debe cambiar contraseña</Badge>;
+  return <Badge color="green">Activo</Badge>;
+}
+
+function AccionesUsuario({ usuario: u, esYo, onEditar, onRestablecer, onEliminar, className = "" }) {
+  return (
+    <div className={`flex flex-wrap gap-2 ${className}`}>
+      <Button variant="outlineSecondary" size="sm" onClick={() => onEditar(u)}>
+        Editar
+      </Button>
+      {u.activo && !esYo && (
+        <Button
+          variant="outlineSecondary"
+          size="sm"
+          onClick={() => onRestablecer(u)}
+          title="Restablecer contraseña"
+        >
+          <KeyRound size={14} /> Restablecer
+          <span className="-ml-1.5 hidden sm:inline"> contraseña</span>
+        </Button>
+      )}
+      {!esYo && (
+        <Button variant="outlineDanger" size="sm" onClick={() => onEliminar(u)}>
+          <Trash2 size={14} /> Eliminar
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export default function UsuariosPage() {
@@ -33,12 +98,24 @@ export default function UsuariosPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
+  const [temporal, setTemporal] = useState(null); // { titulo, nombre, email, password }
   const [busqueda, setBusqueda] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [panel, setPanel] = useState(null); // { modo: "crear" } | { modo: "editar", usuario }
   const [form, setForm] = useState(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
+  const formulario = useRef(null);
+
+  // En móvil el formulario queda arriba de la lista: se lleva la vista hasta él al abrirlo.
+  useEffect(() => {
+    if (panel) formulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [panel]);
+
+  // La contraseña temporal y los avisos aparecen arriba: se suben para que se vean.
+  useEffect(() => {
+    if (temporal || aviso) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [temporal, aviso]);
 
   const cargar = useCallback(async () => {
     const [listaUsuarios, listaAreas] = await Promise.all([listarUsuarios(), listarAreas()]);
@@ -98,7 +175,12 @@ export default function UsuariosPage() {
           area_id: Number(form.area_id),
           rol: form.rol,
         });
-        setAviso(textoDeCorreo(resultado.correo, form.email.trim().toLowerCase(), "Usuario creado."));
+        setTemporal({
+          titulo: "Usuario creado",
+          nombre: resultado.usuario.nombre,
+          email: resultado.usuario.email,
+          password: resultado.password_temporal,
+        });
       } else {
         await actualizarUsuario(panel.usuario.id, {
           nombre: form.nombre,
@@ -117,12 +199,22 @@ export default function UsuariosPage() {
     }
   }
 
-  async function enviarEnlace(usuario) {
+  async function restablecer(usuario) {
+    const confirmado = window.confirm(
+      `¿Generar una contraseña temporal nueva para ${usuario.nombre}? Su contraseña actual dejará de funcionar y se cerrará su sesión.`
+    );
+    if (!confirmado) return;
     setError(null);
     setAviso(null);
     try {
-      const r = await enviarEnlaceDeAcceso(usuario.id);
-      setAviso(textoDeCorreo(r.correo, usuario.email, "Enlace de acceso generado."));
+      const r = await restablecerPassword(usuario.id);
+      setTemporal({
+        titulo: "Contraseña restablecida",
+        nombre: usuario.nombre,
+        email: usuario.email,
+        password: r.password_temporal,
+      });
+      await cargar();
     } catch (e) {
       setError(e.message);
     }
@@ -168,13 +260,14 @@ export default function UsuariosPage() {
           {aviso}
         </Alert>
       )}
+      {temporal && <PasswordTemporal datos={temporal} onCerrar={() => setTemporal(null)} />}
       {cargando && <Spinner size="sm" />}
 
       {!cargando && (
         <>
           <Card className="mb-4">
             <Card.Body className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[200px] flex-1">
+              <div className="w-full min-w-0 sm:w-auto sm:min-w-[200px] sm:flex-1">
                 <label className={labelClass}>Buscar</label>
                 <div className="relative">
                   <Search
@@ -189,10 +282,10 @@ export default function UsuariosPage() {
                   />
                 </div>
               </div>
-              <div>
+              <div className="min-w-0 flex-1 sm:flex-none">
                 <label className={labelClass}>Rol</label>
                 <select
-                  className={`${inputClass} w-44`}
+                  className={`${inputClass} sm:w-44`}
                   value={filtroRol}
                   onChange={(e) => setFiltroRol(e.target.value)}
                 >
@@ -204,10 +297,10 @@ export default function UsuariosPage() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="min-w-0 flex-1 sm:flex-none">
                 <label className={labelClass}>Estado</label>
                 <select
-                  className={`${inputClass} w-36`}
+                  className={`${inputClass} sm:w-36`}
                   value={filtroEstado}
                   onChange={(e) => setFiltroEstado(e.target.value)}
                 >
@@ -216,110 +309,144 @@ export default function UsuariosPage() {
                   <option value="inactivo">Inactivos</option>
                 </select>
               </div>
-              <Button variant="dark" onClick={abrirCrear}>
+              <Button variant="dark" onClick={abrirCrear} className="w-full sm:w-auto">
                 <Plus size={16} /> Nuevo usuario
               </Button>
             </Card.Body>
           </Card>
 
           {panel && (
-            <Card className="mb-4">
-              <Card.Body>
-                <h2 className="mb-3 text-sm font-semibold text-gray-700">
-                  {panel.modo === "crear" ? "Nuevo usuario" : `Editar: ${panel.usuario.nombre}`}
-                </h2>
-                <form onSubmit={guardar} className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>Nombre completo</label>
-                    <input
-                      className={inputClass}
-                      value={form.nombre}
-                      onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                      required
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Correo electrónico</label>
-                    <input
-                      type="email"
-                      className={inputClass}
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      required
-                      disabled={panel.modo === "editar"}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Área</label>
-                    <select
-                      className={inputClass}
-                      value={form.area_id}
-                      onChange={(e) => setForm({ ...form, area_id: e.target.value })}
-                      required
-                    >
-                      {areasDisponibles.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.nombre}
-                          {a.activo ? "" : " (inactiva)"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Rol</label>
-                    <select
-                      className={inputClass}
-                      value={form.rol}
-                      onChange={(e) => setForm({ ...form, rol: e.target.value })}
-                      disabled={editandoPropio}
-                    >
-                      {Object.entries(ETIQUETA_ROL).map(([valor, etiqueta]) => (
-                        <option key={valor} value={valor}>
-                          {etiqueta}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {panel.modo === "editar" && (
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+            <div ref={formulario} className="scroll-mt-20">
+              <Card className="mb-4">
+                <Card.Body>
+                  <h2 className="mb-3 text-sm font-semibold text-gray-700">
+                    {panel.modo === "crear" ? "Nuevo usuario" : `Editar: ${panel.usuario.nombre}`}
+                  </h2>
+                  <form onSubmit={guardar} className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div>
+                      <label className={labelClass}>Nombre completo</label>
                       <input
-                        type="checkbox"
-                        checked={form.activo}
-                        disabled={editandoPropio}
-                        onChange={(e) => setForm({ ...form, activo: e.target.checked })}
+                        className={inputClass}
+                        value={form.nombre}
+                        onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                        required
+                        autoComplete="off"
                       />
-                      Cuenta activa
-                    </label>
-                  )}
-                  {editandoPropio && (
-                    <p className="text-xs text-gray-400 md:col-span-2">
-                      No puedes cambiar tu propio rol ni desactivar tu cuenta.
-                    </p>
-                  )}
-                  {panel.modo === "crear" && (
-                    <p className="text-xs text-gray-400 md:col-span-2">
-                      La persona recibirá un correo con un enlace para activar su cuenta y elegir
-                      su contraseña.
-                    </p>
-                  )}
-                  <div className="flex gap-2 md:col-span-2">
-                    <Button type="submit" variant="dark" disabled={guardando}>
-                      {guardando ? <Spinner size="sm" /> : "Guardar"}
-                    </Button>
-                    <Button type="button" variant="outlineSecondary" onClick={() => setPanel(null)}>
-                      Cancelar
-                    </Button>
-                  </div>
-                </form>
-              </Card.Body>
-            </Card>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Correo electrónico</label>
+                      <input
+                        type="email"
+                        className={inputClass}
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        required
+                        disabled={panel.modo === "editar"}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Área</label>
+                      <select
+                        className={inputClass}
+                        value={form.area_id}
+                        onChange={(e) => setForm({ ...form, area_id: e.target.value })}
+                        required
+                      >
+                        {areasDisponibles.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.nombre}
+                            {a.activo ? "" : " (inactiva)"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Rol</label>
+                      <select
+                        className={inputClass}
+                        value={form.rol}
+                        onChange={(e) => setForm({ ...form, rol: e.target.value })}
+                        disabled={editandoPropio}
+                      >
+                        {Object.entries(ETIQUETA_ROL).map(([valor, etiqueta]) => (
+                          <option key={valor} value={valor}>
+                            {etiqueta}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {panel.modo === "editar" && (
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={form.activo}
+                          disabled={editandoPropio}
+                          onChange={(e) => setForm({ ...form, activo: e.target.checked })}
+                        />
+                        Cuenta activa
+                      </label>
+                    )}
+                    {editandoPropio && (
+                      <p className="text-xs text-gray-400 md:col-span-2">
+                        No puedes cambiar tu propio rol ni desactivar tu cuenta.
+                      </p>
+                    )}
+                    {panel.modo === "crear" && (
+                      <p className="text-xs text-gray-400 md:col-span-2">
+                        Se generará una contraseña temporal que verás una sola vez para
+                        entregársela a la persona. Al ingresar tendrá que cambiarla; si la olvida,
+                        puede recuperarla con el enlace que le llega a este correo.
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2 md:col-span-2">
+                      <Button type="submit" variant="dark" disabled={guardando}>
+                        {guardando ? <Spinner size="sm" /> : "Guardar"}
+                      </Button>
+                      <Button type="button" variant="outlineSecondary" onClick={() => setPanel(null)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </Card.Body>
+              </Card>
+            </div>
           )}
 
-          <Card className="overflow-x-auto">
+          {/* Móvil y tablet: una tarjeta por persona. */}
+          <Card className="divide-y divide-gray-100 overflow-hidden lg:hidden">
+            {visibles.map((u) => (
+              <div key={u.id} className="space-y-2 px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-noche">
+                      {u.nombre}
+                      {u.id === yo.id && <span className="ml-2 text-xs text-gray-400">(tú)</span>}
+                    </div>
+                    <div className="truncate text-sm text-gray-500">{u.email}</div>
+                  </div>
+                  <EstadoCuenta usuario={u} />
+                </div>
+                <div className="text-xs text-gray-500">
+                  {ETIQUETA_ROL[u.rol] || u.rol} · {u.area}
+                </div>
+                <AccionesUsuario
+                  usuario={u}
+                  esYo={u.id === yo.id}
+                  onEditar={abrirEditar}
+                  onRestablecer={restablecer}
+                  onEliminar={eliminar}
+                />
+              </div>
+            ))}
+            {visibles.length === 0 && (
+              <p className="p-4 text-sm text-gray-500">No hay usuarios para este filtro.</p>
+            )}
+          </Card>
+
+          <Card className="hidden overflow-x-auto lg:block">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
+              <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
                 <tr>
                   <th className="px-3 py-2">Nombre</th>
                   <th className="px-3 py-2">Correo</th>
@@ -331,8 +458,8 @@ export default function UsuariosPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {visibles.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 font-medium text-gray-900">
+                  <tr key={u.id} className="hover:bg-marfil">
+                    <td className="px-3 py-2 font-medium text-noche">
                       {u.nombre}
                       {u.id === yo.id && <span className="ml-2 text-xs text-gray-400">(tú)</span>}
                     </td>
@@ -340,30 +467,17 @@ export default function UsuariosPage() {
                     <td className="px-3 py-2">{u.area}</td>
                     <td className="px-3 py-2">{ETIQUETA_ROL[u.rol] || u.rol}</td>
                     <td className="px-3 py-2">
-                      {!u.activo ? (
-                        <Badge color="gray">Inactivo</Badge>
-                      ) : u.pendiente_activacion ? (
-                        <Badge color="amber">Pendiente de activar</Badge>
-                      ) : (
-                        <Badge color="green">Activo</Badge>
-                      )}
+                      <EstadoCuenta usuario={u} />
                     </td>
                     <td className="px-3 py-2">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outlineSecondary" size="sm" onClick={() => abrirEditar(u)}>
-                          Editar
-                        </Button>
-                        {u.activo && (
-                          <Button variant="outlineSecondary" size="sm" onClick={() => enviarEnlace(u)}>
-                            <Mail size={14} /> Enviar enlace
-                          </Button>
-                        )}
-                        {u.id !== yo.id && (
-                          <Button variant="outlineDanger" size="sm" onClick={() => eliminar(u)}>
-                            <Trash2 size={14} /> Eliminar
-                          </Button>
-                        )}
-                      </div>
+                      <AccionesUsuario
+                        usuario={u}
+                        esYo={u.id === yo.id}
+                        onEditar={abrirEditar}
+                        onRestablecer={restablecer}
+                        onEliminar={eliminar}
+                        className="justify-end"
+                      />
                     </td>
                   </tr>
                 ))}

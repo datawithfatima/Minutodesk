@@ -92,55 +92,84 @@ export default function HistoricoPage() {
           {visibles.length === 0 ? (
             <Alert variant="secondary">Todavía no hay tickets resueltos para mostrar.</Alert>
           ) : (
-            <Card className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Consulta</th>
-                    <th className="px-3 py-2">Categoría</th>
-                    <th className="px-3 py-2">Resuelto por</th>
-                    <th className="px-3 py-2">Cerrado</th>
-                    <th className="px-3 py-2">Duración</th>
-                    {esUsuario && <th className="px-3 py-2">Puntos</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {visibles.map((t) => (
-                    <tr key={t.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2">
-                        <Link
-                          to={`/${seccion}/tickets/${t.id}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {t.id}
-                        </Link>
-                      </td>
-                      <td className="max-w-xs truncate px-3 py-2">{t.texto}</td>
-                      <td className="px-3 py-2">{t.categoria_predicha || "—"}</td>
-                      <td className="px-3 py-2">
-                        {t.resuelto_por === "minutito" ? (
-                          <Badge color="sky">Minutito</Badge>
-                        ) : (
-                          <Badge color="green">Equipo de soporte</Badge>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-gray-500">
-                        {t.cerrado_en ? new Date(t.cerrado_en).toLocaleDateString() : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-gray-500">
-                        {t.cerrado_en ? formatearDuracion(t.creado_en, t.cerrado_en) : "—"}
-                      </td>
-                      {esUsuario && (
-                        <td className="px-3 py-2">
-                          {puntosPorTicket[t.id] ? `+${puntosPorTicket[t.id]}` : "—"}
-                        </td>
+            <>
+              <Card className="divide-y divide-gray-100 overflow-hidden md:hidden">
+                {visibles.map((t) => (
+                  <Link
+                    key={t.id}
+                    to={`/${seccion}/tickets/${t.id}`}
+                    className="block px-4 py-3 hover:bg-marfil"
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-acento">#{t.id}</span>
+                      {t.resuelto_por === "minutito" ? (
+                        <Badge color="sky">Minutito</Badge>
+                      ) : (
+                        <Badge color="green">Equipo de soporte</Badge>
                       )}
+                    </div>
+                    <div className="line-clamp-2 text-sm text-gray-800">{t.texto}</div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+                      <span>{t.categoria_predicha || "Sin categoría"}</span>
+                      {t.cerrado_en && <span>Cerrado {new Date(t.cerrado_en).toLocaleDateString()}</span>}
+                      {t.cerrado_en && <span>{formatearDuracion(t.creado_en, t.cerrado_en)}</span>}
+                      {esUsuario && puntosPorTicket[t.id] ? (
+                        <span className="font-medium text-green-700">+{puntosPorTicket[t.id]} pts</span>
+                      ) : null}
+                    </div>
+                  </Link>
+                ))}
+              </Card>
+              <Card className="hidden overflow-x-auto md:block">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
+                    <tr>
+                      <th className="px-3 py-2">#</th>
+                      <th className="px-3 py-2">Consulta</th>
+                      <th className="px-3 py-2">Categoría</th>
+                      <th className="px-3 py-2">Resuelto por</th>
+                      <th className="px-3 py-2">Cerrado</th>
+                      <th className="px-3 py-2">Duración</th>
+                      {esUsuario && <th className="px-3 py-2">Puntos</th>}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {visibles.map((t) => (
+                      <tr key={t.id} className="hover:bg-marfil">
+                        <td className="px-3 py-2">
+                          <Link
+                            to={`/${seccion}/tickets/${t.id}`}
+                            className="text-acento hover:underline"
+                          >
+                            {t.id}
+                          </Link>
+                        </td>
+                        <td className="max-w-xs truncate px-3 py-2">{t.texto}</td>
+                        <td className="px-3 py-2">{t.categoria_predicha || "—"}</td>
+                        <td className="px-3 py-2">
+                          {t.resuelto_por === "minutito" ? (
+                            <Badge color="sky">Minutito</Badge>
+                          ) : (
+                            <Badge color="green">Equipo de soporte</Badge>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-gray-500">
+                          {t.cerrado_en ? new Date(t.cerrado_en).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-gray-500">
+                          {t.cerrado_en ? formatearDuracion(t.creado_en, t.cerrado_en) : "—"}
+                        </td>
+                        {esUsuario && (
+                          <td className="px-3 py-2">
+                            {puntosPorTicket[t.id] ? `+${puntosPorTicket[t.id]}` : "—"}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+            </>
           )}
         </>
       )}

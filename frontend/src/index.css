@@ -1,7 +1,57 @@
+@import "@fontsource-variable/inter";
 @import "tailwindcss";
+
+/* Identidad de MinutoDesk: azul noche, marfil frío, superficies blancas y un solo acento.
+   Verde, ámbar y rojo quedan reservados para estados y alertas. */
+@theme {
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+
+  --color-noche: #101b30;
+  --color-noche-700: #1b2844;
+  --color-noche-600: #26355a;
+  --color-noche-300: #8e9bb6;
+
+  --color-marfil: #f6f7fa;
+  --color-linea: #e3e6ee;
+
+  --color-acento: #3458eb;
+  --color-acento-600: #2747cc;
+  --color-acento-50: #eef1fe;
+  --color-acento-100: #dce3fd;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
 
 body {
   margin: 0;
-  background-color: #f9fafb;
-  color: #111827;
+  background-color: var(--color-marfil);
+  color: var(--color-noche);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Foco siempre visible para quien navega con teclado. */
+:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

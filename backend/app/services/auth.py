@@ -68,6 +68,17 @@ def validar_password(password: str) -> None:
         )
 
 
+ALFABETO_TEMPORAL = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"  # sin 0/O/1/l/I
+
+
+def generar_password_temporal(longitud: int = 10) -> str:
+    """Contraseña aleatoria legible para entregar una sola vez; cumple la política."""
+    while True:
+        candidata = "".join(secrets.choice(ALFABETO_TEMPORAL) for _ in range(longitud))
+        if re.search(r"\d", candidata):
+            return candidata
+
+
 def crear_token(cliente: Cliente) -> str:
     payload = {
         "sub": str(cliente.id),
@@ -83,10 +94,15 @@ def es_personal(usuario: Cliente) -> bool:
     return usuario.rol in ROLES_PERSONAL
 
 
-def obtener_usuario_actual(
+CAMBIO_OBLIGATORIO = "Debes cambiar tu contraseña temporal antes de continuar."
+
+
+def obtener_usuario_sesion(
     credenciales: HTTPAuthorizationCredentials = Depends(seguridad),
     session: Session = Depends(get_session),
 ) -> Cliente:
+    """Usuario de la sesión, aunque tenga pendiente el cambio de contraseña.
+    Solo lo usan los endpoints para consultar el perfil y cambiar la contraseña."""
     try:
         payload = jwt.decode(credenciales.credentials, SECRET_KEY, algorithms=[ALGORITMO])
         cliente_id = int(payload["sub"])
@@ -98,6 +114,14 @@ def obtener_usuario_actual(
     if cliente is None or not cliente.activo or cliente.version_token != version:
         raise HTTPException(status_code=401, detail="Sesión no válida. Inicia sesión de nuevo.")
     return cliente
+
+
+def obtener_usuario_actual(usuario: Cliente = Depends(obtener_usuario_sesion)) -> Cliente:
+    """Usuario de la sesión para el resto del sistema: con contraseña temporal no se
+    puede hacer nada hasta cambiarla (se exige aquí, no solo en la pantalla)."""
+    if usuario.debe_cambiar_password:
+        raise HTTPException(status_code=403, detail=CAMBIO_OBLIGATORIO)
+    return usuario
 
 
 def requerir_personal(usuario: Cliente = Depends(obtener_usuario_actual)) -> Cliente:

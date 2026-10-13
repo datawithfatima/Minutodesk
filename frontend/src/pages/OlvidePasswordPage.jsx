@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { olvidePassword } from "../api";
@@ -28,46 +29,52 @@ export default function OlvidePasswordPage() {
   }
 
   return (
-    <AuthShell>
-      <h2 className="mb-1 text-base font-semibold text-gray-900">Recupera tu contraseña</h2>
-      <p className="mb-3 text-sm text-gray-500">
-        Escribe tu correo y te enviaremos un enlace para elegir una contraseña nueva.
-      </p>
-
+    <AuthShell
+      titulo="Recupera tu contraseña"
+      descripcion="Escribe tu correo y te enviaremos un enlace para elegir una contraseña nueva."
+      pie={
+        <Link to="/login" className="inline-flex items-center gap-1.5 rounded text-acento hover:underline">
+          <ArrowLeft size={15} aria-hidden="true" /> Volver a iniciar sesión
+        </Link>
+      }
+    >
       {error && (
-        <Alert variant="danger" className="mb-3">
+        <Alert variant="danger" className="mb-4">
           {error}
         </Alert>
       )}
 
       {mensaje ? (
-        <Alert variant="success" className="mb-3">
-          {mensaje}
-        </Alert>
+        <Alert variant="success">{mensaje}</Alert>
       ) : (
-        <form onSubmit={manejarEnvio} className="flex flex-col gap-3">
+        <form onSubmit={manejarEnvio} className="flex flex-col gap-4">
           <div>
-            <label className={labelClass}>Correo electrónico</label>
+            <label htmlFor="olvide-email" className={labelClass}>
+              Correo electrónico
+            </label>
             <input
+              id="olvide-email"
               type="email"
               className={inputClass}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="correo@ejemplo.com"
+              autoComplete="email"
+              autoFocus
+              placeholder="nombre@empresa.com"
             />
           </div>
-          <Button type="submit" variant="dark" disabled={enviando} className="w-full">
-            {enviando ? <Spinner size="sm" /> : "Enviar enlace"}
+          <Button type="submit" size="lg" disabled={enviando} className="w-full">
+            {enviando ? (
+              <>
+                <Spinner size="sm" /> Enviando…
+              </>
+            ) : (
+              "Enviar enlace"
+            )}
           </Button>
         </form>
       )}
-
-      <div className="mt-4 border-t border-gray-100 pt-3 text-center text-sm">
-        <Link to="/login" className="text-blue-600 hover:underline">
-          Volver a iniciar sesión
-        </Link>
-      </div>
     </AuthShell>
   );
 }
