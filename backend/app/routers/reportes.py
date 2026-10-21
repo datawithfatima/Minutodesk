@@ -16,7 +16,6 @@ from app.services.auth import (
     requerir_personal,
 )
 from app.services.classifier import cargar_metricas
-from app.services import validacion
 from app.services.historico import resumen_historico
 
 router = APIRouter()
@@ -26,7 +25,7 @@ def _acierto_en_uso(session: Session) -> dict:
     """Acierto real del SVM con tickets creados en la plataforma: compara lo que sugirió
     con lo que la persona eligió o el personal corrigió. Es optimista si la persona
     acepta la sugerencia sin mirar; las correcciones del técnico lo equilibran."""
-    tickets = session.exec(select(Ticket).where(Ticket.es_validacion == False)).all()  # noqa: E712
+    tickets = session.exec(select(Ticket)).all()
     con_categoria = [t for t in tickets if t.categoria and t.categoria_predicha]
     con_tipo = [t for t in tickets if t.tipo and t.tipo_predicho]
     return {
@@ -72,20 +71,12 @@ def historico(
     return resumen_historico(session)
 
 
-@router.get("/validacion")
-def validacion_del_clasificador(
-    usuario: Cliente = Depends(requerir_admin), session: Session = Depends(get_session)
-):
-    """Cómo le fue al SVM con los tickets posteriores al entrenamiento (solo administrador)."""
-    return validacion.resultados(session)
-
-
 @router.get("/resumen", response_model=ReporteResumen)
 def resumen(
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
-    consulta = select(Ticket).where(Ticket.es_validacion == False)  # noqa: E712
+    consulta = select(Ticket)
     if not es_personal(usuario):
         consulta = consulta.where(Ticket.cliente_id == usuario.id)
     tickets = session.exec(consulta).all()

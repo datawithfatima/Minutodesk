@@ -87,12 +87,9 @@ class Ticket(SQLModel, table=True):
     motivo_cancelacion: Optional[str] = Field(default=None)
     creado_en: datetime = Field(default_factory=datetime.now)
     cerrado_en: Optional[datetime] = Field(default=None)
-    # Tickets de validación: llegaron después del histórico de entrenamiento y se crean
-    # para medir al SVM con datos que no vio. `tipo`/`categoria` guardan la clasificación
-    # real; no entran en las colas, los indicadores de soporte ni el entrenamiento.
-    es_validacion: bool = Field(default=False, index=True)
-    id_externo: Optional[str] = Field(default=None, index=True)  # ID en la herramienta anterior
-    solicitante_externo: Optional[str] = Field(default=None)  # nombre tal como viene en el CSV
+    # Solo en tickets creados por carga masiva desde el export de la herramienta anterior.
+    id_externo: Optional[str] = Field(default=None, index=True)  # ID en esa herramienta
+    solicitante_externo: Optional[str] = Field(default=None)  # quien lo pidió (no tiene cuenta)
 
 
 class Adjunto(SQLModel, table=True):

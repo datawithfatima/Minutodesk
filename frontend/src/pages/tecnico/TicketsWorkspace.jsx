@@ -51,7 +51,7 @@ function FilaCompacta({ base, ticket, cliente }) {
     <Link to={`${base}/${ticket.id}`} className="block px-4 py-3 transition-colors duration-150 hover:bg-marfil">
       <div className="mb-0.5 flex items-center justify-between gap-2">
         <span className="truncate text-xs text-gray-500">
-          #{ticket.id} · {cliente?.nombre || "—"}
+          #{ticket.id} · {ticket.solicitante_externo || cliente?.nombre || "—"}
         </span>
         <EstadoBadge estado={ticket.estado} />
       </div>
@@ -380,7 +380,7 @@ export default function TicketsWorkspace({
                         </Link>
                       </td>
                       <td className="whitespace-nowrap px-3 py-3 text-gray-600">
-                        {clientesPorId[t.cliente_id]?.nombre || "—"}
+                        {t.solicitante_externo || clientesPorId[t.cliente_id]?.nombre || "—"}
                       </td>
                       <td className="px-3 py-3 text-gray-600">{t.categoria || t.categoria_predicha || "—"}</td>
                       <td className="px-3 py-3">

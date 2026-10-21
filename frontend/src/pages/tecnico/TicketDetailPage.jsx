@@ -174,7 +174,8 @@ export default function TicketDetailPage() {
       listarHistorial(id),
       t.tecnico_id ? obtenerCliente(t.tecnico_id) : Promise.resolve(null),
     ]);
-    setCliente(c);
+    // Ticket de la carga masiva: quien lo pidió no tiene cuenta, se muestra su nombre.
+    setCliente(t.solicitante_externo ? { ...c, nombre: t.solicitante_externo, email: "Sin cuenta en MinutoDesk" } : c);
     setInteracciones(ints);
     setCambiosDeEstado(cambios);
     setTecnico(tec);

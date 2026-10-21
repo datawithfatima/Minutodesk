@@ -25,7 +25,6 @@ COLUMNAS_NUEVAS = {
         ("prioridad", "TEXT NOT NULL DEFAULT 'Normal'"),
         ("datos_alta", "TEXT"),
         ("motivo_cancelacion", "TEXT"),
-        ("es_validacion", "BOOLEAN NOT NULL DEFAULT 0"),
         ("id_externo", "TEXT"),
         ("solicitante_externo", "TEXT"),
     ],

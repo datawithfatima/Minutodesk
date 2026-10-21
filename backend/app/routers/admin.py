@@ -30,7 +30,7 @@ from app.schemas import (
     UsuarioCreate,
     UsuarioUpdate,
 )
-from app.services import correo, tokens_acceso, validacion
+from app.services import carga_masiva, correo, tokens_acceso
 from app.services.cuerpo import leer_cuerpo_limitado
 from app.services.historico import leer_csv
 from app.services.auth import requerir_admin
@@ -263,18 +263,19 @@ def restablecer_password(
 MAX_BYTES_CSV = 10 * 1024 * 1024
 
 
-@router.post("/validacion")
-async def cargar_validacion(
+@router.post("/carga-masiva")
+async def cargar_tickets(
     request: Request,
     aplicar: bool = False,
     admin: Cliente = Depends(requerir_admin),
     session: Session = Depends(get_session),
 ):
-    """Crea los tickets de validación del CSV recibido (cuerpo de la petición) y los
-    clasifica con el SVM. Sin aplicar=true solo devuelve cuántos se crearían."""
+    """Crea como tickets de MinutoDesk los del CSV recibido (cuerpo de la petición): el
+    SVM los clasifica como a cualquier ticket nuevo. Sin aplicar=true solo devuelve
+    cuántos se crearían."""
     contenido = await leer_cuerpo_limitado(request, MAX_BYTES_CSV, "El archivo supera los 10 MB")
     try:
-        return validacion.cargar(leer_csv(contenido), session, aplicar)
+        return carga_masiva.cargar(leer_csv(contenido), session, aplicar, admin)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

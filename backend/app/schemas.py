@@ -156,6 +156,7 @@ class TicketRead(SQLModel):
     motivo_cancelacion: Optional[str] = None
     creado_en: datetime
     cerrado_en: Optional[datetime] = None
+    solicitante_externo: Optional[str] = None  # tickets de la carga masiva: quien lo pidió
 
 
 class CancelarTicket(SQLModel):
