@@ -20,6 +20,7 @@ from app.models import Adjunto, Cliente, Ticket
 from app.schemas import AdjuntoRead, MensajeRespuesta
 from app.services.auth import es_personal, obtener_usuario_actual
 from app.services.catalogos import MAX_ADJUNTOS, MAX_BYTES_ADJUNTO, TIPOS_DE_ARCHIVO
+from app.services.cuerpo import leer_cuerpo_limitado
 
 router = APIRouter()
 
@@ -100,21 +101,17 @@ async def subir_adjunto(
             detail="Tipo de archivo no permitido. Se aceptan Word, Excel, PowerPoint, PDF, imágenes, video, audio y texto.",
         )
 
-    declarado = request.headers.get("content-length")
-    if declarado and declarado.isdigit() and int(declarado) > MAX_BYTES_ADJUNTO:
-        raise HTTPException(status_code=413, detail="El archivo supera el límite de 10 MB.")
-
     cantidad = session.exec(
         select(func.count()).select_from(Adjunto).where(Adjunto.ticket_id == ticket_id)
     ).one()
     if cantidad >= MAX_ADJUNTOS:
         raise HTTPException(status_code=409, detail=f"Un ticket admite hasta {MAX_ADJUNTOS} archivos.")
 
-    contenido = await request.body()
+    contenido = await leer_cuerpo_limitado(
+        request, MAX_BYTES_ADJUNTO, "El archivo supera el límite de 10 MB."
+    )
     if not contenido:
         raise HTTPException(status_code=400, detail="El archivo está vacío.")
-    if len(contenido) > MAX_BYTES_ADJUNTO:
-        raise HTTPException(status_code=413, detail="El archivo supera el límite de 10 MB.")
 
     DIRECTORIO_ARCHIVOS.mkdir(parents=True, exist_ok=True)
     guardado = uuid.uuid4().hex

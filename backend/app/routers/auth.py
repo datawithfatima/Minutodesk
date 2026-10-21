@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, select
 
@@ -35,13 +37,38 @@ def _buscar_por_email(session: Session, email: str):
     return session.exec(select(Cliente).where(Cliente.email == email.strip().lower())).first()
 
 
+# Freno contra adivinar contraseñas: tras varios intentos fallidos con un mismo correo,
+# se bloquea ese correo un rato. Vive en memoria: se reinicia al reiniciar el backend.
+MAX_INTENTOS_FALLIDOS = 5
+VENTANA_BLOQUEO = timedelta(minutes=15)
+intentos_fallidos: dict[str, list[datetime]] = {}
+
+
+def _intentos_recientes(email: str) -> list[datetime]:
+    desde = datetime.now() - VENTANA_BLOQUEO
+    recientes = [t for t in intentos_fallidos.get(email, []) if t > desde]
+    if recientes:
+        intentos_fallidos[email] = recientes
+    else:
+        intentos_fallidos.pop(email, None)
+    return recientes
+
+
 @router.post("/login", response_model=TokenResponse)
 def iniciar_sesion(data: LoginRequest, session: Session = Depends(get_session)):
-    cliente = _buscar_por_email(session, data.email)
+    email = data.email.strip().lower()
+    if len(_intentos_recientes(email)) >= MAX_INTENTOS_FALLIDOS:
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiados intentos fallidos. Espera 15 minutos o usa «¿Olvidaste tu contraseña?».",
+        )
+    cliente = _buscar_por_email(session, email)
     hash_guardado = cliente.password_hash if cliente and cliente.password_hash else HASH_FALSO
     password_ok = verificar_password(data.password, hash_guardado)
     if cliente is None or cliente.password_hash is None or not password_ok:
+        intentos_fallidos.setdefault(email, []).append(datetime.now())
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+    intentos_fallidos.pop(email, None)
     if not cliente.activo:
         raise HTTPException(
             status_code=403, detail="Tu cuenta está desactivada. Contacta al administrador."
@@ -88,6 +115,7 @@ def establecer_password(
     cliente.debe_cambiar_password = False  # eligió una contraseña propia
     cliente.version_token += 1
     tokens_acceso.marcar_usado(session, registro)
+    intentos_fallidos.pop(cliente.email, None)  # con su clave nueva puede entrar ya
     session.add(cliente)
     session.commit()
     return MensajeRespuesta(mensaje="Tu contraseña quedó establecida. Ya puedes iniciar sesión.")

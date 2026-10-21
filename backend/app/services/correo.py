@@ -74,12 +74,34 @@ def enviar_correo(destino: str, asunto: str, cuerpo: str) -> str:
     return "archivo"
 
 
-def enviar_recuperacion(destino: str, nombre: str, token: str) -> str:
+def enviar_recuperacion(destino: str, nombre: str, token: str, vigencia: str = "30 minutos") -> str:
     cuerpo = (
         f"Hola {nombre},\n\n"
         "Recibimos una solicitud para restablecer tu contraseña de MinutoDesk.\n"
-        "Entra a este enlace para elegir una nueva (vence en 30 minutos y solo funciona una vez):\n\n"
+        f"Entra a este enlace para elegir una nueva (vence en {vigencia} y solo funciona una vez):\n\n"
         f"{enlace_establecer_password(token)}\n\n"
         "Si no fuiste tú, ignora este mensaje: tu contraseña actual sigue siendo válida."
     )
     return enviar_correo(destino, "Restablece tu contraseña de MinutoDesk", cuerpo)
+
+
+def enviar_activacion(destino: str, nombre: str, token: str) -> str:
+    cuerpo = (
+        f"Hola {nombre},\n\n"
+        "Se creó tu cuenta en MinutoDesk, la mesa de ayuda.\n"
+        "Entra a este enlace para elegir tu contraseña (vence en 3 días y solo funciona una vez):\n\n"
+        f"{enlace_establecer_password(token)}\n\n"
+        "Nadie más conoce tu contraseña: ni el administrador ni el equipo de soporte."
+    )
+    return enviar_correo(destino, "Activa tu cuenta de MinutoDesk", cuerpo)
+
+
+def enviar_aviso_aprobacion(destino: str, nombre: str, ticket_id: int, descripcion: str) -> str:
+    base = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    cuerpo = (
+        f"Hola {nombre},\n\n"
+        f"El equipo de soporte necesita tu aprobación para continuar con el ticket #{ticket_id}:\n\n"
+        f"{descripcion}\n\n"
+        f"Revísala y respóndela en MinutoDesk, sección «Aprobaciones»: {base}/login"
+    )
+    return enviar_correo(destino, f"Aprobación pendiente del ticket #{ticket_id}", cuerpo)

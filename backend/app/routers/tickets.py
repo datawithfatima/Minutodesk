@@ -41,6 +41,7 @@ from app.services.catalogos import (
     TIPOS_DE_ARCHIVO,
     cedula_valida,
 )
+from app.routers.conversacion import hay_aprobacion_pendiente
 from app.services.classifier import categorias_clasificables, clasificar_ticket, sugerir
 from app.services.gamification_rules import evaluar_evento
 
@@ -374,6 +375,11 @@ def actualizar_ticket(
 
     estado_anterior = ticket.estado
     ya_estaba_resuelto = estado_anterior == "resuelto"
+
+    if data.estado == "resuelto" and estado_anterior != "resuelto" and hay_aprobacion_pendiente(session, ticket.id):
+        raise HTTPException(
+            status_code=409, detail="Hay una aprobación pendiente: espera la respuesta antes de resolver."
+        )
 
     if data.estado is not None and data.estado != estado_anterior:
         ticket.estado = data.estado

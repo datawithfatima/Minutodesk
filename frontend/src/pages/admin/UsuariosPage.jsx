@@ -1,4 +1,4 @@
-import { Check, Copy, KeyRound, Plus, Search, Trash2, Users } from "lucide-react";
+import { KeyRound, Plus, Search, Trash2, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   actualizarUsuario,
@@ -20,47 +20,14 @@ import { inputClass, labelClass } from "../../components/ui/formStyles";
 
 const FORM_VACIO = { nombre: "", email: "", area_id: "", rol: "usuario", activo: true };
 
-function PasswordTemporal({ datos, onCerrar }) {
-  const [copiado, setCopiado] = useState(false);
-
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(datos.password);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
-    } catch {
-      /* sin permiso para el portapapeles: se puede seleccionar el texto a mano */
-    }
-  }
-
-  return (
-    <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4">
-      <div>
-        <h2 className="mb-1 text-sm font-semibold text-noche">{datos.titulo}</h2>
-        <p className="mb-3 text-sm text-gray-600">
-          Entrégale esta contraseña temporal a <strong>{datos.nombre}</strong> ({datos.email}).
-          Al ingresar tendrá que cambiarla. <strong>Solo se muestra ahora</strong>: si se pierde,
-          genera una nueva con «Restablecer contraseña».
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <code className="w-full select-all break-all rounded-lg border border-amber-300 bg-white px-3 py-2 font-mono text-lg tracking-wider text-noche sm:w-auto">
-            {datos.password}
-          </code>
-          <Button variant="outlineSecondary" size="sm" onClick={copiar}>
-            {copiado ? <Check size={14} /> : <Copy size={14} />} {copiado ? "Copiada" : "Copiar"}
-          </Button>
-          <Button variant="outlineSecondary" size="sm" onClick={onCerrar}>
-            Listo, ya la anoté
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Si no hay SMTP configurado el correo no sale: queda como archivo en el servidor.
+const SIN_SMTP =
+  "No se pudo enviar el correo porque el servidor no tiene configurado el envío (SMTP). " +
+  "El enlace quedó guardado en backend/correos_enviados/ del servidor.";
 
 function EstadoCuenta({ usuario: u }) {
   if (!u.activo) return <Badge color="gray">Inactivo</Badge>;
-  if (u.pendiente_activacion) return <Badge color="amber">Sin contraseña</Badge>;
+  if (u.pendiente_activacion) return <Badge color="amber">Pendiente de activar</Badge>;
   if (u.debe_cambiar_password) return <Badge color="amber">Debe cambiar contraseña</Badge>;
   return <Badge color="green">Activo</Badge>;
 }
@@ -98,7 +65,7 @@ export default function UsuariosPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
-  const [temporal, setTemporal] = useState(null); // { titulo, nombre, email, password }
+  const [advertencia, setAdvertencia] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
@@ -112,10 +79,10 @@ export default function UsuariosPage() {
     if (panel) formulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [panel]);
 
-  // La contraseña temporal y los avisos aparecen arriba: se suben para que se vean.
+  // Los avisos aparecen arriba: se suben para que se vean.
   useEffect(() => {
-    if (temporal || aviso) window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [temporal, aviso]);
+    if (advertencia || aviso) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [advertencia, aviso]);
 
   const cargar = useCallback(async () => {
     const [listaUsuarios, listaAreas] = await Promise.all([listarUsuarios(), listarAreas()]);
@@ -147,6 +114,7 @@ export default function UsuariosPage() {
     setForm({ ...FORM_VACIO, area_id: primeraActiva ? String(primeraActiva.id) : "" });
     setPanel({ modo: "crear" });
     setAviso(null);
+    setAdvertencia(null);
     setError(null);
   }
 
@@ -175,12 +143,13 @@ export default function UsuariosPage() {
           area_id: Number(form.area_id),
           rol: form.rol,
         });
-        setTemporal({
-          titulo: "Usuario creado",
-          nombre: resultado.usuario.nombre,
-          email: resultado.usuario.email,
-          password: resultado.password_temporal,
-        });
+        if (resultado.envio === "smtp") {
+          setAviso(
+            `Se creó la cuenta de ${resultado.usuario.nombre}. Le enviamos a ${resultado.usuario.email} un enlace para que elija su contraseña.`
+          );
+        } else {
+          setAdvertencia(`Se creó la cuenta de ${resultado.usuario.nombre}. ${SIN_SMTP}`);
+        }
       } else {
         await actualizarUsuario(panel.usuario.id, {
           nombre: form.nombre,
@@ -201,19 +170,16 @@ export default function UsuariosPage() {
 
   async function restablecer(usuario) {
     const confirmado = window.confirm(
-      `¿Generar una contraseña temporal nueva para ${usuario.nombre}? Su contraseña actual dejará de funcionar y se cerrará su sesión.`
+      `¿Enviar a ${usuario.email} un enlace para que ${usuario.nombre} elija una contraseña nueva? Nadie más verá la contraseña.`
     );
     if (!confirmado) return;
     setError(null);
     setAviso(null);
+    setAdvertencia(null);
     try {
       const r = await restablecerPassword(usuario.id);
-      setTemporal({
-        titulo: "Contraseña restablecida",
-        nombre: usuario.nombre,
-        email: usuario.email,
-        password: r.password_temporal,
-      });
+      if (r.envio === "smtp") setAviso(r.mensaje);
+      else setAdvertencia(SIN_SMTP);
       await cargar();
     } catch (e) {
       setError(e.message);
@@ -260,7 +226,11 @@ export default function UsuariosPage() {
           {aviso}
         </Alert>
       )}
-      {temporal && <PasswordTemporal datos={temporal} onCerrar={() => setTemporal(null)} />}
+      {advertencia && (
+        <Alert variant="warning" className="mb-3">
+          {advertencia}
+        </Alert>
+      )}
       {cargando && <Spinner size="sm" />}
 
       {!cargando && (
@@ -394,9 +364,8 @@ export default function UsuariosPage() {
                     )}
                     {panel.modo === "crear" && (
                       <p className="text-xs text-gray-400 md:col-span-2">
-                        Se generará una contraseña temporal que verás una sola vez para
-                        entregársela a la persona. Al ingresar tendrá que cambiarla; si la olvida,
-                        puede recuperarla con el enlace que le llega a este correo.
+                        La persona recibirá en este correo un enlace para elegir su contraseña
+                        (vale 3 días). Nadie más la conoce, ni siquiera el administrador.
                       </p>
                     )}
                     <div className="flex flex-wrap gap-2 md:col-span-2">

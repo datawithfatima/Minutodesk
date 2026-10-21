@@ -1,4 +1,4 @@
-import { BarChart3, Bot, HelpCircle, History, Home, Plus, Ticket, Trophy } from "lucide-react";
+import { BarChart3, Bot, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket, Trophy } from "lucide-react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
     isActive: (p) => p.startsWith("/usuario/mis-tickets") || p.startsWith("/usuario/tickets/"),
   },
   { to: "/usuario/nuevo-ticket", label: "Crear ticket", icon: Plus },
+  { to: "/usuario/aprobaciones", label: "Aprobaciones", icon: ClipboardCheck },
   { to: "/usuario/logros", label: "Mis logros", icon: Trophy },
   { to: "/usuario/historico", label: "Mi histórico", icon: History },
   { to: "/usuario/faqs", label: "FAQs", icon: HelpCircle },

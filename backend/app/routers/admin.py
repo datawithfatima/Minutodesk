@@ -10,10 +10,12 @@ from app.database import get_session
 from app.ml.train_classifier import quitar_tildes
 from app.models import (
     Adjunto,
+    Aprobacion,
     Area,
     Cliente,
     EventoGamificacion,
     HistorialEstadoTicket,
+    MensajeTicket,
     TokenAcceso,
     Ticket,
 )
@@ -22,14 +24,16 @@ from app.schemas import (
     AreaRead,
     AreaUpdate,
     ClienteRead,
+    EnlaceEnviado,
     ImportacionReporte,
     MensajeRespuesta,
-    PasswordTemporalRespuesta,
     UsuarioCreado,
     UsuarioCreate,
     UsuarioUpdate,
 )
-from app.services.auth import generar_password_temporal, hashear_password, requerir_admin
+from app.services import correo, tokens_acceso
+from app.services.auth import requerir_admin
+from app.services.cuerpo import leer_cuerpo_limitado
 from app.services.historico import leer_csv, procesar
 from app.services.usuarios import a_cliente_read, mapa_areas
 
@@ -100,21 +104,16 @@ def crear_usuario(
     if session.exec(select(Cliente).where(Cliente.email == email)).first():
         raise HTTPException(status_code=400, detail="Ese correo ya está registrado")
 
-    temporal = generar_password_temporal()
-    cliente = Cliente(
-        nombre=nombre,
-        email=email,
-        area_id=area.id,
-        rol=data.rol,
-        password_hash=hashear_password(temporal),
-        debe_cambiar_password=True,
-    )
+    # Sin contraseña: la persona la elige con el enlace que le llega a su correo.
+    cliente = Cliente(nombre=nombre, email=email, area_id=area.id, rol=data.rol)
     session.add(cliente)
     session.commit()
     session.refresh(cliente)
-    return UsuarioCreado(
-        usuario=a_cliente_read(cliente, {area.id: area}), password_temporal=temporal
+    token = tokens_acceso.generar(
+        session, cliente, "activacion", tokens_acceso.MINUTOS_ACTIVACION
     )
+    envio = correo.enviar_activacion(cliente.email, cliente.nombre, token)
+    return UsuarioCreado(usuario=a_cliente_read(cliente, {area.id: area}), envio=envio)
 
 
 @router.patch("/usuarios/{usuario_id}", response_model=ClienteRead)
@@ -194,6 +193,17 @@ def eliminar_usuario(
         is not None
         or session.exec(select(Adjunto.id).where(Adjunto.subido_por_id == cliente.id)).first()
         is not None
+        or session.exec(select(MensajeTicket.id).where(MensajeTicket.autor_id == cliente.id)).first()
+        is not None
+        or session.exec(
+            select(Aprobacion.id).where(
+                or_(
+                    Aprobacion.aprobador_id == cliente.id,
+                    Aprobacion.solicitada_por_id == cliente.id,
+                )
+            )
+        ).first()
+        is not None
     )
     if tiene_actividad:
         raise HTTPException(
@@ -212,14 +222,15 @@ def eliminar_usuario(
     return MensajeRespuesta(mensaje="Usuario eliminado.")
 
 
-@router.post("/usuarios/{usuario_id}/restablecer-password", response_model=PasswordTemporalRespuesta)
+@router.post("/usuarios/{usuario_id}/restablecer-password", response_model=EnlaceEnviado)
 def restablecer_password(
     usuario_id: int,
     admin: Cliente = Depends(requerir_admin),
     session: Session = Depends(get_session),
 ):
-    """Genera una contraseña temporal nueva (p. ej. si la persona no puede usar el enlace
-    por correo). Se muestra una sola vez; la persona debe cambiarla al ingresar."""
+    """Envía a la persona, a su correo, un enlace para elegir una contraseña nueva.
+    El administrador nunca ve la contraseña. A una cuenta que aún no se activó se le
+    reenvía el enlace de activación."""
     cliente = session.get(Cliente, usuario_id)
     if cliente is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -230,13 +241,24 @@ def restablecer_password(
     if not cliente.activo:
         raise HTTPException(status_code=400, detail="La cuenta está desactivada")
 
-    temporal = generar_password_temporal()
-    cliente.password_hash = hashear_password(temporal)
-    cliente.debe_cambiar_password = True
-    cliente.version_token += 1  # cierra sus sesiones abiertas
-    session.add(cliente)
-    session.commit()
-    return PasswordTemporalRespuesta(password_temporal=temporal)
+    if cliente.password_hash is None:
+        token = tokens_acceso.generar(
+            session, cliente, "activacion", tokens_acceso.MINUTOS_ACTIVACION
+        )
+        envio = correo.enviar_activacion(cliente.email, cliente.nombre, token)
+    else:
+        token = tokens_acceso.generar(
+            session, cliente, "recuperacion", tokens_acceso.MINUTOS_RECUPERACION_ADMIN
+        )
+        envio = correo.enviar_recuperacion(cliente.email, cliente.nombre, token, "24 horas")
+    if envio == "smtp":
+        mensaje = f"Enviamos a {cliente.email} un enlace para elegir su contraseña."
+    else:
+        mensaje = (
+            "No se pudo enviar el correo: revisa la configuración SMTP del servidor. "
+            "El enlace quedó guardado en backend/correos_enviados/."
+        )
+    return EnlaceEnviado(mensaje=mensaje, envio=envio)
 
 
 MAX_BYTES_CSV = 10 * 1024 * 1024
@@ -253,9 +275,7 @@ async def importar_historico(
 
     Sin aplicar solo devuelve la vista previa de lo que pasaría.
     """
-    contenido = await request.body()
-    if len(contenido) > MAX_BYTES_CSV:
-        raise HTTPException(status_code=413, detail="El archivo supera los 10 MB")
+    contenido = await leer_cuerpo_limitado(request, MAX_BYTES_CSV, "El archivo supera los 10 MB")
     try:
         tabla = leer_csv(contenido)
     except ValueError as e:

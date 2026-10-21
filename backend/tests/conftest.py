@@ -9,6 +9,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.database import get_session
 from app.main import app
 from app.models import Area, Cliente
+from app.routers.auth import intentos_fallidos
 from app.services import correo
 from app.services.auth import hashear_password
 
@@ -53,6 +54,7 @@ def client(engine, correos):
             yield s
 
     app.dependency_overrides[get_session] = _sesion
+    intentos_fallidos.clear()  # el freno de inicio de sesión no pasa de una prueba a otra
     yield TestClient(app)
     app.dependency_overrides.clear()
 

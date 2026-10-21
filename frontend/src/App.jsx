@@ -27,6 +27,7 @@ import DatosHistoricosPage from "./pages/admin/DatosHistoricosPage";
 
 import HistoricoPage from "./pages/compartido/HistoricoPage";
 import ReportesPage from "./pages/compartido/ReportesPage";
+import AprobacionesPage from "./pages/compartido/AprobacionesPage";
 
 const SUBTITULO_ASIGNADOS = "Los tickets que tomaste o resolviste.";
 
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="mis-tickets" element={<MisTicketsPage />} />
           <Route path="nuevo-ticket" element={<NuevoTicketPage />} />
           <Route path="tickets/:id" element={<UsuarioTicketDetailPage />} />
+          <Route path="aprobaciones" element={<AprobacionesPage />} />
           <Route path="logros" element={<MisLogrosPage />} />
           <Route path="historico" element={<HistoricoPage />} />
           <Route path="faqs" element={<FaqsPage />} />
@@ -54,7 +56,7 @@ export default function App() {
 
       <Route element={<RequireAuth rol="tecnico" />}>
         <Route path="/tecnico" element={<TecnicoLayout />}>
-          <Route index element={<Navigate to="tickets" replace />} />
+          <Route index element={<Navigate to="reportes" replace />} />
           <Route path="tickets" element={<TicketsWorkspace base="/tecnico/tickets" />}>
             <Route index />
             <Route path=":id" element={<TicketDetailPage />} />
@@ -74,6 +76,7 @@ export default function App() {
             <Route path=":id" element={<TicketDetailPage />} />
           </Route>
           <Route path="historico" element={<HistoricoPage />} />
+          <Route path="aprobaciones" element={<AprobacionesPage />} />
           <Route path="usuarios" element={<UsuariosSoloLecturaPage />} />
           <Route path="ranking" element={<RankingPage />} />
           <Route path="reportes" element={<ReportesPage />} />
@@ -102,6 +105,7 @@ export default function App() {
             <Route path=":id" element={<TicketDetailPage />} />
           </Route>
           <Route path="historico" element={<HistoricoPage />} />
+          <Route path="aprobaciones" element={<AprobacionesPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="areas" element={<AreasPage />} />
           <Route path="datos" element={<DatosHistoricosPage />} />

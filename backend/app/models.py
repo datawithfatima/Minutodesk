@@ -125,6 +125,39 @@ class InteraccionMinutito(SQLModel, table=True):
     creado_en: datetime = Field(default_factory=datetime.now)
 
 
+class MensajeTicket(SQLModel, table=True):
+    """Mensaje del chat entre el usuario que abrió el ticket y el personal de soporte."""
+
+    __tablename__ = "mensaje_ticket"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", index=True)
+    autor_id: int = Field(foreign_key="cliente.id")
+    texto: str
+    creado_en: datetime = Field(default_factory=datetime.now)
+
+
+class Aprobacion(SQLModel, table=True):
+    """Paso de aprobación que el personal pide a otra persona (p. ej. el jefe del área)
+    antes de continuar con un ticket. Mientras esté pendiente el ticket no se resuelve."""
+
+    __table_args__ = (
+        CheckConstraint(
+            "estado IN ('pendiente','aprobada','rechazada')", name="ck_aprobacion_estado"
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", index=True)
+    solicitada_por_id: int = Field(foreign_key="cliente.id")
+    aprobador_id: int = Field(foreign_key="cliente.id", index=True)
+    descripcion: str
+    estado: str = Field(default="pendiente", index=True)
+    comentario: Optional[str] = Field(default=None)  # lo escribe el aprobador al responder
+    creado_en: datetime = Field(default_factory=datetime.now)
+    respondida_en: Optional[datetime] = Field(default=None)
+
+
 class TicketHistorico(SQLModel, table=True):
     """Ticket del export mensual de la herramienta anterior.
 

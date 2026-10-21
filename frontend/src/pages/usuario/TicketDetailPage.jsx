@@ -11,6 +11,7 @@ import EstadoBadge from "../../components/EstadoBadge";
 import ChatConversacion from "../../components/ChatConversacion";
 import ConfirmarResolucion from "../../components/ConfirmarResolucion";
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
+import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
 import { tituloTipo } from "../../components/tickets/formato";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
@@ -104,6 +105,13 @@ export default function TicketDetailPage() {
       <div className="mb-5">
         <ArchivosTicket ticketId={id} resuelto={resuelto || cancelado} avisoInicial={avisosDeSubida} />
       </div>
+
+      <h2 className="mb-2 text-lg font-semibold">Chat con soporte</h2>
+      <Card className="mb-5">
+        <Card.Body>
+          <ConversacionTicket ticket={ticket} />
+        </Card.Body>
+      </Card>
 
       <h2 className="mb-2 text-lg font-semibold">Conversación con Minutito</h2>
       <div className="mb-3">

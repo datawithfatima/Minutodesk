@@ -252,12 +252,64 @@ class UsuarioUpdate(SQLModel):
 
 class UsuarioCreado(SQLModel):
     usuario: ClienteRead
-    # Se muestra una sola vez al administrador para que se la entregue a la persona.
-    password_temporal: str
+    # La persona recibe por correo un enlace para elegir su contraseña: el administrador
+    # nunca la ve. «smtp» si salió el correo; «archivo» si quedó en correos_enviados/.
+    envio: str
 
 
-class PasswordTemporalRespuesta(SQLModel):
-    password_temporal: str
+class EnlaceEnviado(SQLModel):
+    mensaje: str
+    envio: str  # «smtp» o «archivo», como en UsuarioCreado
+
+
+# --- Chat con soporte y aprobaciones ---
+
+
+class MensajeCreate(SQLModel):
+    texto: str
+
+
+class MensajeRead(SQLModel):
+    id: int
+    ticket_id: int
+    autor_id: int
+    autor: str
+    autor_es_personal: bool
+    texto: str
+    creado_en: datetime
+
+
+class AprobacionCreate(SQLModel):
+    aprobador_id: int
+    descripcion: str
+
+
+class AprobacionResponder(SQLModel):
+    aprobada: bool
+    comentario: Optional[str] = None
+
+
+class AprobacionRead(SQLModel):
+    id: int
+    ticket_id: int
+    solicitada_por_id: int
+    solicitada_por: str
+    aprobador_id: int
+    aprobador: str
+    descripcion: str
+    estado: str
+    comentario: Optional[str] = None
+    creado_en: datetime
+    respondida_en: Optional[datetime] = None
+    # Para quien aprueba: de qué trata el ticket y quién lo pidió.
+    ticket_texto: Optional[str] = None
+    ticket_estado: Optional[str] = None
+    ticket_solicitante: Optional[str] = None
+
+
+class ConversacionRead(SQLModel):
+    mensajes: list[MensajeRead]
+    aprobaciones: list[AprobacionRead]
 
 
 class CategoriaConteo(SQLModel):

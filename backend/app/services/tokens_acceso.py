@@ -14,6 +14,8 @@ from app.models import Cliente, TokenAcceso
 
 MINUTOS_ACTIVACION = 72 * 60
 MINUTOS_RECUPERACION = 30
+# Cuando lo pide el administrador la persona quizá no esté pendiente del correo.
+MINUTOS_RECUPERACION_ADMIN = 24 * 60
 MAX_RECUPERACIONES_POR_HORA = 3
 
 

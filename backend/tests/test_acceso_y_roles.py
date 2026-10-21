@@ -59,13 +59,13 @@ def test_usuario_final_no_puede_listar_clientes_ni_cambiar_tickets(client, crear
     assert client.patch("/tickets/1", json={"estado": "resuelto"}, headers=h).status_code == 403
 
 
-# ---------- altas con contraseña temporal ----------
+# ---------- altas y restablecimiento: siempre por enlace al correo de la persona ----------
 
 def _bearer(login):
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
 
 
-def test_admin_crea_usuario_con_contrasena_temporal_sin_enviar_correo(
+def test_admin_crea_usuario_y_la_persona_recibe_enlace_sin_que_el_admin_vea_la_clave(
     client, crear_cuenta, entrar, correos
 ):
     admin = crear_cuenta("adm@ejemplo.com", "administrador")
@@ -75,24 +75,26 @@ def test_admin_crea_usuario_con_contrasena_temporal_sin_enviar_correo(
         headers=entrar("adm@ejemplo.com"),
     )
     assert r.status_code == 200, r.text
-    temporal = r.json()["password_temporal"]
-    assert len(temporal) >= 8 and any(c.isdigit() for c in temporal)
+    assert "password_temporal" not in r.json() and r.json()["envio"] == "archivo"
     assert r.json()["usuario"]["email"] == "nuevo@ejemplo.com"
-    assert r.json()["usuario"]["debe_cambiar_password"] is True
-    assert list(correos.glob("*.txt")) == []  # no se manda ningún enlace al crear la cuenta
+    assert r.json()["usuario"]["pendiente_activacion"] is True
 
-    login = client.post("/auth/login", json={"email": "nuevo@ejemplo.com", "password": temporal})
+    archivos = list(correos.glob("*nuevo_ejemplo.com.txt"))
+    assert len(archivos) == 1 and "Activa tu cuenta" in archivos[0].read_text(encoding="utf-8")
+    token = token_del_ultimo_correo(correos)
+    assert client.post("/auth/establecer-password", json={"token": token, "password": "ClaveElegida7"}).status_code == 200
+    login = client.post("/auth/login", json={"email": "nuevo@ejemplo.com", "password": "ClaveElegida7"})
     assert login.status_code == 200
-    assert login.json()["cliente"]["debe_cambiar_password"] is True and login.json()["cliente"]["rol"] == "tecnico"
+    assert login.json()["cliente"]["debe_cambiar_password"] is False and login.json()["cliente"]["rol"] == "tecnico"
 
 
-def test_con_contrasena_temporal_solo_se_puede_cambiarla(client, crear_cuenta, entrar):
-    admin = crear_cuenta("adm@ejemplo.com", "administrador")
-    temporal = client.post(
-        "/admin/usuarios",
-        json={"nombre": "Ana", "email": "ana@ejemplo.com", "area_id": admin.area_id, "rol": "usuario"},
-        headers=entrar("adm@ejemplo.com"),
-    ).json()["password_temporal"]
+def test_con_contrasena_temporal_solo_se_puede_cambiarla(client, crear_cuenta, session):
+    # Solo la primera cuenta de administrador (seed_data.py) nace con contraseña temporal.
+    temporal = "Temporal123"
+    ana = crear_cuenta("ana@ejemplo.com", password=temporal)
+    ana.debe_cambiar_password = True
+    session.add(ana)
+    session.commit()
     login = client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": temporal})
     h = _bearer(login)
 
@@ -122,40 +124,54 @@ def test_cualquier_usuario_puede_cambiar_su_contrasena_voluntariamente(client, c
     assert client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": "OtraClave99"}).status_code == 200
 
 
-def test_admin_restablece_contrasena_y_la_persona_debe_cambiarla(client, crear_cuenta, entrar):
+def test_admin_restablece_contrasena_enviando_enlace_solo_a_la_persona(client, crear_cuenta, entrar, correos):
     admin = crear_cuenta("adm@ejemplo.com", "administrador")
     usuario = crear_cuenta("ana@ejemplo.com")
     ha, h_ana = entrar("adm@ejemplo.com"), entrar("ana@ejemplo.com")
 
     r = client.post(f"/admin/usuarios/{usuario.id}/restablecer-password", headers=ha)
     assert r.status_code == 200
-    temporal = r.json()["password_temporal"]
-    assert client.get("/tickets", headers=h_ana).status_code == 401  # su sesión se cerró
-    assert client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": PASSWORD}).status_code == 401
-    login = client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": temporal})
-    assert login.status_code == 200 and login.json()["cliente"]["debe_cambiar_password"] is True
+    assert "password_temporal" not in r.json() and r.json()["envio"] == "archivo"
+    assert "correos_enviados" in r.json()["mensaje"]  # avisa que el correo no salió por SMTP
+    texto = list(correos.glob("*ana_ejemplo.com.txt"))[0].read_text(encoding="utf-8")
+    assert texto.startswith("Para: ana@ejemplo.com") and "24 horas" in texto
 
-    assert client.post(f"/admin/usuarios/{admin.id}/restablecer-password", headers=ha).status_code == 400
-    assert client.post(f"/admin/usuarios/{usuario.id}/restablecer-password", headers=h_ana).status_code in (401, 403)
-
-
-def test_olvide_contrasena_por_correo_tambien_quita_la_obligacion_de_cambio(
-    client, crear_cuenta, entrar, correos
-):
-    admin = crear_cuenta("adm@ejemplo.com", "administrador")
-    temporal = client.post(
-        "/admin/usuarios",
-        json={"nombre": "Ana", "email": "ana@ejemplo.com", "area_id": admin.area_id, "rol": "usuario"},
-        headers=entrar("adm@ejemplo.com"),
-    ).json()["password_temporal"]
-
-    # la persona no encuentra su contraseña temporal: pide el enlace por correo
-    client.post("/auth/olvide-password", json={"email": "ana@ejemplo.com"})
     token = token_del_ultimo_correo(correos)
     assert client.post("/auth/establecer-password", json={"token": token, "password": "ClaveElegida7"}).status_code == 200
-    login = client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": "ClaveElegida7"})
-    assert login.status_code == 200 and login.json()["cliente"]["debe_cambiar_password"] is False
-    assert client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": temporal}).status_code == 401
+    assert client.get("/tickets", headers=h_ana).status_code == 401  # al cambiarla se cierran sus sesiones
+    assert client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": "ClaveElegida7"}).status_code == 200
+
+    assert client.post(f"/admin/usuarios/{admin.id}/restablecer-password", headers=ha).status_code == 400
+    assert client.post(f"/admin/usuarios/{usuario.id}/restablecer-password", headers=entrar("ana@ejemplo.com", "ClaveElegida7")).status_code == 403
+
+
+def test_restablecer_a_cuenta_sin_activar_reenvia_la_activacion(client, crear_cuenta, entrar, correos):
+    crear_cuenta("adm@ejemplo.com", "administrador")
+    nueva = crear_cuenta("nueva@ejemplo.com", password=None)
+    r = client.post(f"/admin/usuarios/{nueva.id}/restablecer-password", headers=entrar("adm@ejemplo.com"))
+    assert r.status_code == 200
+    assert "Activa tu cuenta" in list(correos.glob("*nueva_ejemplo.com.txt"))[0].read_text(encoding="utf-8")
+
+
+def test_demasiados_intentos_fallidos_bloquean_el_correo(client, crear_cuenta):
+    crear_cuenta("ana@ejemplo.com")
+    for _ in range(5):
+        assert client.post("/auth/login", json={"email": "ana@ejemplo.com", "password": "mala-clave-1"}).status_code == 401
+    # ni con la clave correcta: hay que esperar
+    bloqueado = client.post("/auth/login", json={"email": "ANA@ejemplo.com", "password": PASSWORD})
+    assert bloqueado.status_code == 429
+    # otro correo no se ve afectado
+    crear_cuenta("beto@ejemplo.com")
+    assert client.post("/auth/login", json={"email": "beto@ejemplo.com", "password": PASSWORD}).status_code == 200
+
+
+def test_la_api_manda_cabeceras_de_seguridad_y_no_expone_docs(client):
+    r = client.get("/health")
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["x-frame-options"] == "DENY"
+    assert r.headers["cache-control"] == "no-store"
+    assert client.get("/docs").status_code == 404
+    assert client.get("/openapi.json").status_code == 404
 
 
 def test_la_base_antigua_recibe_la_columna_nueva_sin_perder_datos():

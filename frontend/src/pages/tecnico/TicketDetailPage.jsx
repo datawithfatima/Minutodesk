@@ -1,4 +1,4 @@
-import { Check, Copy, Sparkles } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import {
@@ -23,10 +23,10 @@ import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
 import EstadoBadge from "../../components/EstadoBadge";
 import { ETIQUETA_ESTADO } from "../../texto";
-import ChatConversacion from "../../components/ChatConversacion";
+import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 
 const TABS = [
-  { nombre: "Conversación", activa: true },
+  { nombre: "Chat con el usuario", activa: true },
   { nombre: "Historial", activa: true },
   { nombre: "Archivos", activa: true },
   { nombre: "Notas", activa: false },
@@ -147,7 +147,7 @@ export default function TicketDetailPage() {
   const [cambiosDeEstado, setCambiosDeEstado] = useState([]);
   const [actualizando, setActualizando] = useState(false);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState("Conversación");
+  const [tab, setTab] = useState("Chat con el usuario");
   const [copiado, setCopiado] = useState(false);
   const [umbralConfianza, setUmbralConfianza] = useState(null);
   const [catalogos, setCatalogos] = useState(null);
@@ -187,7 +187,7 @@ export default function TicketDetailPage() {
     setInteracciones([]);
     setCambiosDeEstado([]);
     setError(null);
-    setTab("Conversación");
+    setTab("Chat con el usuario");
     cargar().catch((e) => setError(e.message));
   }, [cargar]);
 
@@ -290,13 +290,6 @@ export default function TicketDetailPage() {
                 </div>
               )}
 
-              <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-dashed border-linea px-4 py-3">
-                <Sparkles size={15} className="mt-0.5 shrink-0 text-gray-400" aria-hidden="true" />
-                <p className="text-sm text-gray-500">
-                  <span className="font-medium text-gray-600">Sugerencias del asistente · Próximamente.</span>{" "}
-                  Minutito podrá proponer pasos de resolución a partir de tickets similares.
-                </p>
-              </div>
             </Card.Body>
           </Card>
 
@@ -479,7 +472,13 @@ export default function TicketDetailPage() {
               ))}
             </div>
 
-            {tab === "Conversación" && <ChatConversacion interacciones={interacciones} />}
+            {tab === "Chat con el usuario" && (
+              <Card>
+                <Card.Body>
+                  <ConversacionTicket key={ticket.id} ticket={ticket} esPersonal />
+                </Card.Body>
+              </Card>
+            )}
 
             {tab === "Archivos" && (
               <Card>

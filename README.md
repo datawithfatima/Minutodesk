@@ -28,11 +28,19 @@ La interfaz está en español y se adapta a móvil, tablet y escritorio.
 | Administrador | Todo lo anterior, más crear/editar/eliminar usuarios y áreas, ver la calidad del clasificador e importar el CSV histórico |
 
 No hay registro público: las cuentas las crea el administrador. Al crear una
-cuenta el sistema genera una **contraseña temporal** que el administrador ve una
-sola vez y le entrega a la persona; al iniciar sesión por primera vez el sistema
-le exige cambiarla antes de usar nada (se valida en el servidor). Si la olvida,
-"¿Olvidaste tu contraseña?" le envía un enlace de recuperación a su correo, y el
-administrador también puede generar otra temporal ("Restablecer contraseña").
+cuenta, a la persona le llega a su correo un **enlace para elegir su contraseña**
+(vale 3 días); el administrador nunca la ve. Si la olvida, "¿Olvidaste tu
+contraseña?" le envía un enlace de recuperación, y el administrador puede pedir
+que se le envíe uno nuevo ("Restablecer contraseña", vale 24 horas). Tras 5
+intentos fallidos de inicio de sesión, ese correo queda bloqueado 15 minutos.
+
+## Chat con soporte y aprobaciones
+
+En cada ticket, el usuario y el técnico conversan en «Chat con soporte» / «Chat con el
+usuario». El técnico puede **solicitar una aprobación** a otra persona (p. ej. el jefe
+del área): le llega un aviso por correo y la responde en «Aprobaciones» (aprobar, o
+rechazar con motivo). Mientras haya una aprobación pendiente el ticket no se puede
+resolver. Minutito solo está en el panel del usuario final.
 Cualquier usuario puede cambiar su contraseña o cerrar sesión desde el menú de su
 cuenta (arriba a la derecha).
 

@@ -125,6 +125,16 @@ export const confirmarResolucion = (ticketId, resuelto) =>
 export const enviarMensajeChat = (ticketId, mensaje) =>
   enviar("POST", `/tickets/${ticketId}/chat`, { mensaje });
 
+// --- Chat con soporte y aprobaciones ---
+export const obtenerConversacion = (ticketId) => get(`/tickets/${ticketId}/conversacion`);
+export const enviarMensajeSoporte = (ticketId, texto) =>
+  enviar("POST", `/tickets/${ticketId}/mensajes`, { texto });
+export const solicitarAprobacion = (ticketId, { aprobadorId, descripcion }) =>
+  enviar("POST", `/tickets/${ticketId}/aprobaciones`, { aprobador_id: aprobadorId, descripcion });
+export const listarMisAprobaciones = (estado) => get("/aprobaciones", { estado });
+export const responderAprobacion = (id, { aprobada, comentario }) =>
+  enviar("POST", `/aprobaciones/${id}/responder`, { aprobada, comentario });
+
 // --- Clientes y gamificación ---
 export const listarClientes = () => get("/clientes");
 export const obtenerCliente = (id) => get(`/clientes/${id}`);
