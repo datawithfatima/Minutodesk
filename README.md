@@ -160,3 +160,22 @@ reales quedan como la elección de la persona, así que la comparación aparece 
 histórico y los ya cargados, y se descartan los que no traen tipo, categoría o
 descripción. Quien pidió el ticket no necesita cuenta: su nombre queda en el ticket
 (a cargo de una cuenta interna sin acceso).
+
+### Privacidad de los datos de la empresa
+
+Los nombres de solicitantes y técnicos del histórico y de los tickets cargados se
+guardan como alias estables ("Solicitante 007", "Técnico 03"); en la base solo queda
+el hash del nombre. En las descripciones se reemplazan correos, cédulas, teléfonos y
+nombres de personas. La carga masiva lo hace sola; para lo que ya estaba en la base:
+`python scripts/anonimizar_datos.py` (desde `backend/`). Los CSV originales de `data/`
+siguen con los datos reales: no salen de este equipo (están en `.gitignore`).
+
+### Evaluación simulada de Minutito
+
+Los tickets cargados se atendieron en la herramienta anterior, así que no hay
+conversaciones reales con Minutito. En "Datos históricos → Evaluación de Minutito" se
+le pasa a Minutito el texto de cada ticket y una persona del equipo marca si la
+respuesta lo habría resuelto (o si no es de primer nivel). El porcentaje se reporta
+como **estimación por evaluación experta**, separado de la resolución autónoma real,
+y no crea conversaciones ni cambia los tickets.
+

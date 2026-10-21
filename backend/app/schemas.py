@@ -251,6 +251,10 @@ class UsuarioUpdate(SQLModel):
     activo: Optional[bool] = None
 
 
+class VeredictoEvaluacion(SQLModel):
+    veredicto: Optional[str] = None  # resuelve / no_resuelve / no_aplica; None lo desmarca
+
+
 class UsuarioCreado(SQLModel):
     usuario: ClienteRead
     # La persona recibe por correo un enlace para elegir su contraseña: el administrador

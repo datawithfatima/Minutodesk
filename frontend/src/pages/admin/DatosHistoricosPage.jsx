@@ -1,4 +1,4 @@
-import { Archive, FileUp, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
+import { Archive, Bot, FileUp, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { obtenerHistorico } from "../../api";
@@ -24,6 +24,7 @@ import {
 } from "../../components/charts/tokens";
 import TicketsImportados from "./TicketsImportados";
 import CargaMasiva from "./CargaMasiva";
+import EvaluacionMinutito from "./EvaluacionMinutito";
 
 function fechaCorta(iso) {
   return iso ? new Date(iso).toLocaleDateString("es-EC") : "—";
@@ -182,6 +183,7 @@ const VISTAS = [
   { clave: "analisis", etiqueta: "Análisis", icono: BarChart3 },
   { clave: "tickets", etiqueta: "Tickets importados", icono: Archive },
   { clave: "carga", etiqueta: "Cargar tickets nuevos", icono: FileUp },
+  { clave: "minutito", etiqueta: "Evaluación de Minutito", icono: Bot },
 ];
 
 export default function DatosHistoricosPage() {
@@ -222,6 +224,7 @@ export default function DatosHistoricosPage() {
       {vista === "analisis" && <Historico />}
       {vista === "tickets" && <TicketsImportados />}
       {vista === "carga" && <CargaMasiva />}
+      {vista === "minutito" && <EvaluacionMinutito />}
     </>
   );
 }

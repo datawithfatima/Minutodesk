@@ -162,6 +162,11 @@ export const cargarTicketsMasivos = (archivo, aplicar) => {
     body: archivo,
   }).then(manejarRespuesta, sinConexion);
 };
+// Evaluación simulada de Minutito con los tickets cargados (solo administrador).
+export const obtenerEvaluacionMinutito = () => get("/reportes/evaluacion-minutito");
+export const generarEvaluacionMinutito = () => enviar("POST", "/admin/evaluacion-minutito/generar");
+export const marcarEvaluacionMinutito = (id, veredicto) =>
+  enviar("POST", `/admin/evaluacion-minutito/${id}`, { veredicto });
 export const eliminarUsuario = (id) => enviar("DELETE", `/admin/usuarios/${id}`);
 export const restablecerPassword = (id) =>
   enviar("POST", `/admin/usuarios/${id}/restablecer-password`);

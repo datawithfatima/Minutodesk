@@ -12,7 +12,8 @@ Reglas:
 - Se omiten los que no traen tipo, categoría o descripción (sin texto no hay nada
   que clasificar; sin la clasificación real no hay contra qué comparar).
 - Los solicitantes no tienen cuenta: el ticket queda a nombre de una cuenta interna
-  sin acceso y el nombre de quien lo pidió se guarda como texto.
+  sin acceso y quien lo pidió se guarda con un alias ("Solicitante 007"); en la
+  descripción se quitan correos, cédulas, teléfonos y nombres conocidos (ver anonimizar).
 - El estado es el de la herramienta anterior (Completado → Resuelto, En Curso → En
   proceso, Cancelado → Cancelado, Nuevo → Nuevo). «Asignado a» se enlaza con la
   cuenta del técnico si su nombre coincide.
@@ -24,6 +25,7 @@ from sqlmodel import Session, select
 
 from app.models import Area, Cliente, HistorialEstadoTicket, Ticket, TicketHistorico
 from app.services.catalogos import NOMBRES_TIPO, PRIORIDAD_POR_DEFECTO, PRIORIDADES
+from app.services.anonimizar import alias, limpiar_texto, preparar_nombres
 from app.services.classifier import clasificar_ticket
 from app.services.historico import (
     COL_CATEGORIA,
@@ -88,6 +90,9 @@ def cargar(tabla, session: Session, aplicar: bool, quien: Cliente) -> dict:
     for c in sorted(personal, key=lambda c: c.rol != "tecnico", reverse=True):
         tecnicos[_clave(c.nombre)] = c
 
+    nombres = preparar_nombres(
+        [_texto(v) for v in tabla.get(COL_SOLICITANTE, [])] + [_texto(v) for v in tabla.get(COL_ASIGNADO, [])]
+    )
     resumen = Counter()
     nuevos: list[Ticket] = []
     vistos: set[str] = set()
@@ -119,8 +124,9 @@ def cargar(tabla, session: Session, aplicar: bool, quien: Cliente) -> dict:
         resumen["validos"] += 1
         if not aplicar:
             continue
-        texto = texto[:MAX_TEXTO_TICKET]
-        prediccion = clasificar_ticket(texto)
+        # Se clasifica el texto tal como lo escribió la persona; se guarda ya anonimizado.
+        prediccion = clasificar_ticket(texto[:MAX_TEXTO_TICKET])
+        texto = limpiar_texto(texto, nombres)[:MAX_TEXTO_TICKET]
         estado = ESTADOS.get(_clave(_texto(fila.get(COL_ESTADO)) or ""), "abierto")
         tecnico = tecnicos.get(_clave(_texto(fila.get(COL_ASIGNADO)) or ""))
         cerrado = None
@@ -148,7 +154,7 @@ def cargar(tabla, session: Session, aplicar: bool, quien: Cliente) -> dict:
                 creado_en=creado or datetime.now(),
                 cerrado_en=cerrado,
                 id_externo=id_externo,
-                solicitante_externo=_texto(fila.get(COL_SOLICITANTE)),
+                solicitante_externo=alias(session, _texto(fila.get(COL_SOLICITANTE)), "solicitante"),
             )
         )
 

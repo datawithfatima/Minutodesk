@@ -161,6 +161,39 @@ class Aprobacion(SQLModel, table=True):
     respondida_en: Optional[datetime] = Field(default=None)
 
 
+class Seudonimo(SQLModel, table=True):
+    """Alias estable para una persona de los datos de la empresa ("Solicitante 007").
+    Solo se guarda el hash de su nombre: el nombre real no queda en la base."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    clave: str = Field(unique=True, index=True)  # SHA-256 del nombre normalizado
+    alias: str
+
+
+class EvaluacionMinutito(SQLModel, table=True):
+    """Evaluación simulada de Minutito: qué le habría respondido a un ticket cargado y si,
+    a juicio de una persona del equipo, esa respuesta lo habría resuelto. No cuenta como
+    interacción real ni cambia el ticket."""
+
+    __tablename__ = "evaluacion_minutito"
+    __table_args__ = (
+        CheckConstraint(
+            "veredicto IS NULL OR veredicto IN ('resuelve','no_resuelve','no_aplica')",
+            name="ck_evaluacion_veredicto",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", unique=True, index=True)
+    respuesta: Optional[str] = Field(default=None)
+    escalado: bool = Field(default=False)  # Minutito mismo derivó el caso a una persona
+    error: Optional[str] = Field(default=None)  # p. ej. Ollama no disponible
+    generada_en: datetime = Field(default_factory=datetime.now)
+    veredicto: Optional[str] = Field(default=None)
+    evaluado_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
+    evaluado_en: Optional[datetime] = Field(default=None)
+
+
 class TicketHistorico(SQLModel, table=True):
     """Ticket del export mensual de la herramienta anterior.
 

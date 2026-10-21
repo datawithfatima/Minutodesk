@@ -2,11 +2,11 @@
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy import or_
 from sqlmodel import Session, select
 
-from app.database import get_session
+from app.database import engine, get_session
 from app.ml.train_classifier import quitar_tildes
 from app.models import (
     Adjunto,
@@ -29,8 +29,9 @@ from app.schemas import (
     UsuarioCreado,
     UsuarioCreate,
     UsuarioUpdate,
+    VeredictoEvaluacion,
 )
-from app.services import carga_masiva, correo, tokens_acceso
+from app.services import carga_masiva, correo, evaluacion_minutito, tokens_acceso
 from app.services.cuerpo import leer_cuerpo_limitado
 from app.services.historico import leer_csv
 from app.services.auth import requerir_admin
@@ -278,6 +279,38 @@ async def cargar_tickets(
         return carga_masiva.cargar(leer_csv(contenido), session, aplicar, admin)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+def _generar_en_segundo_plano() -> None:
+    with Session(engine) as session:
+        evaluacion_minutito.generar_pendientes(session)
+
+
+@router.post("/evaluacion-minutito/generar", response_model=MensajeRespuesta)
+def generar_evaluacion_minutito(
+    tareas: BackgroundTasks,
+    admin: Cliente = Depends(requerir_admin),
+):
+    """Pide a Minutito, en segundo plano, la respuesta para los tickets cargados que aún
+    no la tienen (con Ollama puede tardar varios segundos por ticket)."""
+    tareas.add_task(_generar_en_segundo_plano)
+    return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. Vuelve a cargar en unos minutos.")
+
+
+@router.post("/evaluacion-minutito/{evaluacion_id}")
+def marcar_evaluacion_minutito(
+    evaluacion_id: int,
+    data: VeredictoEvaluacion,
+    admin: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    try:
+        registro = evaluacion_minutito.marcar(session, evaluacion_id, data.veredicto, admin)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"id": registro.id, "veredicto": registro.veredicto}
 
 
 @router.get("/areas", response_model=list[AreaRead])

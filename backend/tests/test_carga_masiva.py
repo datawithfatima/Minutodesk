@@ -50,7 +50,8 @@ def test_carga_masiva_crea_tickets_normales_clasificados_y_no_duplica(client, cr
 
     # tickets normales, con su estado y fecha reales, la predicción del SVM y lo elegido
     tickets = {t["solicitante_externo"]: t for t in client.get("/tickets", headers=h_tec).json()}
-    beto, carla = tickets["Beto Ruiz"], tickets["Carla"]
+    assert set(tickets) == {"Solicitante 001", "Solicitante 002"}  # sin nombres reales
+    beto, carla = tickets["Solicitante 001"], tickets["Solicitante 002"]
     assert beto["estado"] == "resuelto" and beto["resuelto_por"] == "tecnico" and beto["prioridad"] == "Alta"
     assert beto["tecnico_id"] == tito.id  # «Asignado a» coincide con su cuenta (sin importar tildes)
     assert beto["creado_en"].startswith("2026-09-10") and beto["cerrado_en"].startswith("2026-09-12")
