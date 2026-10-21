@@ -1,4 +1,4 @@
-import { Archive, BarChart3, Ban, CheckCircle2, Database, FileUp, Gauge, Ticket } from "lucide-react";
+import { Archive, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { obtenerHistorico } from "../../api";
@@ -22,7 +22,6 @@ import {
   etiquetaMes,
   formatoNumero,
 } from "../../components/charts/tokens";
-import ImportarPage from "./ImportarPage";
 import TicketsImportados from "./TicketsImportados";
 
 function fechaCorta(iso) {
@@ -176,12 +175,11 @@ function Historico() {
   );
 }
 
-/* ───────────── Página: análisis del histórico + carga del CSV (solo administrador) ───────────── */
+/* ───────────── Página: análisis del histórico (solo administrador) ───────────── */
 
 const VISTAS = [
   { clave: "analisis", etiqueta: "Análisis", icono: BarChart3 },
   { clave: "tickets", etiqueta: "Tickets importados", icono: Archive },
-  { clave: "importar", etiqueta: "Importar CSV", icono: FileUp },
 ];
 
 export default function DatosHistoricosPage() {
@@ -194,7 +192,7 @@ export default function DatosHistoricosPage() {
       <PageHeader
         icon={Database}
         title="Datos históricos"
-        subtitle="Análisis del histórico de tickets y carga del CSV mensual."
+        subtitle="Análisis del histórico de tickets con el que se entrenó el clasificador."
       />
 
       <div role="tablist" className="mb-5 flex gap-1 overflow-x-auto border-b border-linea">
@@ -221,7 +219,6 @@ export default function DatosHistoricosPage() {
 
       {vista === "analisis" && <Historico />}
       {vista === "tickets" && <TicketsImportados />}
-      {vista === "importar" && <ImportarPage embebido />}
     </>
   );
 }

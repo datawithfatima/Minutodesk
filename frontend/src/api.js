@@ -152,16 +152,6 @@ export const obtenerUmbralConfianza = () => get("/reportes/clasificador/umbral")
 export const listarUsuarios = (filtros = {}) => get("/admin/usuarios", filtros);
 export const crearUsuario = (data) => enviar("POST", "/admin/usuarios", data);
 export const actualizarUsuario = (id, data) => enviar("PATCH", `/admin/usuarios/${id}`, data);
-// El CSV viaja como cuerpo crudo; sin `aplicar` el servidor solo devuelve la vista previa.
-export const importarHistorico = (archivo, aplicar) => {
-  const h = headers(false);
-  h["Content-Type"] = "text/csv";
-  return fetch(`${API_BASE}/admin/historico?aplicar=${aplicar ? "true" : "false"}`, {
-    method: "POST",
-    headers: h,
-    body: archivo,
-  }).then(manejarRespuesta);
-};
 export const eliminarUsuario = (id) => enviar("DELETE", `/admin/usuarios/${id}`);
 export const restablecerPassword = (id) =>
   enviar("POST", `/admin/usuarios/${id}/restablecer-password`);

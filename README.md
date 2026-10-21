@@ -142,31 +142,15 @@ Sin Ollama activo, Minutito sigue respondiendo lo frecuente; para el resto avisa
 no está disponible y el ticket queda para el equipo de soporte (`iniciar.bat` avisa
 si no lo detecta).
 
-## Actualización mensual con el CSV de tickets
+## Datos históricos y entrenamiento
 
-**Desde la página:** como administrador, menú "Datos históricos" → pestaña "Importar CSV"
-(la pestaña "Análisis" muestra los gráficos del histórico y "Tickets importados" los
-tickets uno por uno, solo de lectura y con prefijo `H-`, sin mezclarse con los de la
-plataforma). Eliges el CSV,
-el sistema lo limpia y muestra una vista previa (nuevos, actualizados, descartados y
-el porqué); solo al pulsar "Confirmar e importar" se guarda. Esto alimenta los
-análisis del histórico; el reentrenamiento del clasificador se hace con el script.
+El CSV histórico (`data/tickets_historicos_raw.csv`, tickets del 26/12/2025 al
+04/09/2026) se cargó **una sola vez**: es el conjunto con el que se entrena el
+clasificador y lo que muestra "Datos históricos" (análisis y tickets importados, solo
+de lectura y con prefijo `H-`). Ya no se vuelve a subir desde la página.
 
-**Con el script**, desde `backend/` (importa y además reentrena):
+Para reentrenar a mano con ese mismo CSV: `python -m app.ml.prepare_dataset` y
+`python -m app.ml.train_classifier` (desde `backend/`), y reinicia el backend.
 
-```bash
-python scripts/actualizar_mensual.py ruta\al\export.csv
-```
-
-Esto, en orden: guarda el CSV en `data/tickets_historicos_raw.csv`, lo importa a
-la base para "Datos históricos" (los tickets se identifican por su ID: los
-existentes se actualizan y los nuevos se agregan, sin duplicar) y reentrena el
-clasificador. Usa `--sin-entrenar` para omitir el reentrenamiento. Después de
-reentrenar, reinicia el backend.
-
-De cada ticket importado se guardan, además de los datos para los indicadores, la
-descripción, el solicitante y quién lo atendió, solo para que el administrador los
-consulte. La base de datos y los CSV no se suben a git.
-
-Para entrenar a mano: `python -m app.ml.prepare_dataset` y
-`python -m app.ml.train_classifier`.
+Los tickets posteriores no se usan para entrenar: sirven para **validar** el
+clasificador con datos que no vio.

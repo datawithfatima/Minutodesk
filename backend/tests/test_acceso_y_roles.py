@@ -483,29 +483,22 @@ CSV_SUCIO = (
 )
 
 
-def _subir(client, headers, csv, aplicar):
-    return client.post(
-        f"/admin/historico?aplicar={'true' if aplicar else 'false'}",
-        content=csv.encode("utf-8"),
-        headers={**headers, "Content-Type": "text/csv"},
-    )
+def _procesar(session, csv, aplicar):
+    from app.services.historico import leer_csv, procesar
+
+    return procesar(leer_csv(csv.encode("utf-8")), session, aplicar)
 
 
-def test_limpieza_unifica_valores_descarta_filas_malas_y_no_escribe_en_vista_previa(
-    client, crear_cuenta, entrar, session
-):
+def test_limpieza_unifica_valores_descarta_filas_malas_y_no_escribe_en_vista_previa(session):
     from app.models import TicketHistorico
 
-    crear_cuenta("adm@ejemplo.com", "administrador")
-    h = entrar("adm@ejemplo.com")
-
-    previa = _subir(client, h, CSV_SUCIO, aplicar=False).json()
+    previa = _procesar(session, CSV_SUCIO, aplicar=False)
     assert previa["aplicado"] is False
     assert (previa["nuevos"], previa["omitidos"], previa["duplicados_en_archivo"]) == (3, 2, 1)
     assert previa["fechas_solucion_descartadas"] == 1  # el 11 se "resolvió" antes de crearse
     assert session.exec(select(TicketHistorico)).all() == []  # la vista previa no guarda nada
 
-    real = _subir(client, h, CSV_SUCIO, aplicar=True).json()
+    real = _procesar(session, CSV_SUCIO, aplicar=True)
     assert real["aplicado"] is True and real["total_en_base"] == 3
     filas = {t.id_externo: t for t in session.exec(select(TicketHistorico)).all()}
     assert filas["10"].estado == "Completado" and filas["10"].prioridad == "Crítica"
@@ -513,17 +506,14 @@ def test_limpieza_unifica_valores_descarta_filas_malas_y_no_escribe_en_vista_pre
     assert filas["10"].categoria == filas["11"].categoria == "Internet"  # misma categoría, una escritura
     assert filas["12"].prioridad == "Baja"  # gana la última fila repetida
 
-    otra_vez = _subir(client, h, CSV_SUCIO, aplicar=True).json()
+    otra_vez = _procesar(session, CSV_SUCIO, aplicar=True)
     assert (otra_vez["nuevos"], otra_vez["actualizados"], otra_vez["sin_cambios"]) == (0, 0, 3)
 
 
-def test_subida_de_csv_solo_admin_y_rechaza_archivos_invalidos(client, crear_cuenta, entrar):
-    crear_cuenta("tec@ejemplo.com", "tecnico")
+def test_el_historico_ya_no_se_puede_volver_a_subir_desde_la_pagina(client, crear_cuenta, entrar):
     crear_cuenta("adm@ejemplo.com", "administrador")
-    assert _subir(client, entrar("tec@ejemplo.com"), CSV_SUCIO, aplicar=False).status_code == 403
-    h = entrar("adm@ejemplo.com")
-    assert _subir(client, h, "", aplicar=False).status_code == 400
-    assert _subir(client, h, '"A","B"\n"1","2"\n', aplicar=False).status_code == 400
+    r = client.post("/admin/historico?aplicar=true", content=CSV_SUCIO.encode(), headers=entrar("adm@ejemplo.com"))
+    assert r.status_code in (404, 405)
 
 
 # Un mensaje que Minutito no resuelve con respuesta directa ni con una ficha de pasos: llega al

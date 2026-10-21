@@ -2,7 +2,7 @@
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_
 from sqlmodel import Session, select
 
@@ -25,7 +25,6 @@ from app.schemas import (
     AreaUpdate,
     ClienteRead,
     EnlaceEnviado,
-    ImportacionReporte,
     MensajeRespuesta,
     UsuarioCreado,
     UsuarioCreate,
@@ -33,8 +32,6 @@ from app.schemas import (
 )
 from app.services import correo, tokens_acceso
 from app.services.auth import requerir_admin
-from app.services.cuerpo import leer_cuerpo_limitado
-from app.services.historico import leer_csv, procesar
 from app.services.usuarios import a_cliente_read, mapa_areas
 
 router = APIRouter()
@@ -259,28 +256,6 @@ def restablecer_password(
             "El enlace quedó guardado en backend/correos_enviados/."
         )
     return EnlaceEnviado(mensaje=mensaje, envio=envio)
-
-
-MAX_BYTES_CSV = 10 * 1024 * 1024
-
-
-@router.post("/historico", response_model=ImportacionReporte)
-async def importar_historico(
-    request: Request,
-    aplicar: bool = False,
-    admin: Cliente = Depends(requerir_admin),
-    session: Session = Depends(get_session),
-):
-    """Limpia el CSV recibido (cuerpo de la petición) y, con aplicar=true, lo guarda.
-
-    Sin aplicar solo devuelve la vista previa de lo que pasaría.
-    """
-    contenido = await leer_cuerpo_limitado(request, MAX_BYTES_CSV, "El archivo supera los 10 MB")
-    try:
-        tabla = leer_csv(contenido)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return procesar(tabla, session, aplicar)
 
 
 @router.get("/areas", response_model=list[AreaRead])
