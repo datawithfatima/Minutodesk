@@ -16,7 +16,7 @@ from app.services.auth import (
     requerir_personal,
 )
 from app.services.classifier import cargar_metricas
-from app.services import evaluacion_minutito
+from app.services import evaluacion_minutito, simulacion_tiempos
 from app.services.historico import resumen_historico
 
 router = APIRouter()
@@ -79,6 +79,17 @@ def evaluacion_de_minutito(
     """Evaluación simulada: qué habría respondido Minutito a los tickets cargados y si,
     según el equipo, eso los habría resuelto (solo administrador)."""
     return evaluacion_minutito.resumen(session)
+
+
+@router.get("/simulacion-tiempos")
+def simulacion_de_tiempos(
+    minutos_minutito: int = 15,
+    usuario: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    """Cuánto bajaría el tiempo medio de resolución si Minutito resolviera lo que, según la
+    evaluación experta, habría resuelto (solo administrador)."""
+    return simulacion_tiempos.simular(session, max(1, min(minutos_minutito, 1440)))
 
 
 @router.get("/resumen", response_model=ReporteResumen)

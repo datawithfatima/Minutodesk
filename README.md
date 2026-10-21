@@ -50,8 +50,9 @@ cuenta (arriba a la derecha).
 
 1. La persona elige el **tipo** (incidencia, solicitud o gestión de usuarios y accesos); si
    no está segura, escribe la descripción y el SVM le **sugiere** uno.
-2. Escribe la **descripción**; el SVM propone la **categoría** (con su confianza y las más
-   probables) y ella la confirma o la cambia. Si la confianza es baja, se le pide elegir.
+2. Escribe la **descripción** y el SVM clasifica la **categoría** solo: si su confianza
+   supera el umbral medido al entrenar (40 %), queda **asignada automáticamente** (la persona
+   puede cambiarla si quiere); si no, se le muestran las más probables y debe elegir.
 3. Elige la **prioridad** (por defecto Normal) y puede **adjuntar hasta 3 archivos de 10 MB**
    (Word, Excel, PowerPoint, PDF, imagen, video, audio o texto).
 4. «Gestión de usuarios y accesos» abre el **alta de colaborador** (datos estructurados, con
@@ -178,4 +179,12 @@ le pasa a Minutito el texto de cada ticket y una persona del equipo marca si la
 respuesta lo habría resuelto (o si no es de primer nivel). El porcentaje se reporta
 como **estimación por evaluación experta**, separado de la resolución autónoma real,
 y no crea conversaciones ni cambia los tickets.
+
+### Simulación del tiempo de resolución
+
+"Datos históricos → Simulación de tiempos" compara el tiempo promedio real de los tickets
+nuevos cargados (ya resueltos) con el simulado: a los que según la evaluación Minutito
+habría resuelto se les asigna el tiempo de una conversación (15 minutos por defecto). La
+línea base del histórico se calcula con creación → fecha de solución. Ojo: la columna
+"Días de atención" del export no es el tiempo real sino el plazo (SLA) según la prioridad.
 

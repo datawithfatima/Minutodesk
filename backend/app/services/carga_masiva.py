@@ -132,8 +132,10 @@ def cargar(tabla, session: Session, aplicar: bool, quien: Cliente) -> dict:
         cerrado = None
         if estado in ("resuelto", "cancelado"):
             cerrado = _fecha(fila.get(COL_SOLUCION))
-            if cerrado is None or (creado and cerrado < creado):
-                cerrado = creado
+            # La fecha de solución viene sin hora: si es el mismo día, se cerró ese día.
+            # Sin fecha de solución no se inventa una: el tiempo queda desconocido.
+            if cerrado is not None and creado and cerrado < creado:
+                cerrado = creado if cerrado.date() == creado.date() else None
         nuevos.append(
             Ticket(
                 texto=texto,

@@ -65,6 +65,8 @@ export default function NuevoTicketPage() {
   const [texto, setTexto] = useState("");
   const [categoria, setCategoria] = useState("");
   const [categoriaTocada, setCategoriaTocada] = useState(false); // la persona ya eligió a mano
+  // Con confianza alta la categoría se asigna sola; la persona puede abrir la lista si quiere cambiarla.
+  const [cambiandoCategoria, setCambiandoCategoria] = useState(false);
   const [prioridad, setPrioridad] = useState("Normal");
   const [archivos, setArchivos] = useState([]);
   const [sugerencia, setSugerencia] = useState(null);
@@ -82,6 +84,8 @@ export default function NuevoTicketPage() {
   const tipoAccesos = catalogos?.tipos[2]?.nombre; // el tercero es «Gestión de usuarios y accesos»
   const esAlta = tipo !== null && tipo === tipoAccesos;
   const largo = texto.trim().length;
+  // La categoría queda en manos del clasificador cuando confía y la persona no la cambió.
+  const automatica = !esAlta && Boolean(sugerencia?.confiable) && !cambiandoCategoria && largo >= MIN;
 
   // Mientras la persona escribe, el SVM propone tipo y categoría (un instante después de teclear).
   useEffect(() => {
@@ -135,7 +139,7 @@ export default function NuevoTicketPage() {
       if (problema) return setError(problema);
     } else {
       if (largo < MIN) return setError(`Describe tu solicitud (mínimo ${MIN} caracteres).`);
-      if (!categoria) return setError("Elige la categoría del ticket.");
+      if (!categoria && !automatica) return setError("Elige la categoría del ticket.");
     }
 
     setEnviando(true);
@@ -149,7 +153,8 @@ export default function NuevoTicketPage() {
             permisos_sap: alta.permisos_sap.trim() || null,
             prioridad,
           })
-        : await crearTicket({ texto, tipo, categoria, prioridad });
+        : // Automática: no se envía la categoría; el servidor guarda la del clasificador.
+          await crearTicket({ texto, tipo, categoria: automatica ? null : categoria, prioridad });
       const avisos = await subirArchivos(ticket.id);
       navegar(`/usuario/tickets/${ticket.id}`, { state: { creado: true, avisos } });
     } catch (e) {
@@ -167,7 +172,7 @@ export default function NuevoTicketPage() {
     );
   }
 
-  const puedeEnviar = tipo && (esAlta || (largo >= MIN && categoria));
+  const puedeEnviar = tipo && (esAlta || (largo >= MIN && (categoria || automatica)));
   const nombreSugerido = sugerencia && catalogos.tipos.find((t) => t.nombre === sugerencia.tipo)?.titulo;
 
   return (
@@ -251,13 +256,36 @@ export default function NuevoTicketPage() {
                     </div>
                   </Paso>
 
-                  <Paso numero={3} titulo="Categoría" ayuda="La proponemos según tu descripción; puedes cambiarla.">
+                  <Paso
+                    numero={3}
+                    titulo="Categoría"
+                    ayuda="Se asigna sola según tu descripción. Solo te la preguntamos si el sistema no está seguro."
+                  >
                     {sugiriendo && (
                       <p className="mb-2 flex items-center gap-2 text-xs text-gray-500">
                         <Spinner size="sm" /> Analizando tu descripción…
                       </p>
                     )}
-                    {sugerencia && !sugiriendo && (
+                    {automatica && !sugiriendo && (
+                      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                        <CheckCircle2 size={16} className="shrink-0" />
+                        <span>
+                          Clasificado automáticamente como <strong>{sugerencia.categoria}</strong> (
+                          {Math.round(sugerencia.confianza * 100)}% de confianza).
+                        </span>
+                        <button
+                          type="button"
+                          className="font-medium underline"
+                          onClick={() => {
+                            setCambiandoCategoria(true);
+                            setCategoria(sugerencia.categoria);
+                          }}
+                        >
+                          ¿No es correcta? Cambiarla
+                        </button>
+                      </div>
+                    )}
+                    {!automatica && sugerencia && !sugiriendo && (
                       <div
                         className={`mb-2 flex items-start gap-2 rounded-lg px-3 py-2 text-sm ${
                           sugerencia.confiable ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900"
@@ -276,35 +304,39 @@ export default function NuevoTicketPage() {
                         </span>
                       </div>
                     )}
-                    <select
-                      className={inputClass}
-                      value={categoria}
-                      onChange={(e) => elegirCategoria(e.target.value)}
-                      aria-label="Categoría"
-                    >
-                      <option value="">Selecciona una categoría…</option>
-                      {catalogos.categorias.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    {sugerencia && sugerencia.alternativas.length > 0 && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        Más probables:
-                        {sugerencia.alternativas.map((a) => (
-                          <button
-                            type="button"
-                            key={a.categoria}
-                            onClick={() => elegirCategoria(a.categoria)}
-                            className={`rounded-full border px-2.5 py-0.5 ${
-                              categoria === a.categoria ? "border-noche bg-noche text-white" : "border-gray-300 text-gray-700 hover:bg-marfil"
-                            }`}
-                          >
-                            {a.categoria} · {Math.round(a.confianza * 100)}%
-                          </button>
-                        ))}
-                      </div>
+                    {!automatica && (
+                      <>
+                        <select
+                          className={inputClass}
+                          value={categoria}
+                          onChange={(e) => elegirCategoria(e.target.value)}
+                          aria-label="Categoría"
+                        >
+                          <option value="">Selecciona una categoría…</option>
+                          {catalogos.categorias.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                        {sugerencia && sugerencia.alternativas.length > 0 && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                            Más probables:
+                            {sugerencia.alternativas.map((a) => (
+                              <button
+                                type="button"
+                                key={a.categoria}
+                                onClick={() => elegirCategoria(a.categoria)}
+                                className={`rounded-full border px-2.5 py-0.5 ${
+                                  categoria === a.categoria ? "border-noche bg-noche text-white" : "border-gray-300 text-gray-700 hover:bg-marfil"
+                                }`}
+                              >
+                                {a.categoria} · {Math.round(a.confianza * 100)}%
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </Paso>
                 </>

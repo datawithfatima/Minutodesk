@@ -433,6 +433,8 @@ export default function TicketDetailPage() {
                     <Badge color="green">Confirmada</Badge>
                   ) : confianzaBaja ? (
                     <Badge color="amber">Confianza baja: revisar</Badge>
+                  ) : ticket.categoria_predicha && !ticket.categoria ? (
+                    <Badge color="sky">Automática</Badge>
                   ) : (
                     <span className="font-normal text-gray-500">Sin confirmar</span>
                   )}
