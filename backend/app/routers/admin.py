@@ -2,7 +2,7 @@
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import or_
 from sqlmodel import Session, select
 
@@ -30,7 +30,9 @@ from app.schemas import (
     UsuarioCreate,
     UsuarioUpdate,
 )
-from app.services import correo, tokens_acceso
+from app.services import correo, tokens_acceso, validacion
+from app.services.cuerpo import leer_cuerpo_limitado
+from app.services.historico import leer_csv
 from app.services.auth import requerir_admin
 from app.services.usuarios import a_cliente_read, mapa_areas
 
@@ -256,6 +258,25 @@ def restablecer_password(
             "El enlace quedó guardado en backend/correos_enviados/."
         )
     return EnlaceEnviado(mensaje=mensaje, envio=envio)
+
+
+MAX_BYTES_CSV = 10 * 1024 * 1024
+
+
+@router.post("/validacion")
+async def cargar_validacion(
+    request: Request,
+    aplicar: bool = False,
+    admin: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    """Crea los tickets de validación del CSV recibido (cuerpo de la petición) y los
+    clasifica con el SVM. Sin aplicar=true solo devuelve cuántos se crearían."""
+    contenido = await leer_cuerpo_limitado(request, MAX_BYTES_CSV, "El archivo supera los 10 MB")
+    try:
+        return validacion.cargar(leer_csv(contenido), session, aplicar)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/areas", response_model=list[AreaRead])

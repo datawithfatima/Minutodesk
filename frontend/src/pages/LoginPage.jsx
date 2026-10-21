@@ -35,7 +35,7 @@ export default function LoginPage() {
     <AuthShell
       titulo="Inicia sesión"
       descripcion="Accede con la cuenta que te entregó el administrador."
-      pie="¿Primer ingreso? Usa tu contraseña temporal; te pediremos cambiarla."
+      pie="¿Primer ingreso? Elige tu contraseña con el enlace que te llegó al correo."
     >
       {error && (
         <Alert variant="danger" className="mb-4">

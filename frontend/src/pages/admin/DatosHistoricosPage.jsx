@@ -1,4 +1,4 @@
-import { Archive, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
+import { Archive, FlaskConical, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { obtenerHistorico } from "../../api";
@@ -23,6 +23,7 @@ import {
   formatoNumero,
 } from "../../components/charts/tokens";
 import TicketsImportados from "./TicketsImportados";
+import ValidacionClasificador from "./ValidacionClasificador";
 
 function fechaCorta(iso) {
   return iso ? new Date(iso).toLocaleDateString("es-EC") : "—";
@@ -180,6 +181,7 @@ function Historico() {
 const VISTAS = [
   { clave: "analisis", etiqueta: "Análisis", icono: BarChart3 },
   { clave: "tickets", etiqueta: "Tickets importados", icono: Archive },
+  { clave: "validacion", etiqueta: "Validación del clasificador", icono: FlaskConical },
 ];
 
 export default function DatosHistoricosPage() {
@@ -192,7 +194,7 @@ export default function DatosHistoricosPage() {
       <PageHeader
         icon={Database}
         title="Datos históricos"
-        subtitle="Análisis del histórico de tickets con el que se entrenó el clasificador."
+        subtitle="El histórico con el que se entrenó el clasificador y su validación con tickets nuevos."
       />
 
       <div role="tablist" className="mb-5 flex gap-1 overflow-x-auto border-b border-linea">
@@ -219,6 +221,7 @@ export default function DatosHistoricosPage() {
 
       {vista === "analisis" && <Historico />}
       {vista === "tickets" && <TicketsImportados />}
+      {vista === "validacion" && <ValidacionClasificador />}
     </>
   );
 }

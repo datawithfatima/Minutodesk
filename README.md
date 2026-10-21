@@ -153,4 +153,10 @@ Para reentrenar a mano con ese mismo CSV: `python -m app.ml.prepare_dataset` y
 `python -m app.ml.train_classifier` (desde `backend/`), y reinicia el backend.
 
 Los tickets posteriores no se usan para entrenar: sirven para **validar** el
-clasificador con datos que no vio.
+clasificador con datos que no vio. En "Datos históricos → Validación del clasificador"
+el administrador sube el export (el mismo formato): se ignoran los ID del histórico y
+los ya cargados, y se descartan los que no traen tipo, categoría o descripción. Cada
+ticket restante se crea como ticket de validación (a nombre de una cuenta interna sin
+acceso; el solicitante queda como texto), el SVM lo clasifica y la página muestra el
+acierto en tipo y categoría frente a la clasificación real. Estos tickets no aparecen
+en las colas ni en los indicadores de soporte.

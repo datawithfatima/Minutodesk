@@ -204,7 +204,7 @@ function Beneficios() {
         <dl className="mt-16 grid gap-4 rounded-2xl border border-linea bg-marfil p-5 sm:grid-cols-3 sm:p-6">
           {[
             [Users, "Tres roles", "Usuario, técnico y administrador, con accesos distintos."],
-            [LockKeyhole, "Cuentas controladas", "Las crea el administrador; la primera contraseña es temporal."],
+            [LockKeyhole, "Cuentas controladas", "Las crea el administrador; tú eliges tu contraseña con el enlace que te llega al correo."],
             [Paperclip, "Evidencia a mano", "Capturas, documentos o registros adjuntos al ticket."],
           ].map(([Icono, titulo, texto]) => (
             <div key={titulo} className="flex items-start gap-3">
@@ -311,8 +311,8 @@ function Cierre({ destino, sesionActiva }) {
             {sesionActiva ? "Tu panel te espera." : "Entra y registra tu próxima solicitud."}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/70">
-            Ingresa con la cuenta que te entregó el administrador. En el primer ingreso te pediremos
-            cambiar la contraseña temporal.
+            Ingresa con la cuenta que te creó el administrador, usando la contraseña que elegiste con el
+            enlace que te llegó al correo.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to={destino} className={`${BOTON_PRIMARIO} w-full sm:w-auto`}>

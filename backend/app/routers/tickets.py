@@ -262,7 +262,8 @@ def listar_tickets(
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
-    query = select(Ticket)
+    # Los tickets de validación del clasificador no son trabajo de soporte.
+    query = select(Ticket).where(Ticket.es_validacion == False)  # noqa: E712
     if estado is not None:
         query = query.where(Ticket.estado == estado)
     if categoria_predicha is not None:
