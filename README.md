@@ -23,7 +23,7 @@ La interfaz está en español y se adapta a móvil, tablet y escritorio.
 
 | Rol | Qué puede hacer |
 |---|---|
-| Usuario final | Crear tickets (con el formulario o hablando con Minutito), ver sus tickets, logros, histórico, FAQs y reportes propios |
+| Usuario | Crear tickets (con el formulario o hablando con Minutito), conversar con soporte, responder aprobaciones, ver sus tickets, logros, histórico y FAQs |
 | Técnico | Ver y atender todos los tickets (tomarlos, resolverlos, cancelarlos con motivo, corregir categoría y prioridad), ver usuarios, ranking y reportes de tickets |
 | Administrador | Todo lo anterior, más crear/editar/eliminar usuarios y áreas, ver la calidad del clasificador e importar el CSV histórico |
 

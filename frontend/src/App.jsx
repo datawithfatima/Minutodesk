@@ -50,7 +50,6 @@ export default function App() {
           <Route path="logros" element={<MisLogrosPage />} />
           <Route path="historico" element={<HistoricoPage />} />
           <Route path="faqs" element={<FaqsPage />} />
-          <Route path="reportes" element={<ReportesPage />} />
         </Route>
       </Route>
 

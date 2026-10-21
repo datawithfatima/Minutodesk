@@ -1,4 +1,4 @@
-import { BarChart3, Bot, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket, Trophy } from "lucide-react";
+import { Bot, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket, Trophy } from "lucide-react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
@@ -16,7 +16,6 @@ const NAV_ITEMS = [
   { to: "/usuario/logros", label: "Mis logros", icon: Trophy },
   { to: "/usuario/historico", label: "Mi histórico", icon: History },
   { to: "/usuario/faqs", label: "FAQs", icon: HelpCircle },
-  { to: "/usuario/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 // Acceso rápido al asistente (el chat vive en Inicio).

@@ -9,7 +9,7 @@ export function normalizarTexto(texto) {
 }
 
 export const ETIQUETA_ROL = {
-  usuario: "Usuario final",
+  usuario: "Usuario",
   tecnico: "Técnico",
   administrador: "Administrador",
 };
