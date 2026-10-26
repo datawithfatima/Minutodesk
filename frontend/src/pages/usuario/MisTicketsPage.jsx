@@ -2,7 +2,7 @@ import { Search, Ticket } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { listarTickets } from "../../api";
-import { normalizarTexto } from "../../texto";
+import { coincideBusqueda } from "../../components/tickets/formato";
 import Alert from "../../components/ui/Alert";
 import Card from "../../components/ui/Card";
 import PageHeader from "../../components/ui/PageHeader";
@@ -30,9 +30,7 @@ export default function MisTicketsPage() {
 
   const visibles = useMemo(
     () =>
-      tickets.filter(
-        (t) => !busqueda || normalizarTexto(t.texto).includes(normalizarTexto(busqueda))
-      ),
+      tickets.filter((t) => coincideBusqueda(t, busqueda)),
     [tickets, busqueda]
   );
 

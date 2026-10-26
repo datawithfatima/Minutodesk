@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useMatch, useSearchParams } from "react-router-dom";
 import { listarClientes, listarTickets } from "../../api";
 import { obtenerUsuario } from "../../auth";
-import { normalizarTexto } from "../../texto";
+import { coincideBusqueda } from "../../components/tickets/formato";
 import Alert from "../../components/ui/Alert";
 import Card from "../../components/ui/Card";
 import PageHeader from "../../components/ui/PageHeader";
@@ -156,11 +156,10 @@ export default function TicketsWorkspace({
   const [pagina, setPagina] = useState(1);
 
   const qUrl = params.get("q");
+  // El buscador de arriba manda ?q=; buscar vacío (sin ?q=) limpia el filtro.
   useEffect(() => {
-    if (qUrl !== null) {
-      setBusqueda(qUrl);
-      setPagina(1);
-    }
+    setBusqueda(qUrl ?? "");
+    setPagina(1);
   }, [qUrl]);
 
   const cargarTickets = useCallback(
@@ -181,7 +180,7 @@ export default function TicketsWorkspace({
   const recargar = useCallback(() => cargarTickets().then(setTickets), [cargarTickets]);
 
   const categorias = useMemo(
-    () => [...new Set(tickets.map((t) => t.categoria_predicha).filter(Boolean))].sort(),
+    () => [...new Set(tickets.map((t) => t.categoria || t.categoria_predicha).filter(Boolean))].sort(),
     [tickets]
   );
 
@@ -205,11 +204,10 @@ export default function TicketsWorkspace({
     const tabActual = TABS.find((t) => t.key === tab);
     return tickets.filter((t) => {
       if (tabActual.estado && t.estado !== tabActual.estado) return false;
-      if (categoria && t.categoria_predicha !== categoria) return false;
-      if (busqueda && !normalizarTexto(t.texto).includes(normalizarTexto(busqueda))) return false;
-      return true;
+      if (categoria && (t.categoria || t.categoria_predicha) !== categoria) return false;
+      return coincideBusqueda(t, busqueda, clientesPorId[t.cliente_id]?.nombre);
     });
-  }, [tickets, tab, categoria, busqueda]);
+  }, [tickets, tab, categoria, busqueda, clientesPorId]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
   const paginaSegura = Math.min(pagina, totalPaginas);

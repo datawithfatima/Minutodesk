@@ -1,3 +1,5 @@
+import { normalizarTexto } from "../../texto";
+
 export function formatearBytes(n) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
@@ -40,4 +42,18 @@ export function textoSiNo(valor) {
   if (valor === true) return "Sí";
   if (valor === false) return "No";
   return "—";
+}
+
+/**
+ * Si el ticket coincide con lo buscado: por número («83» o «#83»), descripción, categoría
+ * (la confirmada o la del clasificador) o quien lo pidió. Sin tildes ni mayúsculas.
+ */
+export function coincideBusqueda(ticket, busqueda, solicitante = "") {
+  const buscado = normalizarTexto(busqueda.trim());
+  if (!buscado) return true;
+  const numero = buscado.replace(/^#/, "");
+  if (/^\d+$/.test(numero)) return String(ticket.id) === numero;
+  return [ticket.texto, ticket.categoria, ticket.categoria_predicha, ticket.solicitante_externo, solicitante]
+    .filter(Boolean)
+    .some((campo) => normalizarTexto(campo).includes(buscado));
 }
