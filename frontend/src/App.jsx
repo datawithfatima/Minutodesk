@@ -1,10 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import InicioPage from "./pages/InicioPage";
 import LoginPage from "./pages/LoginPage";
 import OlvidePasswordPage from "./pages/OlvidePasswordPage";
 import EstablecerPasswordPage from "./pages/EstablecerPasswordPage";
 import CambiarPasswordPage from "./pages/CambiarPasswordPage";
 import RequireAuth from "./components/RequireAuth";
+import { obtenerToken, obtenerUsuario, rutaInicio } from "./auth";
 
 import UsuarioLayout from "./components/UsuarioLayout";
 import DashboardPage from "./pages/usuario/DashboardPage";
@@ -31,10 +31,17 @@ import AprobacionesPage from "./pages/compartido/AprobacionesPage";
 
 const SUBTITULO_ASIGNADOS = "Los tickets que tomaste o resolviste.";
 
+// No hay portada: la raíz lleva al panel de quien ya inició sesión, o al login.
+function Raiz() {
+  const usuario = obtenerToken() ? obtenerUsuario() : null;
+  if (!usuario) return <Navigate to="/login" replace />;
+  return <Navigate to={usuario.debe_cambiar_password ? "/cambiar-password" : rutaInicio(usuario.rol)} replace />;
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<InicioPage />} />
+      <Route path="/" element={<Raiz />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/olvide-password" element={<OlvidePasswordPage />} />
       <Route path="/establecer-password" element={<EstablecerPasswordPage />} />

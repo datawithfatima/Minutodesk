@@ -1,8 +1,7 @@
-import { ArrowLeft, Bot, Layers3, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Bot, Layers3, Sparkles } from "lucide-react";
 import { Marca } from "./Logo";
 
-// Lo que el producto hace hoy (sin promesas): se repite en la portada.
+// Lo que el producto hace hoy (sin promesas).
 const PUNTOS = [
   { Icono: Layers3, texto: "Cada ticket con su tipo, categoría, prioridad y estado." },
   { Icono: Sparkles, texto: "La categoría se sugiere mientras escribes la solicitud." },
@@ -27,9 +26,9 @@ export default function AuthShell({ titulo, descripcion, children, pie }) {
           <rect width="100%" height="100%" fill="url(#trama-acceso)" />
         </svg>
 
-        <Link to="/" className="relative w-fit rounded-lg" aria-label="MinutoDesk, ir a la portada">
+        <div className="relative w-fit">
           <Marca oscuro />
-        </Link>
+        </div>
 
         <div className="relative">
           <p className="text-sm font-medium text-acento-100">Mesa de ayuda TI</p>
@@ -56,18 +55,8 @@ export default function AuthShell({ titulo, descripcion, children, pie }) {
       </aside>
 
       <main className="flex flex-1 flex-col px-4 py-6 sm:px-8">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="rounded-lg lg:hidden" aria-label="MinutoDesk, ir a la portada">
-            <Marca size="h-8 w-8" />
-          </Link>
-          <Link
-            to="/"
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-gray-500 transition-colors duration-150 hover:bg-white hover:text-noche"
-          >
-            <ArrowLeft size={15} aria-hidden="true" />
-            <span className="hidden sm:inline">Volver a la portada</span>
-            <span className="sm:hidden">Portada</span>
-          </Link>
+        <div className="lg:hidden">
+          <Marca size="h-8 w-8" />
         </div>
 
         <div className="flex flex-1 items-center justify-center py-8">
