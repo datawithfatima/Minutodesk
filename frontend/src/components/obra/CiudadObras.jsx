@@ -19,6 +19,21 @@ const MODELOS = {
   barrera: "calles/construction-barrier.glb",
   foco: "calles/construction-light.glb",
   farol: "calles/light-square.glb",
+  semaforo: "calles/traffic-light.glb",
+  pare: "calles/road-sign-stop.glb",
+  letrero: "calles/sign-highway.glb",
+  fondoB: "comercial/low-detail-building-b.glb",
+  fondoD: "comercial/low-detail-building-d.glb",
+  fondoE: "comercial/low-detail-building-e.glb",
+  fondoF: "comercial/low-detail-building-f.glb",
+  fondoG: "comercial/low-detail-building-g.glb",
+  fondoAncho: "comercial/low-detail-building-wide-a.glb",
+  sombrilla: "comercial/detail-parasol-a.glb",
+  casaB: "suburbano/building-type-b.glb",
+  casaD: "suburbano/building-type-d.glb",
+  casaE: "suburbano/building-type-e.glb",
+  caminito: "suburbano/path-stones-long.glb",
+  cerca: "suburbano/fence-1x3.glb",
   arbol: "suburbano/tree-large.glb",
   arbolito: "suburbano/tree-small.glb",
   maceta: "suburbano/planter.glb",
@@ -76,7 +91,33 @@ const DECORADO = [
   ["arbolito", 8.5, -2.2, 0],
   ["arbol", 12, 6, 0],
   ["arbol", 6, 12, 0],
+  // Barrio de casas a los costados.
+  ["casaB", -2.2, 4.0, Math.PI / 2],
+  ["casaD", -2.2, 6.3, Math.PI / 2],
+  ["casaE", 4.0, -2.2, 0],
+  ["casaB", 6.3, -2.2, 0],
+  ["cerca", -1.3, 5.2, Math.PI / 2],
+  ["cerca", 5.2, -1.3, 0],
+  ["caminito", 1.0, 1.0, Math.PI / 4],
+  ["caminito", 9.0, 9.0, Math.PI / 4],
+  ["sombrilla", 3.6, 3.0, 0],
+  ["sombrilla", 7.0, 3.6, 0],
+  ["arbolito", 12.2, 10.6, 0],
+  ["arbolito", 10.6, 12.2, 0],
+  ["arbol", 13.6, 3.2, 0],
+  ["arbol", 3.2, 13.6, 0],
+  ["arbolito", 13.4, 12.8, 0],
+  ["letrero", 11.5, 4.4, -Math.PI / 2],
+  ["pare", 4.4, 4.4, Math.PI / 4],
 ];
+// Edificios de fondo (detrás de todo, lejos de la cámara): dan la silueta de ciudad.
+const SILUETA = [
+  ["fondoAncho", -4, -0.5, 0], ["fondoB", -4, 1.5, 0], ["fondoD", -4, 3.5, 0], ["fondoE", -4, 6.5, 0],
+  ["fondoF", -4, 8.5, 0], ["fondoG", -4, 10.5, 0], ["fondoG", -0.5, -4, 0], ["fondoD", 1.5, -4, 0],
+  ["fondoB", 3.5, -4, 0], ["fondoAncho", 6.5, -4, 0], ["fondoE", 8.5, -4, 0], ["fondoF", 10.5, -4, 0],
+  ["fondoE", -4, -4, 0],
+];
+const COLORES_AUTO = [0xe4572e, 0x2f6bff, 0xf3c13a, 0x29a19c, 0xffffff, 0x8e5bd9];
 
 const cargador = new GLTFLoader();
 const cache = new Map();
@@ -134,6 +175,37 @@ function grua(altura) {
   g.add(torre, brazo);
   g.userData.brazo = brazo;
   return sombras(g);
+}
+
+function auto(color) {
+  const g = new THREE.Group();
+  const pintura = new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.1 });
+  const vidrio = new THREE.MeshStandardMaterial({ color: 0x2b3a55, roughness: 0.2 });
+  const llanta = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+  const carro = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.22), pintura);
+  carro.position.y = 0.1;
+  const cabina = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.1, 0.19), vidrio);
+  cabina.position.set(-0.03, 0.21, 0);
+  g.add(carro, cabina);
+  for (const [x, z] of [[0.13, 0.11], [0.13, -0.11], [-0.13, 0.11], [-0.13, -0.11]]) {
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 10), llanta);
+    r.rotation.x = Math.PI / 2;
+    r.position.set(x, 0.05, z);
+    g.add(r);
+  }
+  return sombras(g);
+}
+
+function nube() {
+  const g = new THREE.Group();
+  const blanco = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.92 });
+  for (const [x, y, z, r] of [[0, 0, 0, 0.55], [0.55, 0.05, 0.1, 0.42], [-0.5, -0.05, 0.05, 0.4], [0.15, 0.3, -0.05, 0.38]]) {
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), blanco);
+    b.position.set(x, y, z);
+    b.castShadow = true;
+    g.add(b);
+  }
+  return g;
 }
 
 function bandera() {
@@ -267,6 +339,8 @@ export default function CiudadObras({ lotes, alElegir }) {
 
     const obras = []; // { grupo, lote, objetivoY, inicio }
     const animables = [];
+    const autos = []; // { a, ruta, fase, velocidad }
+    const nubes = [];
     const relojInicio = performance.now();
 
     async function armar() {
@@ -299,8 +373,55 @@ export default function CiudadObras({ lotes, alElegir }) {
         f.position.set(x, 0, z);
         escena.add(f);
       }
+      // Semáforos en las esquinas del cruce y faroles a lo largo de las calles.
+      for (const [x, z, rot] of [[4.4, 5.6, 0], [5.6, 4.4, Math.PI], [4.4, 4.4, -Math.PI / 2], [5.6, 5.6, Math.PI / 2]]) {
+        const sem = sombras(encajar(await cargar("semaforo"), 0.3));
+        sem.position.set(x, 0, z);
+        sem.rotation.y = rot;
+        escena.add(sem);
+      }
+      for (const k of [0.5, 2.5, 7.5, 9.5]) {
+        for (const [x, z] of [[k, 4.45], [k, 5.55], [4.45, k], [5.55, k]]) {
+          const f = sombras(encajar(await cargar("farol"), 0.3));
+          f.position.set(x, 0, z);
+          escena.add(f);
+        }
+      }
+      for (const [clave, x, z, rot] of SILUETA) {
+        const o = sombras(encajar(await cargar(clave), 1.3));
+        const altoFondo = new THREE.Box3().setFromObject(o).max.y;
+        o.scale.y *= Math.min(1, 1.8 / altoFondo); // de fondo: más bajos que las obras
+        o.position.set(x, 0, z);
+        o.rotation.y = rot;
+        escena.add(o);
+      }
+      // Autos que circulan por las dos calles, en ambos sentidos.
+      const carriles = [
+        [(t) => [t, 4.82], 0],
+        [(t) => [11 - t, 5.18], Math.PI],
+        [(t) => [5.18, t], -Math.PI / 2],
+        [(t) => [4.82, 11 - t], Math.PI / 2],
+      ];
+      for (let n = 0; n < 6; n++) {
+        const a = auto(COLORES_AUTO[n % COLORES_AUTO.length]);
+        const [ruta, rot] = carriles[n % carriles.length];
+        a.rotation.y = rot;
+        escena.add(a);
+        autos.push({ a, ruta, fase: n * 2.7, velocidad: 0.9 + (n % 3) * 0.25 });
+      }
+      for (let n = 0; n < 4; n++) {
+        const c = nube();
+        // Detrás de la ciudad, para que no tapen las obras.
+        c.position.set(-8 + n * 7, 5 + (n % 2) * 0.8, -7 - (n % 2) * 2);
+        c.scale.setScalar(0.7 + (n % 3) * 0.2);
+        escena.add(c);
+        nubes.push(c);
+      }
       for (const [clave, x, z, rot] of DECORADO) {
-        const o = sombras(encajar(await cargar(clave), clave.startsWith("casa") ? 1.6 : clave === "maceta" ? 0.4 : 0.9));
+        const ancho = clave.startsWith("casa")
+          ? 1.6
+          : { maceta: 0.4, sombrilla: 0.5, pare: 0.25, letrero: 0.9, caminito: 1.2, cerca: 1.4 }[clave] ?? 0.9;
+        const o = sombras(encajar(await cargar(clave), ancho));
         o.position.set(x, 0, z);
         o.rotation.y = rot;
         escena.add(o);
@@ -350,6 +471,16 @@ export default function CiudadObras({ lotes, alElegir }) {
         o.grupo.scale.y = 0.01 + 0.99 * (1 - Math.pow(1 - k, 3));
       }
       animables.forEach((b, i) => (b.rotation.y = Math.sin(ms / 1800 + i) * 0.9));
+      for (const { a, ruta, fase, velocidad } of autos) {
+        const t = (((ms / 1000) * velocidad + fase) % 13) - 1.5; // de -1.5 a 11.5 y vuelve a empezar
+        const [x, z] = ruta(t);
+        a.position.set(x, 0.02, z);
+        a.visible = t > -1.4 && t < 11.4;
+      }
+      nubes.forEach((c, i) => {
+        c.position.x += 0.004 + i * 0.001;
+        if (c.position.x > 16) c.position.x = -12;
+      });
       renderer.render(escena, camara);
       if (Math.round(ms / 50) % 2 === 0) proyectar();
       cuadro = requestAnimationFrame(bucle);
