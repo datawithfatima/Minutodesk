@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { enviarMensajeChat, listarInteracciones, obtenerTicket } from "../../api";
+import { obtenerTicket } from "../../api";
 import Alert from "../../components/ui/Alert";
 import Badge from "../../components/ui/Badge";
-import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
-import { inputClass } from "../../components/ui/formStyles";
 import EstadoBadge from "../../components/EstadoBadge";
-import ChatConversacion from "../../components/ChatConversacion";
-import ConfirmarResolucion from "../../components/ConfirmarResolucion";
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
+import ConversacionMinutito from "../../components/tickets/ConversacionMinutito";
 import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
 import { tituloTipo } from "../../components/tickets/formato";
@@ -25,37 +22,13 @@ export default function TicketDetailPage() {
     ? `No se pudo adjuntar: ${estadoNavegacion.avisos.join(" ")} Puedes volver a intentarlo aquí.`
     : null;
   const [ticket, setTicket] = useState(null);
-  const [interacciones, setInteracciones] = useState([]);
-  const [mensaje, setMensaje] = useState("");
-  const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
-  const [avisoTecnico, setAvisoTecnico] = useState(null);
 
-  const cargar = useCallback(async () => {
-    const [t, ints] = await Promise.all([obtenerTicket(id), listarInteracciones(id)]);
-    setTicket(t);
-    setInteracciones(ints);
-  }, [id]);
+  const cargar = useCallback(async () => setTicket(await obtenerTicket(id)), [id]);
 
   useEffect(() => {
     cargar().catch((e) => setError(e.message));
   }, [cargar]);
-
-  async function manejarEnvio(e) {
-    e.preventDefault();
-    setEnviando(true);
-    setError(null);
-    setAvisoTecnico(null);
-    try {
-      await enviarMensajeChat(id, mensaje);
-      setMensaje("");
-      await cargar();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setEnviando(false);
-    }
-  }
 
   if (error && !ticket) return <Alert variant="danger">{error}</Alert>;
   if (!ticket) return <Spinner size="sm" />;
@@ -72,8 +45,7 @@ export default function TicketDetailPage() {
 
       {creado && (
         <Alert variant="success" className="mb-3">
-          Tu ticket quedó registrado y un técnico lo atenderá. Mientras tanto, si quieres, puedes pedirle
-          ayuda a Minutito más abajo.
+          Tu ticket quedó registrado y un técnico lo atenderá. Puedes escribirle por el chat con soporte.
         </Alert>
       )}
 
@@ -114,27 +86,9 @@ export default function TicketDetailPage() {
       </Card>
 
       <h2 className="mb-2 text-lg font-semibold">Conversación con Minutito</h2>
-      <div className="mb-3">
-        <ChatConversacion interacciones={interacciones} />
+      <div className="mb-5">
+        <ConversacionMinutito ticketId={id} nombre="Tú" />
       </div>
-
-      {ticket.estado === "abierto" && interacciones.length > 0 && !avisoTecnico && (
-        <div className="mb-3">
-          <ConfirmarResolucion
-            ticketId={id}
-            onDecision={(esResuelto, texto) => {
-              if (esResuelto) cargar().catch((e) => setError(e.message));
-              else setAvisoTecnico(texto);
-            }}
-            onError={setError}
-          />
-        </div>
-      )}
-      {avisoTecnico && (
-        <Alert variant="secondary" className="mb-3">
-          {avisoTecnico}
-        </Alert>
-      )}
 
       {cancelado && (
         <Alert variant="secondary">
@@ -144,21 +98,6 @@ export default function TicketDetailPage() {
         </Alert>
       )}
 
-      {!resuelto && !cancelado && (
-        <form onSubmit={manejarEnvio}>
-          <textarea
-            rows={2}
-            className={`${inputClass} mb-2`}
-            value={mensaje}
-            onChange={(e) => setMensaje(e.target.value)}
-            placeholder="Escribe tu mensaje para Minutito..."
-            required
-          />
-          <Button type="submit" disabled={enviando} className="w-full sm:w-auto">
-            {enviando ? <Spinner size="sm" /> : "Enviar"}
-          </Button>
-        </form>
-      )}
       {resuelto && <Alert variant="success">Este ticket ya está resuelto.</Alert>}
     </>
   );

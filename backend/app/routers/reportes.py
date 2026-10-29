@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Cliente, InteraccionMinutito, Ticket
+from app.models import Cliente, ConversacionMinutito, InteraccionMinutito, Ticket
 from app.schemas import CategoriaConteo, ConteoEtiqueta, HistoricoResumen, ReporteResumen
 from app.services.auth import (
     es_personal,
@@ -122,6 +122,19 @@ def resumen(
         if ids
         else 0
     )
+    # Resolución autónoma: conversaciones con Minutito que la persona confirmó como resueltas
+    # sobre las terminadas (resueltas o convertidas en ticket). Sin conversaciones (datos
+    # anteriores a este flujo) se usa la medida vieja, sobre tickets.
+    consulta_conv = select(ConversacionMinutito).where(ConversacionMinutito.estado != "abierta")
+    if not es_personal(usuario):
+        consulta_conv = consulta_conv.where(ConversacionMinutito.cliente_id == usuario.id)
+    conversaciones = session.exec(consulta_conv).all()
+    conv_resueltas = sum(c.estado == "resuelta" for c in conversaciones)
+    if conversaciones:
+        pct_autonoma = round(100 * conv_resueltas / len(conversaciones), 1)
+    else:
+        pct_autonoma = round(100 * por_minutito / vigentes, 1) if vigentes else 0.0
+
     hoy = date.today()
     creados_por_dia = Counter(t.creado_en.date() for t in tickets)
     ultimos_dias = [
@@ -138,9 +151,11 @@ def resumen(
         en_proceso=por_estado.get("en_proceso", 0),
         resueltos=len(resueltos),
         cancelados=por_estado.get("cancelado", 0),
-        resueltos_por_minutito=por_minutito,
+        resueltos_por_minutito=por_minutito + conv_resueltas,
         resueltos_por_tecnico=len(resueltos) - por_minutito,
-        pct_resolucion_autonoma=round(100 * por_minutito / vigentes, 1) if vigentes else 0.0,
+        pct_resolucion_autonoma=pct_autonoma,
+        conversaciones_minutito=len(conversaciones),
+        conversaciones_resueltas=conv_resueltas,
         tiempo_medio_resolucion_horas=round(mean(horas), 1) if horas else None,
         # Dato del modelo, no del ticket: solo lo ve el administrador.
         confianza_media=(

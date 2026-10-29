@@ -23,7 +23,7 @@ from app.services.conocimiento import (
     respuesta_directa,
 )
 
-MODELO_OLLAMA = "llama3.2:3b"
+MODELO_OLLAMA = "qwen2.5:7b"  # el mismo que usa la conversación nueva (minutito_chat)
 TIMEOUT_SEGUNDOS = 90  # sin tope, un Ollama colgado deja la petición esperando para siempre
 
 # Respuestas cortas y estables: menos texto también es menos espera en un equipo sin GPU.

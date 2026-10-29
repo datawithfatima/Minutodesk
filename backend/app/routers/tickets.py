@@ -42,6 +42,7 @@ from app.services.catalogos import (
     cedula_valida,
 )
 from app.routers.conversacion import hay_aprobacion_pendiente
+from app.routers.minutito import enlazar_ticket
 from app.services.classifier import categorias_clasificables, clasificar_ticket, sugerir
 from app.services.gamification_rules import evaluar_evento
 
@@ -152,6 +153,8 @@ def crear_ticket(
     session.add(ticket)
     session.flush()
     registrar_estado(session, ticket.id, None, "abierto", usuario.id)
+    if data.conversacion_id is not None:
+        enlazar_ticket(session, data.conversacion_id, usuario, ticket)
     session.commit()
     session.refresh(ticket)
     return ticket

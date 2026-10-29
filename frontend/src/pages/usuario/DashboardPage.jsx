@@ -103,7 +103,7 @@ export default function DashboardPage() {
               tono={2}
               titulo="Resueltos por Minutito"
               valor={resumen ? formatoNumero(resumen.resueltos_por_minutito) : "—"}
-              detalle="Con tu confirmación"
+              detalle="Consultas resueltas sin ticket"
             />
           </Link>
           <Link to="/usuario/logros" className="rounded-xl transition-transform duration-150 hover:-translate-y-0.5">

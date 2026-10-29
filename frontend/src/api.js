@@ -81,8 +81,8 @@ export const establecerPassword = ({ token, password }) =>
 export const listarTickets = (filtros = {}) => get("/tickets", filtros);
 export const obtenerTicket = (id) => get(`/tickets/${id}`);
 // `tipo`, `categoria` y `prioridad` son opcionales (el chat con Minutito solo manda el texto).
-export const crearTicket = ({ texto, tipo, categoria, prioridad }) =>
-  enviar("POST", "/tickets", { texto, tipo, categoria, prioridad });
+export const crearTicket = ({ texto, tipo, categoria, prioridad, conversacionId }) =>
+  enviar("POST", "/tickets", { texto, tipo, categoria, prioridad, conversacion_id: conversacionId });
 export const crearAltaColaborador = (datos) => enviar("POST", "/tickets/alta-colaborador", datos);
 export const obtenerCatalogos = () => get("/tickets/catalogos");
 export const sugerirClasificacion = (texto) => enviar("POST", "/tickets/sugerir", { texto });
@@ -124,6 +124,51 @@ export const confirmarResolucion = (ticketId, resuelto) =>
   enviar("POST", `/tickets/${ticketId}/confirmar-resolucion`, { resuelto });
 export const enviarMensajeChat = (ticketId, mensaje) =>
   enviar("POST", `/tickets/${ticketId}/chat`, { mensaje });
+
+// --- Minutito: conversación antes del ticket ---
+export const nuevaConversacionMinutito = () => enviar("POST", "/minutito/conversaciones");
+export const conversacionMinutitoActual = () => get("/minutito/conversaciones/actual");
+export const resolverConversacionMinutito = (id) => enviar("POST", `/minutito/conversaciones/${id}/resolver`);
+export const borradorTicketMinutito = (id) => enviar("POST", `/minutito/conversaciones/${id}/borrador`);
+export const conversacionMinutitoDeTicket = (ticketId) => get(`/minutito/tickets/${ticketId}`);
+/**
+ * Envía un mensaje y va entregando la respuesta mientras Minutito la escribe:
+ * `alEscribir(textoHastaAhora)` en cada fragmento. Devuelve { texto, ofreceTicket }.
+ */
+export async function hablarConMinutito(id, texto, alEscribir) {
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/minutito/conversaciones/${id}/mensajes`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ texto }),
+    });
+  } catch {
+    sinConexion();
+  }
+  if (!res.ok) await manejarRespuesta(res); // lanza el error con su mensaje
+  const lector = res.body.getReader();
+  const decodificador = new TextDecoder();
+  let buffer = "";
+  let acumulado = "";
+  for (;;) {
+    const { value, done } = await lector.read();
+    if (done) break;
+    buffer += decodificador.decode(value, { stream: true });
+    const lineas = buffer.split("\n");
+    buffer = lineas.pop();
+    for (const linea of lineas.filter(Boolean)) {
+      const evento = JSON.parse(linea);
+      if (evento.error) throw new Error(evento.error);
+      if (evento.delta) {
+        acumulado += evento.delta;
+        alEscribir(acumulado);
+      }
+      if (evento.fin) return { texto: acumulado, ofreceTicket: evento.ofrece_ticket };
+    }
+  }
+  return { texto: acumulado, ofreceTicket: false };
+}
 
 // --- Chat con soporte y aprobaciones ---
 export const obtenerConversacion = (ticketId) => get(`/tickets/${ticketId}/conversacion`);

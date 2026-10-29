@@ -23,10 +23,12 @@ import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
 import EstadoBadge from "../../components/EstadoBadge";
 import { ETIQUETA_ESTADO } from "../../texto";
+import ConversacionMinutito from "../../components/tickets/ConversacionMinutito";
 import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 
 const TABS = [
   { nombre: "Chat con el usuario", activa: true },
+  { nombre: "Minutito", activa: true },
   { nombre: "Historial", activa: true },
   { nombre: "Archivos", activa: true },
   { nombre: "Notas", activa: false },
@@ -479,6 +481,14 @@ export default function TicketDetailPage() {
               <Card>
                 <Card.Body>
                   <ConversacionTicket key={ticket.id} ticket={ticket} esPersonal />
+                </Card.Body>
+              </Card>
+            )}
+
+            {tab === "Minutito" && (
+              <Card>
+                <Card.Body>
+                  <ConversacionMinutito ticketId={id} nombre={cliente?.nombre} />
                 </Card.Body>
               </Card>
             )}

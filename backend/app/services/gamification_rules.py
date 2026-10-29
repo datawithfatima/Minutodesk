@@ -5,7 +5,7 @@ from typing import Optional
 
 from sqlmodel import Session, select
 
-from app.models import Cliente, EventoGamificacion, InteraccionMinutito, Ticket
+from app.models import Cliente, ConversacionMinutito, EventoGamificacion, InteraccionMinutito, Ticket
 
 NIVELES = [
     (0, 49, "Nuevo"),
@@ -34,6 +34,8 @@ def evaluar_evento(
             select(InteraccionMinutito).where(
                 InteraccionMinutito.ticket_id == ticket.id
             )
+        ).first() or session.exec(
+            select(ConversacionMinutito).where(ConversacionMinutito.ticket_id == ticket.id)
         ).first()
         if intento_autoservicio is not None:
             puntos, motivo = 3, "Intentó autoservicio antes de escalar"

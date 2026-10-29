@@ -77,7 +77,7 @@ function Plataforma({ resumen, personal }) {
             <div>
               <div className="text-sm font-medium text-gray-500">Resolución autónoma de Minutito</div>
               <div className="mt-1 text-5xl font-semibold tracking-tight text-noche sm:text-6xl">{pct}%</div>
-              {total === 0 ? (
+              {total === 0 && !resumen.conversaciones_minutito ? (
                 <Estado icono={Target} color={GRIS_SIN_DATO} texto="Aún no hay tickets en la plataforma" />
               ) : personal ? (
                 cumple ? (
@@ -88,9 +88,19 @@ function Plataforma({ resumen, personal }) {
               ) : null}
             </div>
             <div className="text-sm text-gray-500 sm:max-w-[220px]">
-              <strong className="font-semibold text-noche">{resumen.resueltos_por_minutito}</strong> de{" "}
-              <strong className="font-semibold text-noche">{total - resumen.cancelados}</strong> tickets los resolvió
-              Minutito y el usuario lo confirmó{resumen.cancelados > 0 ? " (sin contar los cancelados)" : ""}.
+              {resumen.conversaciones_minutito > 0 ? (
+                <>
+                  <strong className="font-semibold text-noche">{resumen.conversaciones_resueltas}</strong> de{" "}
+                  <strong className="font-semibold text-noche">{resumen.conversaciones_minutito}</strong> consultas a
+                  Minutito se resolvieron sin crear ticket (la persona lo confirmó).
+                </>
+              ) : (
+                <>
+                  <strong className="font-semibold text-noche">{resumen.resueltos_por_minutito}</strong> de{" "}
+                  <strong className="font-semibold text-noche">{total - resumen.cancelados}</strong> tickets los resolvió
+                  Minutito y el usuario lo confirmó{resumen.cancelados > 0 ? " (sin contar los cancelados)" : ""}.
+                </>
+              )}
             </div>
           </div>
 

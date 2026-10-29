@@ -12,6 +12,8 @@ class TicketCreate(SQLModel):
     tipo: Optional[str] = None
     categoria: Optional[str] = None
     prioridad: Optional[str] = None
+    # Si el ticket nace de una conversación con Minutito, queda enlazado a ella.
+    conversacion_id: Optional[int] = None
 
 
 class TicketUpdate(SQLModel):
@@ -312,6 +314,27 @@ class AprobacionRead(SQLModel):
     ticket_solicitante: Optional[str] = None
 
 
+class MensajeMinutitoRead(SQLModel):
+    id: int
+    rol: str  # «usuario» o «minutito»
+    texto: str
+    creado_en: datetime
+
+
+class ConversacionMinutitoRead(SQLModel):
+    id: int
+    estado: str  # abierta / resuelta / ticket
+    ticket_id: Optional[int] = None
+    creado_en: datetime
+    cerrado_en: Optional[datetime] = None
+    mensajes: list[MensajeMinutitoRead]
+
+
+class BorradorTicket(SQLModel):
+    texto: str
+    sugerencia: "SugerenciaRead"
+
+
 class ConversacionRead(SQLModel):
     mensajes: list[MensajeRead]
     aprobaciones: list[AprobacionRead]
@@ -410,3 +433,6 @@ class ReporteResumen(SQLModel):
     por_categoria: list[CategoriaConteo]
     con_minutito: int = 0  # tickets en los que el usuario habló con Minutito
     ultimos_dias: list[ConteoEtiqueta] = []  # tickets creados por día, últimos 14 días
+    # Conversaciones con Minutito ya terminadas: resueltas sin ticket o convertidas en ticket.
+    conversaciones_minutito: int = 0
+    conversaciones_resueltas: int = 0

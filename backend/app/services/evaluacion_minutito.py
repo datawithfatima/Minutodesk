@@ -15,12 +15,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models import Cliente, EvaluacionMinutito, Ticket
-from app.services.assistant import (
-    FRASES_ESCALAMIENTO,
-    AsistenteNoDisponible,
-    _contiene_alguna,
-    generar_respuesta,
-)
+from app.services.minutito_chat import MinutitoNoDisponible, responder
 
 logger = logging.getLogger("minutodesk.evaluacion")
 
@@ -46,12 +41,14 @@ def generar_pendientes(session: Session, limite: Optional[int] = None) -> dict:
             select(EvaluacionMinutito).where(EvaluacionMinutito.ticket_id == ticket.id)
         ).first() or EvaluacionMinutito(ticket_id=ticket.id)
         try:
-            respuesta = generar_respuesta([], ticket.texto, ticket.texto)
-        except AsistenteNoDisponible as e:
+            # Como si la persona le escribiera a Minutito el texto de su ticket.
+            respuesta, ofrece_ticket = responder([("usuario", ticket.texto)])
+        except MinutitoNoDisponible as e:
             logger.warning("Minutito no disponible al evaluar: %s", e)
             return {"generadas": hechos, "pendientes": len(pendientes) - hechos, "error": str(e)}
         registro.respuesta = respuesta
-        registro.escalado = _contiene_alguna(respuesta, FRASES_ESCALAMIENTO)
+        registro.veredicto = None  # una respuesta nueva se vuelve a evaluar
+        registro.escalado = ofrece_ticket
         registro.error = None
         registro.generada_en = datetime.now()
         session.add(registro)

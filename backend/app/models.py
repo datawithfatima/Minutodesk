@@ -161,6 +161,34 @@ class Aprobacion(SQLModel, table=True):
     respondida_en: Optional[datetime] = Field(default=None)
 
 
+class ConversacionMinutito(SQLModel, table=True):
+    """Conversación con Minutito. Empieza sin ticket: si se resuelve, la persona lo
+    confirma y no se crea ninguno; si no, se crea el ticket desde aquí y queda enlazado."""
+
+    __tablename__ = "conversacion_minutito"
+    __table_args__ = (
+        CheckConstraint("estado IN ('abierta','resuelta','ticket')", name="ck_conversacion_estado"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    cliente_id: int = Field(foreign_key="cliente.id", index=True)
+    estado: str = Field(default="abierta", index=True)
+    ticket_id: Optional[int] = Field(default=None, foreign_key="ticket.id", index=True)
+    creado_en: datetime = Field(default_factory=datetime.now)
+    cerrado_en: Optional[datetime] = Field(default=None)
+
+
+class MensajeMinutito(SQLModel, table=True):
+    __tablename__ = "mensaje_minutito"
+    __table_args__ = (CheckConstraint("rol IN ('usuario','minutito')", name="ck_mensaje_minutito_rol"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    conversacion_id: int = Field(foreign_key="conversacion_minutito.id", index=True)
+    rol: str
+    texto: str
+    creado_en: datetime = Field(default_factory=datetime.now)
+
+
 class Seudonimo(SQLModel, table=True):
     """Alias estable para una persona de los datos de la empresa ("Solicitante 007").
     Solo se guarda el hash de su nombre: el nombre real no queda en la base."""

@@ -7,12 +7,12 @@ en Ingeniería en Sistemas.
 
 1. **Clasificador automático** (TF-IDF + SVM): predice tipo (solicitud,
    incidencia, acceso) y categoría de cada ticket. Meta: precisión ≥80 %.
-2. **Asistente conversacional "Minutito"**: responde al instante las consultas
-   frecuentes (contraseñas, VPN, impresoras, Office, videollamadas…) con pasos
-   verificados, y para lo demás usa un modelo de lenguaje local vía Ollama (no se
-   entrena, se configura con prompts). Meta: ≥30 % de resolución autónoma de
-   consultas de primer nivel. Un ticket solo cuenta como resuelto por Minutito si
-   el usuario lo confirma.
+2. **Asistente conversacional "Minutito"**: un chat tipo ChatGPT para soporte de
+   primer nivel, con un modelo de lenguaje local vía Ollama (no se entrena, se
+   configura con prompts). Se conversa **sin ticket**: si se resuelve, la persona lo
+   confirma; si no (o es algo que solo puede hacer el equipo), Minutito arma el
+   ticket con la conversación. Meta: ≥30 % de resolución autónoma (conversaciones
+   resueltas sin ticket sobre las terminadas).
 3. **Gamificación**: lógica de negocio simple (sin IA) que da puntos por usar
    el autoservicio ("Mis logros" para el usuario, "Ranking" para el personal).
 
@@ -134,14 +134,17 @@ Instala [Ollama](https://ollama.com), descarga el modelo y deja el servicio
 corriendo en `localhost:11434`:
 
 ```bash
-ollama pull llama3.2:3b
+ollama pull qwen2.5:7b
 ```
 
-El modelo se cambia en `MODELO_OLLAMA` (`backend/app/services/assistant.py`), y las
-respuestas para los problemas frecuentes en `backend/app/services/conocimiento.py`.
-Sin Ollama activo, Minutito sigue respondiendo lo frecuente; para el resto avisa que
-no está disponible y el ticket queda para el equipo de soporte (`iniciar.bat` avisa
-si no lo detecta).
+Se eligió `qwen2.5:7b` por su desempeño en español dentro del hardware del
+prototipo (sin GPU: cada respuesta tarda unos 30–50 s y se va mostrando mientras se
+escribe). El modelo se cambia en `MODELO_CHAT` (`backend/app/services/minutito_chat.py`).
+Los pasos verificados de `backend/app/services/conocimiento.py` se le pasan al modelo
+como referencia del tema. Cuando ofrece crear un ticket, el modelo agrega una marca
+que el servidor quita y que hace resaltar el botón «Crear ticket con esta
+conversación». Sin Ollama activo, Minutito avisa que no está disponible y ofrece
+crear el ticket (`iniciar.bat` avisa si no lo detecta).
 
 ## Datos históricos y entrenamiento
 

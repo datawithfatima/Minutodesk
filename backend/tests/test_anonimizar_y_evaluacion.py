@@ -45,7 +45,7 @@ def test_evaluacion_simulada_no_toca_el_ticket_y_calcula_el_porcentaje(
     usuario = crear_cuenta("x@ejemplo.com")
     crear_cuenta("adm@ejemplo.com", "administrador")
     tickets = [_ticket_cargado(session, usuario.id, str(i), f"No tengo internet {i}") for i in range(3)]
-    monkeypatch.setattr(evaluacion_minutito, "generar_respuesta", lambda historial, msg, texto: f"Pasos para: {msg}")
+    monkeypatch.setattr(evaluacion_minutito, "responder", lambda historial: (f"Pasos para: {historial[-1][1]}", False))
 
     assert evaluacion_minutito.generar_pendientes(session) == {"generadas": 3, "pendientes": 0, "error": None}
     assert evaluacion_minutito.generar_pendientes(session)["generadas"] == 0  # no repite

@@ -13,6 +13,7 @@ from app.routers import (
     clientes,
     conversacion,
     historico,
+    minutito,
     reportes,
     tickets,
 )
@@ -52,6 +53,7 @@ app.include_router(tickets.router, prefix="/tickets", tags=["tickets"])
 app.include_router(adjuntos.router, tags=["adjuntos"])  # /tickets/{id}/adjuntos y /adjuntos/{id}
 app.include_router(chat.router, prefix="/tickets", tags=["chat"])
 app.include_router(conversacion.router, tags=["conversacion"])  # chat con soporte y aprobaciones
+app.include_router(minutito.router, prefix="/minutito", tags=["minutito"])  # conversación antes del ticket
 app.include_router(clientes.router, prefix="/clientes", tags=["clientes"])
 app.include_router(reportes.router, prefix="/reportes", tags=["reportes"])
 app.include_router(historico.router, prefix="/historico", tags=["historico"])

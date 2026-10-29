@@ -5,11 +5,11 @@ import PageHeader from "../../components/ui/PageHeader";
 const PREGUNTAS = [
   {
     p: "¿Qué es Minutito y qué puede hacer?",
-    r: "Minutito es el asistente virtual de MinutoDesk. Responde consultas de primer nivel (contraseñas, uso de software, orientación básica de hardware) y te da pasos concretos para intentar resolver el problema. Si no logra resolverlo, tu caso queda registrado para que lo atienda una persona del equipo de soporte.",
+    r: "Minutito es el asistente virtual de MinutoDesk. Conversas con él como con un chat: te hace preguntas, te da pasos y recuerda lo que ya probaste. Atiende consultas de primer nivel (contraseñas, internet, VPN, impresoras, Office, Teams…). Si no logra resolverlo, o es algo que solo puede hacer el equipo de sistemas, te ayuda a crear el ticket con lo que conversaron.",
   },
   {
     p: "¿Cómo creo un ticket?",
-    r: "Desde Inicio, escribe tu consulta en el chat con Minutito. El ticket se crea automáticamente con tu primer mensaje y el sistema lo clasifica por tipo y categoría.",
+    r: "Hay dos formas: desde «Crear ticket», con el formulario, o desde el chat con Minutito en Inicio, pulsando «Crear ticket con esta conversación». En ese caso Minutito redacta la descripción con lo que hablaron y el sistema propone el tipo y la categoría; tú revisas y envías. Conversar con Minutito no crea tickets por sí solo.",
   },
   {
     p: "¿Qué significan los estados de un ticket?",
@@ -17,7 +17,7 @@ const PREGUNTAS = [
   },
   {
     p: "¿Qué pasa si Minutito no resuelve mi consulta?",
-    r: "Minutito te lo indica y tu ticket sigue pendiente para el equipo de soporte. Si después de varios intentos con Minutito sigue sin resolverse, el ticket pasa a “en proceso” para que lo tome una persona.",
+    r: "Minutito te ofrece crear el ticket con la conversación. El equipo de soporte la ve completa, así que no tendrás que volver a explicar todo.",
   },
   {
     p: "¿Cómo gano puntos?",
