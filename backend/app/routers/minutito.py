@@ -5,7 +5,7 @@ se crea ticket). Si no, pide un borrador del ticket armado con la conversación 
 con POST /tickets indicando `conversacion_id`.
 """
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -29,6 +29,22 @@ router = APIRouter()
 MAX_MENSAJE = 2000
 PUNTOS_AUTOSERVICIO = 10
 NO_DISPONIBLE = "Minutito no está disponible en este momento. Puedes crear el ticket y lo atenderá el equipo."
+
+# Cada respuesta ocupa el procesador varios segundos: se limita cuánto puede pedir cada
+# persona para que nadie sature el equipo. Vive en memoria (se reinicia con el backend).
+MAX_MENSAJES_POR_MINUTO = 20
+mensajes_recientes: dict[int, list[datetime]] = {}
+respondiendo: set[int] = set()  # personas con una respuesta de Minutito en curso
+
+
+def _controlar_ritmo(usuario_id: int) -> None:
+    if usuario_id in respondiendo:
+        raise HTTPException(status_code=429, detail="Espera a que Minutito termine de responder.")
+    desde = datetime.now() - timedelta(minutes=1)
+    recientes = [t for t in mensajes_recientes.get(usuario_id, []) if t > desde]
+    if len(recientes) >= MAX_MENSAJES_POR_MINUTO:
+        raise HTTPException(status_code=429, detail="Enviaste muchos mensajes seguidos. Espera un minuto.")
+    mensajes_recientes[usuario_id] = recientes + [datetime.now()]
 
 
 def _conversacion(session: Session, conversacion_id: int, usuario: Cliente) -> ConversacionMinutito:
@@ -114,6 +130,9 @@ def enviar_mensaje(
         raise HTTPException(status_code=400, detail="Escribe un mensaje.")
     if len(texto) > MAX_MENSAJE:
         raise HTTPException(status_code=400, detail=f"El mensaje es demasiado largo (máximo {MAX_MENSAJE} caracteres).")
+    _controlar_ritmo(usuario.id)
+    usuario_id = usuario.id
+    respondiendo.add(usuario_id)
 
     session.add(MensajeMinutito(conversacion_id=conversacion.id, rol="usuario", texto=texto))
     session.commit()
@@ -123,19 +142,22 @@ def enviar_mensaje(
     def transmitir():
         partes = []
         try:
-            for delta in minutito_chat.responder_en_vivo(historial):
-                partes.append(delta)
-                yield json.dumps({"delta": delta}, ensure_ascii=False) + "\n"
-        except minutito_chat.MinutitoNoDisponible:
-            yield json.dumps({"error": NO_DISPONIBLE}, ensure_ascii=False) + "\n"
-            return
-        respuesta, ofrece = minutito_chat.separar_marca("".join(partes))
-        with Session(motor) as s:
-            guardado = MensajeMinutito(conversacion_id=conversacion_id, rol="minutito", texto=respuesta or "…")
-            s.add(guardado)
-            s.commit()
-            s.refresh(guardado)
-            yield json.dumps({"fin": True, "ofrece_ticket": ofrece, "mensaje_id": guardado.id}) + "\n"
+            try:
+                for delta in minutito_chat.responder_en_vivo(historial):
+                    partes.append(delta)
+                    yield json.dumps({"delta": delta}, ensure_ascii=False) + "\n"
+            except minutito_chat.MinutitoNoDisponible:
+                yield json.dumps({"error": NO_DISPONIBLE}, ensure_ascii=False) + "\n"
+                return
+            respuesta, ofrece = minutito_chat.separar_marca("".join(partes))
+            with Session(motor) as s:
+                guardado = MensajeMinutito(conversacion_id=conversacion_id, rol="minutito", texto=respuesta or "…")
+                s.add(guardado)
+                s.commit()
+                s.refresh(guardado)
+                yield json.dumps({"fin": True, "ofrece_ticket": ofrece, "mensaje_id": guardado.id}) + "\n"
+        finally:
+            respondiendo.discard(usuario_id)  # también si la persona cerró la página a mitad
 
     return StreamingResponse(transmitir(), media_type="application/x-ndjson")
 

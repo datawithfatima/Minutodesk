@@ -107,3 +107,21 @@ def test_conversacion_ajena_no_se_ve(client, crear_cuenta, entrar):
     h_beto = entrar("beto@ejemplo.com")
     assert client.get(f"/minutito/conversaciones/{conv['id']}", headers=h_beto).status_code == 404
     assert client.post(f"/minutito/conversaciones/{conv['id']}/mensajes", json={"texto": "x"}, headers=h_beto).status_code == 404
+
+
+def test_limite_de_mensajes_a_minutito(client, crear_cuenta, entrar, monkeypatch):
+    from app.routers import minutito
+
+    crear_cuenta("ana@ejemplo.com")
+    h = entrar("ana@ejemplo.com")
+    conv = client.post("/minutito/conversaciones", headers=h).json()
+    _respuestas(monkeypatch, ["ok"])
+    monkeypatch.setattr(minutito, "MAX_MENSAJES_POR_MINUTO", 2)
+    _enviar(client, h, conv["id"], "uno")
+    _enviar(client, h, conv["id"], "dos")
+    r = client.post(f"/minutito/conversaciones/{conv['id']}/mensajes", json={"texto": "tres"}, headers=h)
+    assert r.status_code == 429
+    # con una respuesta en curso tampoco se acepta otra
+    minutito.mensajes_recientes.clear()
+    minutito.respondiendo.add(client.get("/auth/yo", headers=h).json()["id"])
+    assert client.post(f"/minutito/conversaciones/{conv['id']}/mensajes", json={"texto": "x"}, headers=h).status_code == 429
