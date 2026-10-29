@@ -29,6 +29,7 @@ const MODELOS = {
   fondoG: "comercial/low-detail-building-g.glb",
   fondoAncho: "comercial/low-detail-building-wide-a.glb",
   sombrilla: "comercial/detail-parasol-a.glb",
+  toldo: "comercial/detail-awning-wide.glb",
   casaB: "suburbano/building-type-b.glb",
   casaD: "suburbano/building-type-d.glb",
   casaE: "suburbano/building-type-e.glb",
@@ -104,9 +105,6 @@ const DECORADO = [
   ["sombrilla", 7.0, 3.6, 0],
   ["arbolito", 12.2, 10.6, 0],
   ["arbolito", 10.6, 12.2, 0],
-  ["arbol", 13.6, 3.2, 0],
-  ["arbol", 3.2, 13.6, 0],
-  ["arbolito", 13.4, 12.8, 0],
   ["letrero", 11.5, 4.4, -Math.PI / 2],
   ["pare", 4.4, 4.4, Math.PI / 4],
 ];
@@ -118,6 +116,155 @@ const SILUETA = [
   ["fondoE", -4, -4, 0],
 ];
 const COLORES_AUTO = [0xe4572e, 0x2f6bff, 0xf3c13a, 0x29a19c, 0xffffff, 0x8e5bd9];
+// Tonos pastel para las casitas: se multiplican sobre la textura original.
+const COLORES_CASA = [0xffb3b3, 0xffd59e, 0xfff0a0, 0xb8f0c2, 0xa8d8ff, 0xd9c2ff, 0xffc4e1];
+
+function pintar(objeto, color) {
+  objeto.traverse((o) => {
+    if (o.isMesh) {
+      o.material = o.material.clone();
+      o.material.color = new THREE.Color(color);
+    }
+  });
+  return objeto;
+}
+
+const material = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
+function caja(ancho, alto, fondo, color, extra) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, fondo), material(color, extra));
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+
+/** Parquecito: pasto, caminos en cruz, fuente con agua, bancas y un columpio. */
+function parque() {
+  const g = new THREE.Group();
+  const pasto = caja(3.6, 0.06, 3.6, 0x7fc66b);
+  pasto.position.y = 0.03;
+  const caminoA = caja(3.6, 0.07, 0.45, 0xe8dcc0);
+  const caminoB = caja(0.45, 0.07, 3.6, 0xe8dcc0);
+  caminoA.position.y = caminoB.position.y = 0.04;
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.18, 20), material(0xd9d2c3));
+  base.position.y = 0.12;
+  const agua = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.45, 0.45, 0.04, 20),
+    material(0x5bc0eb, { roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.9 })
+  );
+  agua.position.y = 0.22;
+  const chorro = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.08, 0.45, 10),
+    material(0xb7e9ff, { transparent: true, opacity: 0.8 })
+  );
+  chorro.position.y = 0.45;
+  g.add(pasto, caminoA, caminoB, base, agua, chorro);
+  g.userData.chorro = chorro;
+  for (const [x, z, r] of [[-1.1, 0.5, 0], [1.1, -0.5, Math.PI], [0.5, 1.1, -Math.PI / 2], [-0.5, -1.1, Math.PI / 2]]) {
+    const banca = new THREE.Group();
+    const asiento = caja(0.5, 0.05, 0.16, 0xa0643c);
+    asiento.position.y = 0.16;
+    const respaldo = caja(0.5, 0.15, 0.04, 0xa0643c);
+    respaldo.position.set(0, 0.26, -0.07);
+    const pata1 = caja(0.04, 0.16, 0.14, 0x555555);
+    const pata2 = pata1.clone();
+    pata1.position.set(-0.2, 0.08, 0);
+    pata2.position.set(0.2, 0.08, 0);
+    banca.add(asiento, respaldo, pata1, pata2);
+    banca.position.set(x, 0.06, z);
+    banca.rotation.y = r;
+    g.add(banca);
+  }
+  const columpio = new THREE.Group();
+  const poste1 = caja(0.05, 0.6, 0.05, 0xe4572e);
+  const poste2 = poste1.clone();
+  poste1.position.set(-0.3, 0.3, 0);
+  poste2.position.set(0.3, 0.3, 0);
+  const travesano = caja(0.65, 0.05, 0.05, 0xe4572e);
+  travesano.position.y = 0.6;
+  const asientoC = caja(0.16, 0.03, 0.1, 0x2f6bff);
+  asientoC.position.y = 0.2;
+  columpio.add(poste1, poste2, travesano, asientoC);
+  columpio.position.set(1.1, 0.06, 1.1);
+  g.add(columpio);
+  return g;
+}
+
+/** Lago con orilla de arena, rocas, un muelle y un botecito. */
+function lago() {
+  const g = new THREE.Group();
+  const orilla = new THREE.Mesh(new THREE.CircleGeometry(1.9, 28), material(0xe9d8a6));
+  orilla.rotation.x = -Math.PI / 2;
+  orilla.scale.set(1.25, 0.85, 1);
+  orilla.position.y = 0.012;
+  orilla.receiveShadow = true;
+  const agua = new THREE.Mesh(
+    new THREE.CircleGeometry(1.6, 28),
+    material(0x3fa7e0, { roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.92 })
+  );
+  agua.rotation.x = -Math.PI / 2;
+  agua.scale.set(1.25, 0.85, 1);
+  agua.position.y = 0.02;
+  agua.receiveShadow = true;
+  g.add(orilla, agua);
+  g.userData.agua = agua;
+  for (const [x, z, r] of [[1.6, 0.6, 0.18], [-1.7, -0.4, 0.14], [0.4, -1.3, 0.12], [-0.9, 1.1, 0.16]]) {
+    const roca = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), material(0x9a9a9a));
+    roca.position.set(x, r * 0.6, z);
+    roca.castShadow = true;
+    g.add(roca);
+  }
+  const muelle = caja(0.3, 0.05, 0.9, 0xa0643c);
+  muelle.position.set(-0.6, 0.06, 0.55);
+  const bote = caja(0.35, 0.08, 0.16, 0xffffff);
+  bote.position.set(0.5, 0.06, 0.1);
+  g.add(muelle, bote);
+  g.userData.bote = bote;
+  return g;
+}
+
+/** Centro comercial: edificio bajo y ancho con vitrinas, letrero «PLAZA» y estacionamiento. */
+function centroComercial() {
+  const g = new THREE.Group();
+  const estacionamiento = caja(3.4, 0.04, 1.3, 0x5d6370);
+  estacionamiento.position.set(0, 0.02, 1.15);
+  g.add(estacionamiento);
+  for (let i = -3; i <= 3; i++) {
+    const linea = caja(0.03, 0.045, 0.45, 0xffffff);
+    linea.position.set(i * 0.42, 0.025, 1.3);
+    g.add(linea);
+  }
+  const cuerpo = caja(3.2, 0.9, 1.6, 0xf4efe6);
+  cuerpo.position.set(0, 0.45, -0.4);
+  const vitrina = caja(3.0, 0.38, 0.02, 0x7cc4f2, { roughness: 0.1, metalness: 0.3 });
+  vitrina.position.set(0, 0.3, 0.41);
+  const franja = caja(3.2, 0.12, 1.62, 0xe4572e);
+  franja.position.set(0, 0.85, -0.4);
+  const techo = caja(1.1, 0.35, 0.8, 0xf4efe6);
+  techo.position.set(0.6, 1.05, -0.5);
+  const domo = caja(0.6, 0.06, 0.4, 0x9fd8ff, { roughness: 0.1, transparent: true, opacity: 0.85 });
+  domo.position.set(-0.6, 0.93, -0.4);
+  const letrero = caja(0.9, 0.28, 0.06, 0x2f6bff);
+  letrero.position.set(-0.6, 1.2, 0.35);
+  g.add(cuerpo, vitrina, franja, techo, domo, letrero);
+  const lienzo = document.createElement("canvas");
+  lienzo.width = 256;
+  lienzo.height = 80;
+  const ctx = lienzo.getContext("2d");
+  ctx.fillStyle = "#2f6bff";
+  ctx.fillRect(0, 0, 256, 80);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 46px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("PLAZA", 128, 42);
+  const textura = new THREE.CanvasTexture(lienzo);
+  textura.colorSpace = THREE.SRGBColorSpace;
+  const cartel = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.26), new THREE.MeshBasicMaterial({ map: textura }));
+  cartel.position.set(-0.6, 1.2, 0.385);
+  g.add(cartel);
+  return g;
+}
+
 
 const cargador = new GLTFLoader();
 const cache = new Map();
@@ -302,7 +449,7 @@ export default function CiudadObras({ lotes, alElegir }) {
 
     const escena = new THREE.Scene();
     const centro = new THREE.Vector3(5, 0, 5);
-    const mira = new THREE.Vector3(5, 1.2, 5);
+    const mira = new THREE.Vector3(7, 0.3, 7); // un poco hacia el frente: así entra el centro comercial
     const vista = 9;
     const camara = new THREE.OrthographicCamera(-vista, vista, vista, -vista, 0.1, 200);
     const ajustarCamara = () => {
@@ -315,7 +462,7 @@ export default function CiudadObras({ lotes, alElegir }) {
     };
     camara.position.set(mira.x + 20, mira.y + 18, mira.z + 20);
     camara.lookAt(mira);
-    camara.zoom = 1.35;
+    camara.zoom = 1.25;
     ajustarCamara();
 
     escena.add(new THREE.HemisphereLight(0xdfefff, 0x9a8f80, 1.4));
@@ -341,6 +488,7 @@ export default function CiudadObras({ lotes, alElegir }) {
     const animables = [];
     const autos = []; // { a, ruta, fase, velocidad }
     const nubes = [];
+    const efectos = []; // [chorro de la fuente, agua del lago, bote]
     const relojInicio = performance.now();
 
     async function armar() {
@@ -417,11 +565,34 @@ export default function CiudadObras({ lotes, alElegir }) {
         escena.add(c);
         nubes.push(c);
       }
+      // Parque, lago y centro comercial en las afueras.
+      const elParque = parque();
+      elParque.position.set(13.3, 0, 2.2);
+      const elLago = lago();
+      elLago.position.set(2.2, 0, 13.4);
+      const elMall = centroComercial();
+      elMall.position.set(13.6, 0, 13.4);
+      elMall.rotation.y = Math.PI / 4;
+      escena.add(elParque, elLago, elMall);
+      efectos.push(elParque.userData.chorro, elLago.userData.agua, elLago.userData.bote);
+      for (const [x, z] of [[12.9, 13.9], [14.3, 12.9]]) {
+        const t = sombras(encajar(await cargar("toldo"), 0.8));
+        t.position.set(x, 0, z);
+        t.rotation.y = Math.PI / 4;
+        escena.add(t);
+      }
+      for (const [x, z] of [[11.6, 0.6], [15, 0.8], [15, 3.8], [0.4, 12], [4, 14.8], [0.6, 15]]) {
+        const a = sombras(encajar(await cargar(x > 10 ? "arbolito" : "arbol"), 0.8));
+        a.position.set(x, 0, z);
+        escena.add(a);
+      }
+      let tono = 0;
       for (const [clave, x, z, rot] of DECORADO) {
         const ancho = clave.startsWith("casa")
           ? 1.6
           : { maceta: 0.4, sombrilla: 0.5, pare: 0.25, letrero: 0.9, caminito: 1.2, cerca: 1.4 }[clave] ?? 0.9;
         const o = sombras(encajar(await cargar(clave), ancho));
+        if (clave.startsWith("casa")) pintar(o, COLORES_CASA[tono++ % COLORES_CASA.length]);
         o.position.set(x, 0, z);
         o.rotation.y = rot;
         escena.add(o);
@@ -476,6 +647,13 @@ export default function CiudadObras({ lotes, alElegir }) {
         const [x, z] = ruta(t);
         a.position.set(x, 0.02, z);
         a.visible = t > -1.4 && t < 11.4;
+      }
+      if (efectos.length) {
+        const [chorro, agua, bote] = efectos;
+        chorro.scale.y = 1 + Math.sin(ms / 250) * 0.15;
+        agua.material.opacity = 0.88 + Math.sin(ms / 900) * 0.05;
+        bote.position.x = 0.5 + Math.sin(ms / 2500) * 0.6;
+        bote.position.z = 0.1 + Math.cos(ms / 2500) * 0.3;
       }
       nubes.forEach((c, i) => {
         c.position.x += 0.004 + i * 0.001;
