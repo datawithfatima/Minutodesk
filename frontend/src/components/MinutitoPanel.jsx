@@ -9,9 +9,11 @@ import {
   nuevaConversacionMinutito,
   obtenerCatalogos,
   resolverConversacionMinutito,
+  subirAdjunto,
 } from "../api";
 import { obtenerUsuario } from "../auth";
 import Markdown from "./Markdown";
+import SelectorArchivos from "./tickets/SelectorArchivos";
 import { tituloTipo } from "./tickets/formato";
 import Button from "./ui/Button";
 import Spinner from "./ui/Spinner";
@@ -26,6 +28,7 @@ function BorradorTicket({ conversacionId, onCancelar }) {
   const [categoria, setCategoria] = useState("");
   const [sugerencia, setSugerencia] = useState(null);
   const [prioridad, setPrioridad] = useState("Normal");
+  const [archivos, setArchivos] = useState([]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -67,7 +70,16 @@ function BorradorTicket({ conversacionId, onCancelar }) {
         prioridad,
         conversacionId,
       });
-      navegar(`/usuario/tickets/${ticket.id}`, { state: { creado: true } });
+      // Los archivos se suben ya con el ticket creado; si alguno falla, se avisa en el ticket.
+      const avisos = [];
+      for (const f of archivos) {
+        try {
+          await subirAdjunto(ticket.id, f);
+        } catch (err) {
+          avisos.push(`«${f.name}»: ${err.message}`);
+        }
+      }
+      navegar(`/usuario/tickets/${ticket.id}`, { state: { creado: true, avisos } });
     } catch (err) {
       setError(err.message);
       setEnviando(false);
@@ -147,6 +159,12 @@ function BorradorTicket({ conversacionId, onCancelar }) {
               <option key={c}>{c}</option>
             ))}
           </select>
+        </div>
+      )}
+      {!esAlta && (
+        <div>
+          <span className={labelClass}>Adjuntar captura (opcional)</span>
+          <SelectorArchivos archivos={archivos} onCambio={setArchivos} limites={catalogos.adjuntos} />
         </div>
       )}
       <div className="flex flex-wrap gap-2">
