@@ -12,6 +12,7 @@ data/reporte_*.md
 
 # Datos sensibles
 data/*.csv
+data/*.zip
 *.db
 
 # Documentación de la tesis: se mantiene solo en local

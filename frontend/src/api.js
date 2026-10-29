@@ -184,6 +184,7 @@ export const responderAprobacion = (id, { aprobada, comentario }) =>
 export const listarClientes = () => get("/clientes");
 export const obtenerCliente = (id) => get(`/clientes/${id}`);
 export const obtenerGamificacion = (clienteId) => get(`/clientes/${clienteId}/gamificacion`);
+export const obtenerCiudad = (periodo) => get("/gamificacion/ciudad", { periodo });
 
 // --- Reportes ---
 export const obtenerResumen = () => get("/reportes/resumen");

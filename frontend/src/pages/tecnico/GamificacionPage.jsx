@@ -6,6 +6,7 @@ import Card from "../../components/ui/Card";
 import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import GamificacionCard from "../../components/GamificacionCard";
+import SeccionCiudad from "../../components/obra/SeccionCiudad";
 
 export default function GamificacionPage() {
   const [clientes, setClientes] = useState([]);
@@ -39,6 +40,9 @@ export default function GamificacionPage() {
         title="Ranking de logros"
         subtitle="Posiciones por puntos de los usuarios y el detalle de cómo los ganaron."
       />
+      <div className="mb-6">
+        <SeccionCiudad />
+      </div>
       {error && (
         <Alert variant="danger" className="mb-3">
           {error}

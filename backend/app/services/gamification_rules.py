@@ -7,10 +7,12 @@ from sqlmodel import Session, select
 
 from app.models import Cliente, ConversacionMinutito, EventoGamificacion, InteraccionMinutito, Ticket
 
+# Etapas de obra de «Mi obra» (ver services/obra.py).
 NIVELES = [
-    (0, 49, "Nuevo"),
-    (50, 149, "Autosuficiente"),
-    (150, None, "Experto en autoservicio"),
+    (0, 49, "Cimientos"),
+    (50, 149, "Estructura"),
+    (150, 299, "Acabados"),
+    (300, None, "Entrega de llaves"),
 ]
 
 

@@ -189,10 +189,22 @@ class EventoGamificacionRead(SQLModel):
     creado_en: datetime
 
 
+class InsigniaRead(SQLModel):
+    clave: str
+    nombre: str
+    descripcion: str
+    obtenida: bool
+
+
 class ClienteGamificacion(SQLModel):
     puntos: int
-    nivel: str
+    nivel: str  # etapa de obra
     historial: list[EventoGamificacionRead]
+    numero_etapa: int = 1
+    pisos: int = 0
+    siguiente_etapa: Optional[str] = None
+    puntos_para_siguiente: Optional[int] = None
+    insignias: list[InsigniaRead] = []
 
 
 class LoginRequest(SQLModel):

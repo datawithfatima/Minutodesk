@@ -3,9 +3,10 @@ import Badge from "./ui/Badge";
 import Card from "./ui/Card";
 
 const NIVEL_COLOR = {
-  Nuevo: "gray",
-  Autosuficiente: "sky",
-  "Experto en autoservicio": "green",
+  Cimientos: "gray",
+  Estructura: "amber",
+  Acabados: "sky",
+  "Entrega de llaves": "green",
 };
 
 export default function GamificacionCard({ detalle }) {
@@ -29,7 +30,8 @@ export default function GamificacionCard({ detalle }) {
             <div className="min-w-0">
               <div>{e.motivo}</div>
               <small className="text-gray-500">
-                Ticket #{e.ticket_id} · {new Date(e.creado_en).toLocaleString()}
+                {e.ticket_id ? `Ticket #${e.ticket_id} · ` : ""}
+                {new Date(e.creado_en).toLocaleString()}
               </small>
             </div>
             <Badge color="green" className="shrink-0">+{e.puntos_otorgados}</Badge>

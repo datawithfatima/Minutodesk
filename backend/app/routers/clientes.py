@@ -10,6 +10,7 @@ from app.services.auth import (
     verificar_acceso_cliente,
 )
 from app.services.gamification_rules import calcular_nivel
+from app.services.obra import etapa, insignias
 from app.services.usuarios import a_cliente_read, mapa_areas
 
 router = APIRouter()
@@ -55,8 +56,15 @@ def obtener_gamificacion(
         .order_by(EventoGamificacion.creado_en.desc())
     ).all()
 
+    obra = etapa(cliente.puntos)
     return ClienteGamificacion(
         puntos=cliente.puntos,
         nivel=calcular_nivel(cliente.puntos),
         historial=historial,
+        numero_etapa=obra["numero_etapa"],
+        pisos=obra["pisos"],
+        siguiente_etapa=obra["siguiente_etapa"],
+        puntos_para_siguiente=obra["puntos_para_siguiente"],
+        insignias=insignias(session, cliente_id),
     )
+
