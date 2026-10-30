@@ -60,61 +60,34 @@ const POR_ETAPA = {
   3: ["edificioA", "edificioC", "edificioE", "edificioG", "edificioH", "edificioK"],
   4: ["torreA", "torreB", "torreC", "torreE"],
 };
-// Centros de los lotes (las calles se cruzan en x=5, z=5). El 1.º queda más cerca de la cámara;
-// el 6.º es para la obra propia cuando no está en el Top 5.
-const LOTES = [
-  [8, 8],
-  [2, 8],
-  [8, 2],
-  [2, 2],
-  [12.4, 8],
-  [8, 12.4],
+// Trazado: calles cada 6 casillas (x y z = -1, 5, 11, 17) que dejan 3×3 manzanas de 5×5.
+const CALLES = [-1, 5, 11, 17];
+const MANZANAS = [0, 6, 12];
+const EXTENSION = [-2, 18]; // hasta dónde llegan las calles
+// Cada manzana tiene 4 lotes de 2×2. Orden: primero el más cercano a la cámara.
+const enManzana = (x0, z0) => [
+  [x0 + 3.05, z0 + 3.05],
+  [x0 + 0.95, z0 + 3.05],
+  [x0 + 3.05, z0 + 0.95],
+  [x0 + 0.95, z0 + 0.95],
 ];
-const DECORADO = [
-  ["casaA", 0.2, 4.0, Math.PI / 2],
-  ["casaC", 4.0, 0.2, 0],
-  ["casaF", 0.3, 9.9, Math.PI / 2],
-  ["casaH", 9.9, 0.3, 0],
-  ["casaA", 3.8, 9.9, Math.PI],
-  ["casaC", 9.9, 3.8, -Math.PI / 2],
-  ["arbol", 3.9, 3.9, 0],
-  ["arbol", 6.4, 3.6, 0],
-  ["arbol", 3.6, 6.4, 0],
-  ["arbolito", 0.2, 6.3, 0],
-  ["arbolito", 6.3, 0.2, 0],
-  ["arbol", 10.2, 10.2, 0],
-  ["arbolito", 0.2, 0.2, 0],
-  ["maceta", 4.2, 7.6, 0],
-  ["maceta", 7.6, 4.2, 0],
-  ["arbol", -2, 2, 0],
-  ["arbol", 2, -2, 0],
-  ["arbolito", -2.2, 8.5, 0],
-  ["arbolito", 8.5, -2.2, 0],
-  ["arbol", 12, 6, 0],
-  ["arbol", 6, 12, 0],
-  // Barrio de casas a los costados.
-  ["casaB", -2.2, 4.0, Math.PI / 2],
-  ["casaD", -2.2, 6.3, Math.PI / 2],
-  ["casaE", 4.0, -2.2, 0],
-  ["casaB", 6.3, -2.2, 0],
-  ["cerca", -1.3, 5.2, Math.PI / 2],
-  ["cerca", 5.2, -1.3, 0],
-  ["caminito", 1.0, 1.0, Math.PI / 4],
-  ["caminito", 9.0, 9.0, Math.PI / 4],
-  ["sombrilla", 3.6, 3.0, 0],
-  ["sombrilla", 7.0, 3.6, 0],
-  ["arbolito", 12.2, 10.6, 0],
-  ["arbolito", 10.6, 12.2, 0],
-  ["letrero", 11.5, 4.4, -Math.PI / 2],
-  ["pare", 4.4, 4.4, Math.PI / 4],
-];
+// Manzanas especiales: centro comercial (frente), lago (izquierda) y parque (derecha).
+const MANZANA_MALL = [12, 12];
+const MANZANA_LAGO = [0, 12];
+const MANZANA_PARQUE = [12, 0];
+// El Top 4 va en la manzana del centro; el resto de las obras, en las demás manzanas.
+const LOTES_CENTRO = enManzana(6, 6);
+const LOTES_RESTO = [[12, 6], [6, 12], [0, 6], [6, 0], [0, 0]].flatMap(([x, z]) => enManzana(x, z));
+const LOTES = [...LOTES_CENTRO, ...LOTES_RESTO];
+const ANCHO_LOTE = 2.0;
 // Edificios de fondo (detrás de todo, lejos de la cámara): dan la silueta de ciudad.
-const SILUETA = [
-  ["fondoAncho", -4, -0.5, 0], ["fondoB", -4, 1.5, 0], ["fondoD", -4, 3.5, 0], ["fondoE", -4, 6.5, 0],
-  ["fondoF", -4, 8.5, 0], ["fondoG", -4, 10.5, 0], ["fondoG", -0.5, -4, 0], ["fondoD", 1.5, -4, 0],
-  ["fondoB", 3.5, -4, 0], ["fondoAncho", 6.5, -4, 0], ["fondoE", 8.5, -4, 0], ["fondoF", 10.5, -4, 0],
-  ["fondoE", -4, -4, 0],
-];
+const SILUETA = [];
+for (let k = -3; k <= 17; k += 2) {
+  const tipos = ["fondoB", "fondoD", "fondoE", "fondoF", "fondoG", "fondoAncho"];
+  SILUETA.push([tipos[(k + 3) % tipos.length], -4, k, 0]);
+  if (k > -3) SILUETA.push([tipos[(k + 6) % tipos.length], k, -4, 0]);
+}
+const CASAS = ["casaA", "casaB", "casaC", "casaD", "casaE", "casaF", "casaH"];
 const COLORES_AUTO = [0xe4572e, 0x2f6bff, 0xf3c13a, 0x29a19c, 0xffffff, 0x8e5bd9];
 // Tonos pastel para las casitas: se multiplican sobre la textura original.
 const COLORES_CASA = [0xffb3b3, 0xffd59e, 0xfff0a0, 0xb8f0c2, 0xa8d8ff, 0xd9c2ff, 0xffc4e1];
@@ -448,8 +421,8 @@ export default function CiudadObras({ lotes, alElegir }) {
     div.appendChild(renderer.domElement);
 
     const escena = new THREE.Scene();
-    const centro = new THREE.Vector3(5, 0, 5);
-    const mira = new THREE.Vector3(7, 0.3, 7); // un poco hacia el frente: así entra el centro comercial
+    const centro = new THREE.Vector3(8, 0, 8);
+    const mira = new THREE.Vector3(8.5, 0.3, 8.5);
     const vista = 9;
     const camara = new THREE.OrthographicCamera(-vista, vista, vista, -vista, 0.1, 200);
     const ajustarCamara = () => {
@@ -462,7 +435,7 @@ export default function CiudadObras({ lotes, alElegir }) {
     };
     camara.position.set(mira.x + 20, mira.y + 18, mira.z + 20);
     camara.lookAt(mira);
-    camara.zoom = 1.25;
+    camara.zoom = 1.0;
     ajustarCamara();
 
     escena.add(new THREE.HemisphereLight(0xdfefff, 0x9a8f80, 1.4));
@@ -470,8 +443,8 @@ export default function CiudadObras({ lotes, alElegir }) {
     sol.position.set(centro.x + 10, 20, centro.z - 6);
     sol.target.position.copy(centro);
     sol.castShadow = true;
-    sol.shadow.mapSize.set(2048, 2048);
-    Object.assign(sol.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 60 });
+    sol.shadow.mapSize.set(3072, 3072);
+    Object.assign(sol.shadow.camera, { left: -17, right: 17, top: 17, bottom: -17, near: 1, far: 80 });
     sol.shadow.bias = -0.0005;
     escena.add(sol, sol.target);
 
@@ -492,135 +465,154 @@ export default function CiudadObras({ lotes, alElegir }) {
     const relojInicio = performance.now();
 
     async function armar() {
-      // Manzanas: veredas en los cuatro bloques que dejan las calles.
-      for (const [x0, z0] of [[0, 0], [6, 0], [0, 6], [6, 6]]) {
-        for (let x = x0; x < x0 + 5; x++) {
-          for (let z = z0; z < z0 + 5; z++) {
-            const v = encajar(await cargar("vereda"), 1.001);
-            v.position.set(x, 0, z);
-            v.traverse((o) => o.isMesh && (o.receiveShadow = true));
-            escena.add(v);
+      const losa = (clave, ancho) => cargar(clave).then((m) => encajar(m, ancho));
+      // Veredas en las 9 manzanas.
+      for (const x0 of MANZANAS) {
+        for (const z0 of MANZANAS) {
+          for (let x = x0; x < x0 + 5; x++) {
+            for (let z = z0; z < z0 + 5; z++) {
+              const v = await losa("vereda", 1.001);
+              v.position.set(x, 0, z);
+              v.traverse((o) => o.isMesh && (o.receiveShadow = true));
+              escena.add(v);
+            }
           }
         }
       }
-      // Calles en cruz.
-      for (let i = -1; i <= 11; i++) {
-        for (const [x, z, rot] of [[i, 5, Math.PI / 2], [5, i, 0]]) {
-          if (x === 5 && z === 5) continue;
-          const c = sombras(encajar(await cargar("calle"), 1.001));
-          c.position.set(x, 0, z);
-          c.rotation.y = rot;
-          escena.add(c);
+      // Calles: una cuadrícula con cruces en cada intersección.
+      for (const fija of CALLES) {
+        for (let i = EXTENSION[0]; i <= EXTENSION[1]; i++) {
+          for (const [x, z, rot] of [[i, fija, Math.PI / 2], [fija, i, 0]]) {
+            const esCruce = CALLES.includes(x) && CALLES.includes(z);
+            if (esCruce && rot === 0) continue; // el cruce se pone una sola vez
+            const c = sombras(await losa(esCruce ? "cruce" : "calle", 1.001));
+            c.position.set(x, 0, z);
+            if (!esCruce) c.rotation.y = rot;
+            escena.add(c);
+          }
         }
       }
-      const cruce = encajar(await cargar("cruce"), 1.001);
-      cruce.position.set(5, 0, 5);
-      escena.add(cruce);
-      for (const [x, z] of [[4.3, 3.7], [5.7, 6.3], [3.7, 5.7], [6.3, 4.3]]) {
-        const f = sombras(encajar(await cargar("farol"), 0.35));
-        f.position.set(x, 0, z);
-        escena.add(f);
+      // Semáforos en los cruces interiores y faroles a lo largo de las calles.
+      for (const cx of [5, 11]) {
+        for (const cz of [5, 11]) {
+          for (const [dx, dz, rot] of [[-0.6, 0.6, 0], [0.6, -0.6, Math.PI]]) {
+            const sem = sombras(await losa("semaforo", 0.3));
+            sem.position.set(cx + dx, 0, cz + dz);
+            sem.rotation.y = rot;
+            escena.add(sem);
+          }
+        }
       }
-      // Semáforos en las esquinas del cruce y faroles a lo largo de las calles.
-      for (const [x, z, rot] of [[4.4, 5.6, 0], [5.6, 4.4, Math.PI], [4.4, 4.4, -Math.PI / 2], [5.6, 5.6, Math.PI / 2]]) {
-        const sem = sombras(encajar(await cargar("semaforo"), 0.3));
-        sem.position.set(x, 0, z);
-        sem.rotation.y = rot;
-        escena.add(sem);
-      }
-      for (const k of [0.5, 2.5, 7.5, 9.5]) {
-        for (const [x, z] of [[k, 4.45], [k, 5.55], [4.45, k], [5.55, k]]) {
-          const f = sombras(encajar(await cargar("farol"), 0.3));
-          f.position.set(x, 0, z);
-          escena.add(f);
+      for (const fija of [5, 11]) {
+        for (let k = 0.5; k <= 16.5; k += 3) {
+          for (const [x, z] of [[k, fija - 0.55], [fija + 0.55, k]]) {
+            const f = sombras(await losa("farol", 0.3));
+            f.position.set(x, 0, z);
+            escena.add(f);
+          }
         }
       }
       for (const [clave, x, z, rot] of SILUETA) {
-        const o = sombras(encajar(await cargar(clave), 1.3));
+        const o = sombras(await losa(clave, 1.3));
         const altoFondo = new THREE.Box3().setFromObject(o).max.y;
         o.scale.y *= Math.min(1, 1.8 / altoFondo); // de fondo: más bajos que las obras
         o.position.set(x, 0, z);
         o.rotation.y = rot;
         escena.add(o);
       }
-      // Autos que circulan por las dos calles, en ambos sentidos.
-      const carriles = [
-        [(t) => [t, 4.82], 0],
-        [(t) => [11 - t, 5.18], Math.PI],
-        [(t) => [5.18, t], -Math.PI / 2],
-        [(t) => [4.82, 11 - t], Math.PI / 2],
-      ];
-      for (let n = 0; n < 6; n++) {
+      // Árboles en el borde de la ciudad.
+      for (let k = -1; k <= 17; k += 2.5) {
+        for (const [x, z] of [[18.8, k], [k, 18.8]]) {
+          const a = sombras(await losa(Math.round(k) % 2 ? "arbol" : "arbolito", 0.8));
+          a.position.set(x, 0, z);
+          escena.add(a);
+        }
+      }
+      // Autos que circulan por las calles interiores, en ambos sentidos.
+      const largo = EXTENSION[1] - EXTENSION[0];
+      const carriles = [];
+      for (const fija of [5, 11, 17]) {
+        carriles.push(
+          [(t) => [EXTENSION[0] + t, fija - 0.18], 0],
+          [(t) => [EXTENSION[1] - t, fija + 0.18], Math.PI],
+          [(t) => [fija + 0.18, EXTENSION[0] + t], -Math.PI / 2],
+          [(t) => [fija - 0.18, EXTENSION[1] - t], Math.PI / 2]
+        );
+      }
+      for (let n = 0; n < 14; n++) {
         const a = auto(COLORES_AUTO[n % COLORES_AUTO.length]);
         const [ruta, rot] = carriles[n % carriles.length];
         a.rotation.y = rot;
         escena.add(a);
-        autos.push({ a, ruta, fase: n * 2.7, velocidad: 0.9 + (n % 3) * 0.25 });
+        autos.push({ a, ruta, fase: n * 3.1, velocidad: 0.9 + (n % 3) * 0.3, largo });
       }
-      for (let n = 0; n < 4; n++) {
+      for (let n = 0; n < 5; n++) {
         const c = nube();
         // Detrás de la ciudad, para que no tapen las obras.
-        c.position.set(-8 + n * 7, 5 + (n % 2) * 0.8, -7 - (n % 2) * 2);
-        c.scale.setScalar(0.7 + (n % 3) * 0.2);
+        c.position.set(-10 + n * 7, 6 + (n % 2) * 0.8, -8 - (n % 2) * 2);
+        c.scale.setScalar(0.8 + (n % 3) * 0.2);
         escena.add(c);
         nubes.push(c);
       }
-      // Parque, lago y centro comercial en las afueras.
+      // Manzanas especiales.
       const elParque = parque();
-      elParque.position.set(13.3, 0, 2.2);
+      elParque.position.set(MANZANA_PARQUE[0] + 2, 0, MANZANA_PARQUE[1] + 2);
       const elLago = lago();
-      elLago.position.set(2.2, 0, 13.4);
+      elLago.position.set(MANZANA_LAGO[0] + 2, 0, MANZANA_LAGO[1] + 2);
       const elMall = centroComercial();
-      elMall.position.set(13.6, 0, 13.4);
-      elMall.rotation.y = Math.PI / 4;
+      elMall.position.set(MANZANA_MALL[0] + 2, 0, MANZANA_MALL[1] + 1.6);
       escena.add(elParque, elLago, elMall);
       efectos.push(elParque.userData.chorro, elLago.userData.agua, elLago.userData.bote);
-      for (const [x, z] of [[12.9, 13.9], [14.3, 12.9]]) {
-        const t = sombras(encajar(await cargar("toldo"), 0.8));
-        t.position.set(x, 0, z);
-        t.rotation.y = Math.PI / 4;
+      for (const x of [-1, 1]) {
+        const t = sombras(await losa("toldo", 0.8));
+        t.position.set(MANZANA_MALL[0] + 2 + x, 0, MANZANA_MALL[1] + 1.25);
         escena.add(t);
       }
-      for (const [x, z] of [[11.6, 0.6], [15, 0.8], [15, 3.8], [0.4, 12], [4, 14.8], [0.6, 15]]) {
-        const a = sombras(encajar(await cargar(x > 10 ? "arbolito" : "arbol"), 0.8));
+      for (const [x, z] of [[0.2, 12.4], [4, 16.2], [0.4, 16.2], [12.3, 0.2], [16.2, 3.8], [16.2, 0.3]]) {
+        const a = sombras(await losa("arbol", 0.8));
         a.position.set(x, 0, z);
         escena.add(a);
       }
-      let tono = 0;
-      for (const [clave, x, z, rot] of DECORADO) {
-        const ancho = clave.startsWith("casa")
-          ? 1.6
-          : { maceta: 0.4, sombrilla: 0.5, pare: 0.25, letrero: 0.9, caminito: 1.2, cerca: 1.4 }[clave] ?? 0.9;
-        const o = sombras(encajar(await cargar(clave), ancho));
-        if (clave.startsWith("casa")) pintar(o, COLORES_CASA[tono++ % COLORES_CASA.length]);
-        o.position.set(x, 0, z);
-        o.rotation.y = rot;
-        escena.add(o);
-      }
-      // Lotes.
-      for (let i = 0; i < lotes.length && i < LOTES.length; i++) {
+
+      // Lotes: obras de las personas; los que sobran, casitas de colores y árboles.
+      for (let i = 0; i < LOTES.length; i++) {
         const [x, z] = LOTES[i];
+        const lote = lotes[i];
+        if (!lote) {
+          if (i % 3 === 2) {
+            const a = sombras(await losa(i % 2 ? "arbol" : "arbolito", 0.9));
+            a.position.set(x, 0, z);
+            escena.add(a);
+          } else {
+            const casa = sombras(await losa(CASAS[i % CASAS.length], 1.6));
+            pintar(casa, COLORES_CASA[i % COLORES_CASA.length]);
+            casa.position.set(x, 0, z);
+            casa.rotation.y = (i % 4) * (Math.PI / 2);
+            escena.add(casa);
+          }
+          continue;
+        }
         // Terreno del lote: una losa clara un poco más alta que la vereda.
         const terreno = new THREE.Mesh(
-          new THREE.BoxGeometry(2.5, 0.05, 2.5),
-          new THREE.MeshStandardMaterial({ color: lotes[i].es_yo ? 0xcfe0ff : 0xe9e4da, roughness: 0.95 })
+          new THREE.BoxGeometry(ANCHO_LOTE, 0.05, ANCHO_LOTE),
+          new THREE.MeshStandardMaterial({ color: lote.es_yo ? 0xcfe0ff : 0xe9e4da, roughness: 0.95 })
         );
         terreno.position.set(x, 0.025, z);
         terreno.receiveShadow = true;
         escena.add(terreno);
-        const grupo = await obraDe(lotes[i], i);
+        const grupo = await obraDe(lote, i);
         grupo.position.set(x, 0.05, z);
-        grupo.scale.y = 0.01; // se levanta con una animación al entrar
+        grupo.scale.set(0.85, 0.01, 0.85); // se levanta con una animación al entrar
         grupo.userData.indice = i;
         escena.add(grupo);
-        obras.push({ grupo, inicio: 250 * i });
+        obras.push({ grupo, inicio: 120 * i });
         if (grupo.userData.grua) animables.push(grupo.userData.grua.userData.brazo);
       }
     }
 
     const proyectar = () => {
       setEtiquetas(
-        obras.map(({ grupo }) => {
+        obras.filter(({ grupo }) => !lotes[grupo.userData.indice].anonimo).map(({ grupo }) => {
           const p = grupo.position.clone();
           p.y = (grupo.userData.alto ?? 1) * grupo.scale.y + 0.6;
           p.project(camara);
@@ -642,11 +634,11 @@ export default function CiudadObras({ lotes, alElegir }) {
         o.grupo.scale.y = 0.01 + 0.99 * (1 - Math.pow(1 - k, 3));
       }
       animables.forEach((b, i) => (b.rotation.y = Math.sin(ms / 1800 + i) * 0.9));
-      for (const { a, ruta, fase, velocidad } of autos) {
-        const t = (((ms / 1000) * velocidad + fase) % 13) - 1.5; // de -1.5 a 11.5 y vuelve a empezar
+      for (const { a, ruta, fase, velocidad, largo } of autos) {
+        const t = ((ms / 1000) * velocidad + fase) % largo; // recorre la calle y vuelve a empezar
         const [x, z] = ruta(t);
         a.position.set(x, 0.02, z);
-        a.visible = t > -1.4 && t < 11.4;
+        a.visible = t > 0.2 && t < largo - 0.2;
       }
       if (efectos.length) {
         const [chorro, agua, bote] = efectos;
@@ -657,7 +649,7 @@ export default function CiudadObras({ lotes, alElegir }) {
       }
       nubes.forEach((c, i) => {
         c.position.x += 0.004 + i * 0.001;
-        if (c.position.x > 16) c.position.x = -12;
+        if (c.position.x > 24) c.position.x = -14;
       });
       renderer.render(escena, camara);
       if (Math.round(ms / 50) % 2 === 0) proyectar();
@@ -747,7 +739,7 @@ export default function CiudadObras({ lotes, alElegir }) {
   return (
     <div
       ref={contenedor}
-      className="relative h-[420px] w-full touch-none select-none overflow-hidden rounded-xl bg-gradient-to-b from-sky-100 to-sky-50 sm:h-[480px]"
+      className="relative h-[440px] w-full touch-none select-none overflow-hidden rounded-xl bg-gradient-to-b from-sky-100 to-sky-50 sm:h-[560px]"
       style={{ cursor: "grab" }}
     >
       {cargando && !error && (
@@ -777,11 +769,13 @@ export default function CiudadObras({ lotes, alElegir }) {
           style={{ left: `min(${tip.x + 12}px, calc(100% - 190px))`, top: tip.y + 12 }}
         >
           <div className="font-semibold text-noche">
-            #{loteTip.posicion} · {loteTip.es_yo ? "Tu obra" : loteTip.nombre}
+            {loteTip.anonimo
+              ? "Obra de un compañero"
+              : `#${loteTip.posicion} · ${loteTip.es_yo ? "Tu obra" : loteTip.nombre}`}
           </div>
           <div className="text-gray-600">{loteTip.etapa}</div>
           <div className="text-gray-600">
-            {loteTip.puntos} puntos · {loteTip.pisos} pisos
+            {loteTip.anonimo ? `${loteTip.pisos} pisos` : `${loteTip.puntos} puntos · ${loteTip.pisos} pisos`}
           </div>
         </div>
       )}

@@ -14,6 +14,7 @@ from app.models import Adjunto, Cliente, ConversacionMinutito, EventoGamificacio
 
 PUNTOS_POR_PISO = 25
 TOP = 5
+MAX_VECINOS = 19  # obras anónimas que llenan la ciudad (lotes libres: 24 menos Top 5)
 
 # (puntos mínimos, nombre). La etapa depende de los puntos acumulados en total.
 ETAPAS = [
@@ -130,4 +131,11 @@ def ciudad(session: Session, yo: Cliente, periodo: str) -> dict:
 
     top = [fila(u) for u in orden[:TOP] if puntos_periodo.get(u.id, 0) > 0 or periodo == "total"]
     mia = fila(yo) if yo.rol == "usuario" and yo.activo else None
-    return {"periodo": periodo, "top": top, "yo": mia}
+    # El resto de los usuarios también tiene su obra en la ciudad, pero sin nombre.
+    en_top = {u.id for u in orden[:len(top)]} | {yo.id}
+    vecinos = [
+        {"anonimo": True, "puntos": u.puntos, **etapa(u.puntos)}
+        for u in sorted(usuarios, key=lambda u: -u.puntos)
+        if u.id not in en_top
+    ][:MAX_VECINOS]
+    return {"periodo": periodo, "top": top, "yo": mia, "vecinos": vecinos}

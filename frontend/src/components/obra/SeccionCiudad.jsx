@@ -22,8 +22,10 @@ export default function SeccionCiudad() {
 
   const lotes = useMemo(() => {
     if (!datos) return [];
+    // Primero el Top 5 (con nombre), luego la obra propia y al final las demás, anónimas.
     const top = datos.top;
-    return datos.yo && !top.some((l) => l.es_yo) ? [...top, datos.yo] : top;
+    const propia = datos.yo && !top.some((l) => l.es_yo) ? [datos.yo] : [];
+    return [...top, ...propia, ...datos.vecinos];
   }, [datos]);
 
   return (
@@ -32,8 +34,8 @@ export default function SeccionCiudad() {
         <div>
           <h2 className="text-lg font-semibold text-noche">🏙️ Ciudad MinutoDesk</h2>
           <p className="text-sm text-gray-500">
-            Las obras del Top 5 {periodo === "mes" ? "de este mes" : "de siempre"}. Pasa el cursor sobre un edificio
-            para ver de quién es.
+            Cada persona tiene su obra en la ciudad. Con nombre aparece el Top 5{" "}
+            {periodo === "mes" ? "de este mes" : "de siempre"}; las demás son de compañeros.
           </p>
         </div>
         <div className="flex gap-1 rounded-lg border border-linea bg-white p-1 text-sm" role="tablist">
@@ -63,7 +65,7 @@ export default function SeccionCiudad() {
         <>
           <Suspense
             fallback={
-              <div className="flex h-[420px] items-center justify-center rounded-xl bg-sky-50 text-sm text-gray-500">
+              <div className="flex h-[440px] items-center justify-center rounded-xl bg-sky-50 text-sm text-gray-500">
                 Levantando la ciudad…
               </div>
             }
@@ -71,7 +73,7 @@ export default function SeccionCiudad() {
             <CiudadObras lotes={lotes} />
           </Suspense>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            {lotes.map((l) => (
+            {lotes.filter((l) => !l.anonimo).map((l) => (
               <div
                 key={`${l.posicion}-${l.nombre}`}
                 className={`rounded-xl border bg-white p-2.5 text-sm ${l.es_yo ? "border-acento ring-2 ring-acento/30" : "border-linea"}`}

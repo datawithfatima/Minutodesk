@@ -54,6 +54,8 @@ def test_ciudad_muestra_el_top_5_del_mes_y_la_obra_propia(client, crear_cuenta, 
     mes = client.get("/gamificacion/ciudad", params={"periodo": "mes"}, headers=entrar("u1@ejemplo.com")).json()
     assert [f["nombre"] for f in mes["top"]] == ["Persona6 A.", "Persona5 A.", "Persona4 A.", "Persona3 A.", "Persona2 A."]
     assert mes["yo"]["es_yo"] and mes["yo"]["posicion"] == 6 and mes["yo"]["nombre"] == "Tú"
+    # el resto llena la ciudad sin nombre
+    assert len(mes["vecinos"]) == 1 and mes["vecinos"][0]["anonimo"] and "nombre" not in mes["vecinos"][0]
 
     total = client.get("/gamificacion/ciudad", params={"periodo": "total"}, headers=entrar("u0@ejemplo.com")).json()
     assert total["top"][0]["nombre"] == "Tú" and total["top"][0]["etapa"] == "Entrega de llaves"
