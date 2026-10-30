@@ -2,7 +2,7 @@
 import re
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import or_
 from sqlmodel import Session, select
 
@@ -31,9 +31,7 @@ from app.schemas import (
     UsuarioUpdate,
     VeredictoEvaluacion,
 )
-from app.services import carga_masiva, correo, evaluacion_minutito, tokens_acceso
-from app.services.cuerpo import leer_cuerpo_limitado
-from app.services.historico import leer_csv
+from app.services import correo, evaluacion_minutito, tokens_acceso
 from app.services.auth import requerir_admin
 from app.services.usuarios import a_cliente_read, mapa_areas
 
@@ -259,26 +257,6 @@ def restablecer_password(
             "El enlace quedó guardado en backend/correos_enviados/."
         )
     return EnlaceEnviado(mensaje=mensaje, envio=envio)
-
-
-MAX_BYTES_CSV = 10 * 1024 * 1024
-
-
-@router.post("/carga-masiva")
-async def cargar_tickets(
-    request: Request,
-    aplicar: bool = False,
-    admin: Cliente = Depends(requerir_admin),
-    session: Session = Depends(get_session),
-):
-    """Crea como tickets de MinutoDesk los del CSV recibido (cuerpo de la petición): el
-    SVM los clasifica como a cualquier ticket nuevo. Sin aplicar=true solo devuelve
-    cuántos se crearían."""
-    contenido = await leer_cuerpo_limitado(request, MAX_BYTES_CSV, "El archivo supera los 10 MB")
-    try:
-        return carga_masiva.cargar(leer_csv(contenido), session, aplicar, admin)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 def _generar_en_segundo_plano() -> None:

@@ -1,4 +1,4 @@
-import { Archive, Bot, FileUp, Timer, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
+import { Archive, Bot, Timer, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { obtenerHistorico } from "../../api";
@@ -23,7 +23,6 @@ import {
   formatoNumero,
 } from "../../components/charts/tokens";
 import TicketsImportados from "./TicketsImportados";
-import CargaMasiva from "./CargaMasiva";
 import EvaluacionMinutito from "./EvaluacionMinutito";
 import SimulacionTiempos from "./SimulacionTiempos";
 
@@ -183,7 +182,6 @@ function Historico() {
 const VISTAS = [
   { clave: "analisis", etiqueta: "Análisis", icono: BarChart3 },
   { clave: "tickets", etiqueta: "Tickets importados", icono: Archive },
-  { clave: "carga", etiqueta: "Cargar tickets nuevos", icono: FileUp },
   { clave: "minutito", etiqueta: "Evaluación de Minutito", icono: Bot },
   { clave: "tiempos", etiqueta: "Simulación de tiempos", icono: Timer },
 ];
@@ -224,7 +222,6 @@ export default function DatosHistoricosPage() {
 
       {vista === "analisis" && <Historico />}
       {vista === "tickets" && <TicketsImportados />}
-      {vista === "carga" && <CargaMasiva />}
       {vista === "minutito" && <EvaluacionMinutito />}
       {vista === "tiempos" && <SimulacionTiempos />}
     </>

@@ -201,16 +201,6 @@ export const obtenerUmbralConfianza = () => get("/reportes/clasificador/umbral")
 export const listarUsuarios = (filtros = {}) => get("/admin/usuarios", filtros);
 export const crearUsuario = (data) => enviar("POST", "/admin/usuarios", data);
 export const actualizarUsuario = (id, data) => enviar("PATCH", `/admin/usuarios/${id}`, data);
-// Carga masiva de tickets nuevos: el CSV viaja como cuerpo crudo; sin `aplicar` solo es vista previa.
-export const cargarTicketsMasivos = (archivo, aplicar) => {
-  const h = headers(false);
-  h["Content-Type"] = "text/csv";
-  return fetch(`${API_BASE}/admin/carga-masiva?aplicar=${aplicar ? "true" : "false"}`, {
-    method: "POST",
-    headers: h,
-    body: archivo,
-  }).then(manejarRespuesta, sinConexion);
-};
 // Evaluación simulada de Minutito con los tickets cargados (solo administrador).
 export const obtenerEvaluacionMinutito = () => get("/reportes/evaluacion-minutito");
 export const generarEvaluacionMinutito = () => enviar("POST", "/admin/evaluacion-minutito/generar");

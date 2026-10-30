@@ -156,9 +156,9 @@ de lectura y con prefijo `H-`). Ya no se vuelve a subir desde la página.
 Para reentrenar a mano con ese mismo CSV: `python -m app.ml.prepare_dataset` y
 `python -m app.ml.train_classifier` (desde `backend/`), y reinicia el backend.
 
-Los tickets posteriores no se usan para entrenar. En "Datos históricos → Cargar
-tickets nuevos" el administrador sube el export (el mismo formato) y cada ticket nuevo
-se crea en MinutoDesk con su fecha y estado reales: el SVM propone tipo y categoría, y los
+Los tickets posteriores no se usan para entrenar. Los tickets nuevos de la empresa se
+cargaron una sola vez (la pantalla de carga ya se retiró): cada uno se creó en
+MinutoDesk con su fecha y estado reales: el SVM propone tipo y categoría, y los
 reales quedan como la elección de la persona, así que la comparación aparece en
 "Reportes → Calidad del clasificador" (acierto en uso). Se ignoran los ID del
 histórico y los ya cargados, y se descartan los que no traen tipo, categoría o
@@ -170,7 +170,7 @@ descripción. Quien pidió el ticket no necesita cuenta: su nombre queda en el t
 Los nombres de solicitantes y técnicos del histórico y de los tickets cargados se
 guardan como alias estables ("Solicitante 007", "Técnico 03"); en la base solo queda
 el hash del nombre. En las descripciones se reemplazan correos, cédulas, teléfonos y
-nombres de personas. La carga masiva lo hace sola; para lo que ya estaba en la base:
+nombres de personas. Para anonimizar lo que esté en la base:
 `python scripts/anonimizar_datos.py` (desde `backend/`). Los CSV originales de `data/`
 siguen con los datos reales: no salen de este equipo (están en `.gitignore`).
 
