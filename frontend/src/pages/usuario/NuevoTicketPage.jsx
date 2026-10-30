@@ -166,7 +166,7 @@ export default function NuevoTicketPage() {
   if (!catalogos) {
     return (
       <>
-        <PageHeader icon={Plus} title="Crear ticket" subtitle="Cuéntanos tu problema o solicitud y un técnico lo atenderá." />
+        <PageHeader icon={Plus} title="Crear ticket" />
         {error ? <Alert variant="danger">{error}</Alert> : <Spinner size="sm" />}
       </>
     );
@@ -177,7 +177,7 @@ export default function NuevoTicketPage() {
 
   return (
     <>
-      <PageHeader icon={Plus} title="Crear ticket" subtitle="Cuéntanos tu problema o solicitud y un técnico lo atenderá." />
+      <PageHeader icon={Plus} title="Crear ticket" />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

@@ -36,7 +36,6 @@ export default function GamificacionPage() {
       <PageHeader
         icon={Building2}
         title="Mi obra"
-        subtitle="Cada consulta que resuelves con Minutito suma puntos y sube un piso de tu edificio."
       />
       {error && <Alert variant="danger">{error}</Alert>}
       {!detalle && !error && <Spinner size="sm" />}

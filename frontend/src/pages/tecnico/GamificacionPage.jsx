@@ -38,7 +38,6 @@ export default function GamificacionPage() {
       <PageHeader
         icon={Medal}
         title="Ranking de logros"
-        subtitle="Posiciones por puntos de los usuarios y el detalle de cómo los ganaron."
       />
       <div className="mb-6">
         <SeccionCiudad />

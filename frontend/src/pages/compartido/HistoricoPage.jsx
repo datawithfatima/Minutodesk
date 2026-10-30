@@ -11,13 +11,6 @@ import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import { inputClass } from "../../components/ui/formStyles";
 
-const SUBTITULOS = {
-  usuario:
-    "Tus consultas ya resueltas: quién las resolvió, cuánto tardó y los puntos que ganaste.",
-  tecnico: "Los tickets que atendiste y que ya están resueltos.",
-  administrador: "Todos los tickets resueltos del sistema.",
-};
-
 export default function HistoricoPage() {
   const usuario = obtenerUsuario();
   const seccion = useLocation().pathname.split("/")[1]; // usuario | tecnico | admin
@@ -60,7 +53,6 @@ export default function HistoricoPage() {
       <PageHeader
         icon={History}
         title={usuario.rol === "administrador" ? "Histórico" : "Mi histórico"}
-        subtitle={SUBTITULOS[usuario.rol]}
       />
 
       {error && (

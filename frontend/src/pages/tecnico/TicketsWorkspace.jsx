@@ -137,7 +137,6 @@ export default function TicketsWorkspace({
   base = "/tecnico/tickets",
   soloAsignados = false,
   titulo = "Tickets",
-  subtitulo = "Gestiona y da seguimiento a las solicitudes de soporte.",
 }) {
   const match = useMatch(`${base}/:id`);
   const seleccionadoId = match ? Number(match.params.id) : null;
@@ -245,7 +244,7 @@ export default function TicketsWorkspace({
 
   return (
     <div>
-      <PageHeader icon={soloAsignados ? UserCog : Inbox} title={titulo} subtitle={subtitulo} />
+      <PageHeader icon={soloAsignados ? UserCog : Inbox} title={titulo} />
 
       {error && (
         <Alert variant="danger" className="mb-3">

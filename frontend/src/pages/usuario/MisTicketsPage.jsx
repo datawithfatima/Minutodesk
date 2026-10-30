@@ -39,7 +39,6 @@ export default function MisTicketsPage() {
       <PageHeader
         icon={Ticket}
         title="Mis tickets"
-        subtitle="Consulta el estado de tus solicitudes e incidencias."
       />
 
       {error && (

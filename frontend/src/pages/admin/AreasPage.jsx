@@ -54,7 +54,6 @@ export default function AreasPage() {
       <PageHeader
         icon={Building2}
         title="Áreas"
-        subtitle="Catálogo de áreas a las que pertenecen los usuarios. Desactivar un área no borra a quienes ya la tienen."
       />
 
       {error && (

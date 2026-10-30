@@ -25,7 +25,6 @@ export default function ClientesPage() {
       <PageHeader
         icon={Users}
         title="Usuarios"
-        subtitle="Personas registradas en MinutoDesk (solo lectura). La gestión de cuentas la hace el administrador."
       />
 
       {error && (

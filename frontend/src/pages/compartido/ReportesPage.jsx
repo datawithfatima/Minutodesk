@@ -351,11 +351,6 @@ export default function ReportesPage() {
       <PageHeader
         icon={BarChart3}
         title="Reportes"
-        subtitle={
-          personal
-            ? "Indicadores de los tickets del sistema."
-            : "Resumen de tus propios tickets."
-        }
       />
       {error && <Alert variant="danger">{error}</Alert>}
       {!resumen && !error && <Spinner size="sm" />}

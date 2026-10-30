@@ -213,7 +213,6 @@ export default function UsuariosPage() {
       <PageHeader
         icon={Users}
         title="Usuarios"
-        subtitle="Crea cuentas, asigna roles y áreas, y activa o desactiva personas."
       />
 
       {error && (

@@ -198,7 +198,6 @@ export default function DatosHistoricosPage() {
       <PageHeader
         icon={Database}
         title="Datos históricos"
-        subtitle="El histórico con el que se entrenó el clasificador y la carga de tickets nuevos."
       />
 
       <div role="tablist" className="mb-5 flex gap-1 overflow-x-auto border-b border-linea">

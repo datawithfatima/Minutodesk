@@ -29,8 +29,6 @@ import HistoricoPage from "./pages/compartido/HistoricoPage";
 import ReportesPage from "./pages/compartido/ReportesPage";
 import AprobacionesPage from "./pages/compartido/AprobacionesPage";
 
-const SUBTITULO_ASIGNADOS = "Los tickets que tomaste o resolviste.";
-
 // No hay portada: la raíz lleva al panel de quien ya inició sesión, o al login.
 function Raiz() {
   const usuario = obtenerToken() ? obtenerUsuario() : null;
@@ -74,7 +72,6 @@ export default function App() {
                 base="/tecnico/asignados"
                 soloAsignados
                 titulo="Mis asignados"
-                subtitulo={SUBTITULO_ASIGNADOS}
               />
             }
           >
@@ -103,7 +100,6 @@ export default function App() {
                 base="/admin/asignados"
                 soloAsignados
                 titulo="Mis asignados"
-                subtitulo={SUBTITULO_ASIGNADOS}
               />
             }
           >

@@ -126,7 +126,6 @@ export default function AprobacionesPage() {
       <PageHeader
         icon={ClipboardCheck}
         title="Aprobaciones"
-        subtitle="Lo que el equipo de soporte necesita que apruebes para continuar con un ticket."
       />
       {error && (
         <Alert variant="danger" className="mb-3">

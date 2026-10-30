@@ -43,7 +43,6 @@ export default function FaqsPage() {
       <PageHeader
         icon={HelpCircle}
         title="Preguntas frecuentes"
-        subtitle="Respuestas rápidas sobre cómo usar MinutoDesk."
       />
       <div className="flex max-w-3xl flex-col gap-3">
         {PREGUNTAS.map((item) => (
