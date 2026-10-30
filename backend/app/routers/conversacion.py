@@ -17,6 +17,7 @@ from app.schemas import (
     AprobacionCreate,
     AprobacionRead,
     AprobacionResponder,
+    AvisoRead,
     ConversacionRead,
     MensajeCreate,
     MensajeRead,
@@ -216,6 +217,30 @@ def mis_aprobaciones(
     ids |= {t.cliente_id for t in tickets.values()}
     personas = _nombres(session, ids)
     return [_a_aprobacion_read(a, personas, tickets.get(a.ticket_id)) for a in aprobaciones]
+
+
+@router.get("/avisos", response_model=list[AvisoRead])
+def mis_avisos(usuario: Cliente = Depends(obtener_usuario_actual), session: Session = Depends(get_session)):
+    """Lo que espera a esta persona: aprobaciones pendientes y tickets abiertos cuyo último
+    mensaje es de la otra parte. No guarda «leídos»: el aviso se va al responder."""
+    avisos = [
+        AvisoRead(tipo="aprobacion", ticket_id=a.ticket_id, texto=a.descripcion[:160], fecha=a.creado_en)
+        for a in session.exec(
+            select(Aprobacion).where(Aprobacion.aprobador_id == usuario.id, Aprobacion.estado == "pendiente")
+        ).all()
+    ]
+    # El usuario espera respuesta en sus tickets; el personal, en los que tiene asignados.
+    propios = Ticket.tecnico_id == usuario.id if es_personal(usuario) else Ticket.cliente_id == usuario.id
+    tickets = session.exec(select(Ticket).where(propios, Ticket.estado.not_in(ESTADOS_CERRADOS))).all()
+    for t in tickets:
+        ultimo = session.exec(
+            select(MensajeTicket)
+            .where(MensajeTicket.ticket_id == t.id)
+            .order_by(MensajeTicket.creado_en.desc(), MensajeTicket.id.desc())
+        ).first()
+        if ultimo is not None and ultimo.autor_id != usuario.id:
+            avisos.append(AvisoRead(tipo="mensaje", ticket_id=t.id, texto=ultimo.texto[:160], fecha=ultimo.creado_en))
+    return sorted(avisos, key=lambda a: a.fecha, reverse=True)
 
 
 @router.post("/aprobaciones/{aprobacion_id}/responder", response_model=AprobacionRead)

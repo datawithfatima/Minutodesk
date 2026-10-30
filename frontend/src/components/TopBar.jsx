@@ -1,6 +1,7 @@
 import { Menu, Search } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Avisos from "./Avisos";
 import { Marca } from "./Logo";
 import MenuUsuario from "./MenuUsuario";
 
@@ -64,7 +65,10 @@ export default function TopBar({ usuario, rutaBusqueda, menuAbierto, onAbrirMenu
 
       <BuscadorTickets rutaBusqueda={rutaBusqueda} className="hidden w-full max-w-md flex-1 md:flex" />
 
-      <MenuUsuario usuario={usuario} onLogout={onLogout} />
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <Avisos />
+        <MenuUsuario usuario={usuario} onLogout={onLogout} />
+      </div>
     </header>
   );
 }

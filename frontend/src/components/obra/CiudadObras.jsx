@@ -425,12 +425,15 @@ export default function CiudadObras({ lotes, alElegir }) {
     const mira = new THREE.Vector3(8.5, 0.3, 8.5);
     const vista = 9;
     const camara = new THREE.OrthographicCamera(-vista, vista, vista, -vista, 0.1, 200);
+    // En pantallas angostas (celular) se aleja la cámara para que entre la ciudad a lo ancho.
+    const anchoMinimo = vista * 1.35;
     const ajustarCamara = () => {
       const r = ancho / alto;
-      camara.left = -vista * r;
-      camara.right = vista * r;
-      camara.top = vista;
-      camara.bottom = -vista;
+      const medioAlto = Math.max(vista, anchoMinimo / r);
+      camara.left = -medioAlto * r;
+      camara.right = medioAlto * r;
+      camara.top = medioAlto;
+      camara.bottom = -medioAlto;
       camara.updateProjectionMatrix();
     };
     camara.position.set(mira.x + 20, mira.y + 18, mira.z + 20);
@@ -711,6 +714,7 @@ export default function CiudadObras({ lotes, alElegir }) {
     div.addEventListener("pointermove", alMover);
     div.addEventListener("pointerup", alSoltar);
     div.addEventListener("pointerleave", alSalir);
+    div.addEventListener("pointercancel", alSalir); // en celular, el navegador tomó el gesto para desplazar
     const observador = new ResizeObserver(alRedimensionar);
     observador.observe(div);
 
@@ -723,6 +727,7 @@ export default function CiudadObras({ lotes, alElegir }) {
       div.removeEventListener("pointermove", alMover);
       div.removeEventListener("pointerup", alSoltar);
       div.removeEventListener("pointerleave", alSalir);
+      div.removeEventListener("pointercancel", alSalir);
       escena.traverse((o) => {
         if (o.isMesh) {
           o.geometry.dispose();
@@ -739,7 +744,7 @@ export default function CiudadObras({ lotes, alElegir }) {
   return (
     <div
       ref={contenedor}
-      className="relative h-[440px] w-full touch-none select-none overflow-hidden rounded-xl bg-gradient-to-b from-sky-100 to-sky-50 sm:h-[560px]"
+      className="relative h-[360px] w-full touch-pan-y select-none overflow-hidden rounded-xl bg-gradient-to-b from-sky-100 to-sky-50 sm:h-[560px]"
       style={{ cursor: "grab" }}
     >
       {cargando && !error && (

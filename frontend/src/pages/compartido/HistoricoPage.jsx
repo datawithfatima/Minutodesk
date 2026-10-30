@@ -1,7 +1,7 @@
-import { History, Search } from "lucide-react";
+import { Bot, History, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { listarTickets, obtenerGamificacion } from "../../api";
+import { listarTickets, misConversacionesMinutito, obtenerGamificacion } from "../../api";
 import { obtenerUsuario } from "../../auth";
 import { formatearDuracion, normalizarTexto } from "../../texto";
 import Alert from "../../components/ui/Alert";
@@ -18,6 +18,8 @@ export default function HistoricoPage() {
 
   const [tickets, setTickets] = useState([]);
   const [puntosPorTicket, setPuntosPorTicket] = useState({});
+  // Consultas que Minutito resolvió sin ticket (solo las de la propia persona).
+  const [conversaciones, setConversaciones] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -25,9 +27,14 @@ export default function HistoricoPage() {
   useEffect(() => {
     const filtros = { estado: "resuelto" };
     if (usuario.rol === "tecnico") filtros.tecnico_id = usuario.id;
-    Promise.all([listarTickets(filtros), esUsuario ? obtenerGamificacion(usuario.id) : null])
-      .then(([lista, gamificacion]) => {
+    Promise.all([
+      listarTickets(filtros),
+      esUsuario ? obtenerGamificacion(usuario.id) : null,
+      esUsuario ? misConversacionesMinutito("resuelta") : [],
+    ])
+      .then(([lista, gamificacion, resueltas]) => {
         setTickets(lista);
+        setConversaciones(resueltas);
         if (gamificacion) {
           const mapa = {};
           gamificacion.historial.forEach((e) => {
@@ -46,6 +53,14 @@ export default function HistoricoPage() {
         (t) => !busqueda || normalizarTexto(t.texto).includes(normalizarTexto(busqueda))
       ),
     [tickets, busqueda]
+  );
+
+  const conversacionesVisibles = useMemo(
+    () =>
+      conversaciones.filter(
+        (c) => !busqueda || normalizarTexto(c.primera_pregunta).includes(normalizarTexto(busqueda))
+      ),
+    [conversaciones, busqueda]
   );
 
   return (
@@ -80,6 +95,34 @@ export default function HistoricoPage() {
               </div>
             </Card.Body>
           </Card>
+
+          {esUsuario && conversacionesVisibles.length > 0 && (
+            <section className="mb-5">
+              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <Bot size={16} className="text-sky-600" aria-hidden="true" />
+                Resueltas con Minutito
+                <span className="font-normal text-gray-400">({conversacionesVisibles.length})</span>
+              </h2>
+              <Card className="divide-y divide-gray-100 overflow-hidden">
+                {conversacionesVisibles.map((c) => (
+                  <div key={c.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+                    <div className="min-w-0 flex-1 text-sm text-gray-800 sm:truncate">
+                      {c.primera_pregunta || "Consulta sin texto"}
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+                      <span>{new Date(c.cerrado_en || c.creado_en).toLocaleDateString()}</span>
+                      {c.cerrado_en && <span>{formatearDuracion(c.creado_en, c.cerrado_en)}</span>}
+                      <span className="font-medium text-green-700">+10 pts</span>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            </section>
+          )}
+
+          {esUsuario && (conversacionesVisibles.length > 0 || visibles.length > 0) && (
+            <h2 className="mb-2 text-sm font-semibold text-gray-700">Tickets resueltos</h2>
+          )}
 
           {visibles.length === 0 ? (
             <Alert variant="secondary">Todavía no hay tickets resueltos para mostrar.</Alert>

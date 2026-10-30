@@ -125,3 +125,18 @@ def test_limite_de_mensajes_a_minutito(client, crear_cuenta, entrar, monkeypatch
     minutito.mensajes_recientes.clear()
     minutito.respondiendo.add(client.get("/auth/yo", headers=h).json()["id"])
     assert client.post(f"/minutito/conversaciones/{conv['id']}/mensajes", json={"texto": "x"}, headers=h).status_code == 429
+
+
+def test_mis_conversaciones_resueltas_para_el_historico(client, crear_cuenta, entrar, monkeypatch):
+    crear_cuenta("ana@ejemplo.com")
+    crear_cuenta("beto@ejemplo.com")
+    h = entrar("ana@ejemplo.com")
+    conv = client.post("/minutito/conversaciones", headers=h).json()
+    _respuestas(monkeypatch, ["Reinicia el router."])
+    _enviar(client, h, conv["id"], "no tengo internet en la oficina")
+    client.post(f"/minutito/conversaciones/{conv['id']}/resolver", headers=h)
+    client.post("/minutito/conversaciones", headers=h)  # otra, abierta
+
+    resueltas = client.get("/minutito/conversaciones", params={"estado": "resuelta"}, headers=h).json()
+    assert [(c["id"], c["primera_pregunta"]) for c in resueltas] == [(conv["id"], "no tengo internet en la oficina")]
+    assert client.get("/minutito/conversaciones", headers=entrar("beto@ejemplo.com")).json() == []

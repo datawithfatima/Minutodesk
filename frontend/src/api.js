@@ -128,6 +128,9 @@ export const enviarMensajeChat = (ticketId, mensaje) =>
 // --- Minutito: conversación antes del ticket ---
 export const nuevaConversacionMinutito = () => enviar("POST", "/minutito/conversaciones");
 export const conversacionMinutitoActual = () => get("/minutito/conversaciones/actual");
+export const misAvisos = () => get("/avisos");
+export const misConversacionesMinutito = (estado) =>
+  get(`/minutito/conversaciones${estado ? `?estado=${estado}` : ""}`);
 export const resolverConversacionMinutito = (id) => enviar("POST", `/minutito/conversaciones/${id}/resolver`);
 export const borradorTicketMinutito = (id) => enviar("POST", `/minutito/conversaciones/${id}/borrador`);
 export const conversacionMinutitoDeTicket = (ticketId) => get(`/minutito/tickets/${ticketId}`);

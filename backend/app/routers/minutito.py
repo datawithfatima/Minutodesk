@@ -19,6 +19,7 @@ from app.schemas import (
     ConversacionMinutitoRead,
     MensajeCreate,
     MensajeMinutitoRead,
+    ResumenConversacion,
 )
 from app.services import minutito_chat
 from app.services.auth import es_personal, obtener_usuario_actual
@@ -91,6 +92,28 @@ def nueva_conversacion(
     session.commit()
     session.refresh(conversacion)
     return _a_lectura(session, conversacion)
+
+
+@router.get("/conversaciones", response_model=list[ResumenConversacion])
+def mis_conversaciones(
+    estado: Optional[str] = None,
+    usuario: Cliente = Depends(obtener_usuario_actual),
+    session: Session = Depends(get_session),
+):
+    """Las conversaciones de la persona (p. ej. las resueltas, para «Mi histórico»)."""
+    consulta = select(ConversacionMinutito).where(ConversacionMinutito.cliente_id == usuario.id)
+    if estado is not None:
+        consulta = consulta.where(ConversacionMinutito.estado == estado)
+    resultado = []
+    for c in session.exec(consulta.order_by(ConversacionMinutito.creado_en.desc())).all():
+        primera = next((m.texto for m in _mensajes(session, c.id) if m.rol == "usuario"), "")
+        resultado.append(
+            ResumenConversacion(
+                id=c.id, estado=c.estado, ticket_id=c.ticket_id, creado_en=c.creado_en,
+                cerrado_en=c.cerrado_en, primera_pregunta=primera[:300],
+            )
+        )
+    return resultado
 
 
 @router.get("/conversaciones/actual", response_model=Optional[ConversacionMinutitoRead])

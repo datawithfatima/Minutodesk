@@ -342,9 +342,25 @@ class ConversacionMinutitoRead(SQLModel):
     mensajes: list[MensajeMinutitoRead]
 
 
+class ResumenConversacion(SQLModel):
+    id: int
+    estado: str
+    ticket_id: Optional[int] = None
+    creado_en: datetime
+    cerrado_en: Optional[datetime] = None
+    primera_pregunta: str
+
+
 class BorradorTicket(SQLModel):
     texto: str
     sugerencia: "SugerenciaRead"
+
+
+class AvisoRead(SQLModel):
+    tipo: str  # «aprobacion» (te piden aprobar) o «mensaje» (te escribieron en un ticket)
+    ticket_id: int
+    texto: str
+    fecha: datetime
 
 
 class ConversacionRead(SQLModel):

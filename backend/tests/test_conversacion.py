@@ -108,3 +108,24 @@ def test_quien_participo_en_el_chat_no_se_puede_eliminar(client, crear_cuenta, e
         headers=entrar("adm@ejemplo.com"),
     )
     assert client.delete(f"/admin/usuarios/{jefe.id}", headers=entrar("adm@ejemplo.com")).status_code == 409
+
+
+def test_avisos_de_mensajes_y_aprobaciones_pendientes(client, crear_cuenta, entrar, correos):
+    crear_cuenta("ana@ejemplo.com")
+    jefe_id = crear_cuenta("jefe@ejemplo.com").id
+    crear_cuenta("tec@ejemplo.com", "tecnico")
+    h_ana, h_tec, h_jefe = entrar("ana@ejemplo.com"), entrar("tec@ejemplo.com"), entrar("jefe@ejemplo.com")
+    tid = _ticket(client, h_ana)
+    assert client.get("/avisos", headers=h_ana).json() == []
+
+    client.patch(f"/tickets/{tid}", json={"estado": "en_proceso"}, headers=h_tec)
+    client.post(f"/tickets/{tid}/mensajes", json={"texto": "¿Qué programa?"}, headers=h_tec)
+    avisos = client.get("/avisos", headers=h_ana).json()
+    assert [(a["tipo"], a["ticket_id"], a["texto"]) for a in avisos] == [("mensaje", tid, "¿Qué programa?")]
+
+    client.post(f"/tickets/{tid}/mensajes", json={"texto": "Power BI"}, headers=h_ana)
+    assert client.get("/avisos", headers=h_ana).json() == []  # ya respondió
+    assert [a["texto"] for a in client.get("/avisos", headers=h_tec).json()] == ["Power BI"]
+
+    client.post(f"/tickets/{tid}/aprobaciones", json={"aprobador_id": jefe_id, "descripcion": "Licencia de Power BI"}, headers=h_tec)
+    assert [a["tipo"] for a in client.get("/avisos", headers=h_jefe).json()] == ["aprobacion"]
