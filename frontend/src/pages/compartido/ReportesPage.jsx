@@ -109,14 +109,16 @@ function Plataforma({ resumen, personal }) {
           </div>
 
           <div className="mt-5 border-t border-gray-100 pt-4">
-            <div className="mb-2 text-xs font-medium text-gray-500">Quién resolvió los tickets cerrados</div>
-            {resumen.resueltos === 0 ? (
-              <div className="text-sm text-gray-400">Todavía no hay tickets resueltos.</div>
+            <div className="mb-2 text-xs font-medium text-gray-500">
+              Quién resolvió los casos: consultas que Minutito cerró sin ticket y tickets que cerró el equipo
+            </div>
+            {resumen.resueltos_por_minutito + resumen.resueltos_por_tecnico === 0 ? (
+              <div className="text-sm text-gray-400">Todavía no hay casos resueltos.</div>
             ) : (
               <StackedBar
                 segmentos={[
-                  { etiqueta: "Minutito", valor: resumen.resueltos_por_minutito, color: SERIES[0] },
-                  { etiqueta: "Equipo de soporte", valor: resumen.resueltos_por_tecnico, color: SERIES[1] },
+                  { etiqueta: "Minutito (sin ticket)", valor: resumen.resueltos_por_minutito, color: SERIES[0] },
+                  { etiqueta: "Equipo de soporte (tickets)", valor: resumen.resueltos_por_tecnico, color: SERIES[1] },
                 ]}
               />
             )}

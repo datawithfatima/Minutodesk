@@ -85,7 +85,8 @@ export default function DashboardPage() {
               titulo="Mis tickets"
               valor={resumen ? formatoNumero(resumen.total) : "—"}
               detalle={resumen ? `${resumen.resueltos} resueltos` : undefined}
-              tendencia={resumen?.ultimos_dias.map((d) => d.total)}
+              // Sin tickets en los últimos días la línea quedaría plana: no se muestra.
+              tendencia={resumen?.ultimos_dias.some((d) => d.total) ? resumen.ultimos_dias.map((d) => d.total) : undefined}
             />
           </Link>
           <Link to="/usuario/mis-tickets" className="rounded-xl transition-transform duration-150 hover:-translate-y-0.5">

@@ -239,6 +239,8 @@ export default function MinutitoPanel() {
     if (!mensaje || escribiendo) return;
     setError(null);
     setTexto("");
+    const caja = document.getElementById("mensaje-minutito");
+    if (caja) caja.style.height = "";
     setOfreceTicket(false);
     setEscribiendo(true);
     setMensajes((m) => [...m, { rol: "usuario", texto: mensaje }, { rol: "minutito", texto: "" }]);
@@ -357,16 +359,23 @@ export default function MinutitoPanel() {
             id="mensaje-minutito"
             rows={1}
             maxLength={2000}
-            className="max-h-32 min-w-0 flex-1 resize-none rounded-2xl border border-linea bg-marfil px-4 py-2 text-base transition-colors duration-150 focus:border-acento focus:bg-white focus:outline-none focus-visible:outline-none focus:ring-3 focus:ring-acento/25 sm:text-sm"
+            className="max-h-32 min-h-10 min-w-0 flex-1 resize-none overflow-y-hidden rounded-2xl border border-linea bg-marfil px-4 py-2 text-base leading-6 transition-colors duration-150 focus:border-acento focus:bg-white focus:outline-none focus-visible:outline-none focus:ring-3 focus:ring-acento/25 sm:text-sm"
             value={texto}
-            onChange={(e) => setTexto(e.target.value)}
+            onChange={(e) => {
+              setTexto(e.target.value);
+              // Crece con el texto (hasta 8 líneas) en lugar de mostrar una barra de desplazamiento.
+              const caja = e.target;
+              caja.style.height = "auto";
+              caja.style.height = `${Math.min(caja.scrollHeight, 128)}px`;
+              caja.style.overflowY = caja.scrollHeight > 128 ? "auto" : "hidden";
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 e.currentTarget.form.requestSubmit();
               }
             }}
-            placeholder={mensajes.length ? "Escribe tu respuesta…" : "Escribe tu problema o pregunta…"}
+            placeholder={mensajes.length ? "Tu respuesta…" : "¿En qué te ayudo?"}
             disabled={escribiendo}
           />
           <button

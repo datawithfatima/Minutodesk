@@ -21,7 +21,7 @@ const PREGUNTAS = [
   },
   {
     p: "¿Cómo gano puntos?",
-    r: "Ganas 10 puntos cuando Minutito resuelve tu consulta, y 3 puntos si primero lo intentaste con Minutito y luego el equipo de soporte cerró el ticket. Según tus puntos tu nivel es: Nuevo (0–49), Autosuficiente (50–149) o Experto en autoservicio (150 o más). Lo ves en “Mis logros”.",
+    r: "Ganas 10 puntos cuando Minutito resuelve tu consulta y lo confirmas, y 3 puntos si primero lo intentaste con Minutito y luego el equipo de soporte cerró el ticket. Cada 25 puntos tu edificio sube un piso, y tu obra avanza por etapas: Cimientos (0–49), Estructura (50–149), Acabados (150–299) y Entrega de llaves (300 o más). También hay insignias por logros especiales. Lo ves en “Mi obra”, junto con la Ciudad MinutoDesk.",
   },
   {
     p: "¿Dónde veo mis consultas anteriores?",

@@ -1,5 +1,5 @@
 import { Bot, Building2, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket } from "lucide-react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
 
@@ -42,6 +42,7 @@ function MinutitoAcceso() {
 export default function UsuarioLayout() {
   const usuario = obtenerUsuario();
   const navegar = useNavigate();
+  const { pathname } = useLocation();
 
   function salir() {
     cerrarSesion();
@@ -55,7 +56,8 @@ export default function UsuarioLayout() {
       rutaBusqueda="/usuario/mis-tickets"
       onLogout={salir}
       dark
-      sidebarExtra={<MinutitoAcceso />}
+      // En Inicio el chat ya está en la pantalla: el acceso rápido sobra.
+      sidebarExtra={pathname === "/usuario" ? null : <MinutitoAcceso />}
       footer="Pequeños clics, grandes soluciones"
     >
       <Outlet context={{ clienteId: usuario?.id }} />

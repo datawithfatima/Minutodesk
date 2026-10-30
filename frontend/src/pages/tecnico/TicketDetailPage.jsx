@@ -27,11 +27,10 @@ import ConversacionMinutito from "../../components/tickets/ConversacionMinutito"
 import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 
 const TABS = [
-  { nombre: "Chat con el usuario", activa: true },
+  { nombre: "Chat", activa: true },
   { nombre: "Minutito", activa: true },
   { nombre: "Historial", activa: true },
   { nombre: "Archivos", activa: true },
-  { nombre: "Notas", activa: false },
 ];
 
 function Dato({ etiqueta, children }) {
@@ -149,7 +148,7 @@ export default function TicketDetailPage() {
   const [cambiosDeEstado, setCambiosDeEstado] = useState([]);
   const [actualizando, setActualizando] = useState(false);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState("Chat con el usuario");
+  const [tab, setTab] = useState("Chat");
   const [copiado, setCopiado] = useState(false);
   const [umbralConfianza, setUmbralConfianza] = useState(null);
   const [catalogos, setCatalogos] = useState(null);
@@ -190,7 +189,7 @@ export default function TicketDetailPage() {
     setInteracciones([]);
     setCambiosDeEstado([]);
     setError(null);
-    setTab("Chat con el usuario");
+    setTab("Chat");
     cargar().catch((e) => setError(e.message));
   }, [cargar]);
 
@@ -454,7 +453,7 @@ export default function TicketDetailPage() {
         </div>
 
           <div className="min-w-0 max-lg:order-3 lg:col-start-1">
-            <div role="tablist" className="mb-4 flex gap-1 overflow-x-auto border-b border-linea">
+            <div role="tablist" className="mb-4 flex flex-wrap gap-1 border-b border-linea">
               {TABS.map((t) => (
                 <button
                   key={t.nombre}
@@ -477,7 +476,7 @@ export default function TicketDetailPage() {
               ))}
             </div>
 
-            {tab === "Chat con el usuario" && (
+            {tab === "Chat" && (
               <Card>
                 <Card.Body>
                   <ConversacionTicket key={ticket.id} ticket={ticket} esPersonal />

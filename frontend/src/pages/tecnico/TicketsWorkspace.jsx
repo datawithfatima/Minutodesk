@@ -263,12 +263,8 @@ export default function TicketsWorkspace({
           </div>
 
           <Card className="mb-4">
-            <Card.Body className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div
-                role="tablist"
-                aria-label="Filtrar por estado"
-                className="-mx-1 flex gap-1.5 overflow-x-auto px-1 py-0.5"
-              >
+            <Card.Body className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div role="tablist" aria-label="Filtrar por estado" className="flex flex-wrap gap-1.5">
                 {TABS.map((t) => {
                   const conteo = t.estado
                     ? tickets.filter((x) => x.estado === t.estado).length
@@ -330,7 +326,7 @@ export default function TicketsWorkspace({
                       setBusqueda(e.target.value);
                       setPagina(1);
                     }}
-                    placeholder="Buscar por texto del ticket…"
+                    placeholder="Número, texto, categoría o persona…"
                   />
                 </div>
               </div>
@@ -357,11 +353,11 @@ export default function TicketsWorkspace({
                   <tr>
                     <th className="px-4 py-2.5">#</th>
                     <th className="px-3 py-2.5">Solicitud</th>
-                    <th className="px-3 py-2.5">Usuario</th>
+                    <th className="hidden px-3 py-2.5 lg:table-cell">Usuario</th>
                     <th className="px-3 py-2.5">Categoría</th>
                     <th className="px-3 py-2.5">Prioridad</th>
                     <th className="px-3 py-2.5">Estado</th>
-                    <th className="px-4 py-2.5">Fecha</th>
+                    <th className="hidden px-4 py-2.5 xl:table-cell">Fecha</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -376,7 +372,7 @@ export default function TicketsWorkspace({
                           {t.texto}
                         </Link>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-gray-600">
+                      <td className="hidden whitespace-nowrap px-3 py-3 text-gray-600 lg:table-cell">
                         {t.solicitante_externo || clientesPorId[t.cliente_id]?.nombre || "—"}
                       </td>
                       <td className="px-3 py-3 text-gray-600">{t.categoria || t.categoria_predicha || "—"}</td>
@@ -386,7 +382,7 @@ export default function TicketsWorkspace({
                       <td className="px-3 py-3">
                         <EstadoBadge estado={t.estado} />
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-gray-500">
+                      <td className="hidden whitespace-nowrap px-4 py-3 text-gray-500 xl:table-cell">
                         {new Date(t.creado_en).toLocaleDateString()}
                       </td>
                     </tr>
