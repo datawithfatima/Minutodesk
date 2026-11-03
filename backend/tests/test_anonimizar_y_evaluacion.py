@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlmodel import select
 
-from app.models import Seudonimo, Ticket, TicketHistorico
+from app.models import EvaluacionMinutito, Seudonimo, Ticket, TicketHistorico
 from app.services import evaluacion_minutito
 from app.services.anonimizar import anonimizar_base
 
@@ -45,7 +45,7 @@ def test_evaluacion_simulada_no_toca_el_ticket_y_calcula_el_porcentaje(
     usuario = crear_cuenta("x@ejemplo.com")
     crear_cuenta("adm@ejemplo.com", "administrador")
     tickets = [_ticket_cargado(session, usuario.id, str(i), f"No tengo internet {i}") for i in range(3)]
-    monkeypatch.setattr(evaluacion_minutito, "responder", lambda historial: (f"Pasos para: {historial[-1][1]}", False))
+    monkeypatch.setattr(evaluacion_minutito, "responder", lambda historial, casos=None: (f"Pasos para: {historial[-1][1]}", False))
 
     assert evaluacion_minutito.generar_pendientes(session) == {"generadas": 3, "pendientes": 0, "error": None}
     assert evaluacion_minutito.generar_pendientes(session)["generadas"] == 0  # no repite
@@ -81,7 +81,7 @@ def test_solucion_esperada_se_guarda_sin_tocar_la_respuesta_de_minutito(
     usuario = crear_cuenta("x@ejemplo.com")
     crear_cuenta("adm@ejemplo.com", "administrador")
     _ticket_cargado(session, usuario.id, "1", "No tengo internet")
-    monkeypatch.setattr(evaluacion_minutito, "responder", lambda historial: ("Reinicia el router.", False))
+    monkeypatch.setattr(evaluacion_minutito, "responder", lambda historial, casos=None: ("Reinicia el router.", False))
     evaluacion_minutito.generar_pendientes(session)
     h = entrar("adm@ejemplo.com")
     eid = client.get("/reportes/evaluacion-minutito", headers=h).json()["items"][0]["id"]
@@ -104,3 +104,31 @@ def test_limpiar_texto_quita_menciones_y_nombres_antes_de_la_cedula():
     assert limpiar_texto("@Robert Vasquez revisa esto", []) == "@[persona] revisa esto"
     # sin nombre ni dato personal, el texto no cambia
     assert limpiar_texto("No tengo internet en la oficina, ci ves algo", []) == "No tengo internet en la oficina, ci ves algo"
+
+
+def test_minutito_aprende_de_los_casos_anotados_pero_no_del_que_se_evalua(
+    session, crear_cuenta, monkeypatch
+):
+    usuario = crear_cuenta("x@ejemplo.com")
+    a = _ticket_cargado(session, usuario.id, "1", "Solicito una laptop nueva para el ingreso de un colaborador")
+    b = _ticket_cargado(session, usuario.id, "2", "Necesito una laptop nueva para un colaborador que ingresa")
+    _ticket_cargado(session, usuario.id, "3", "La impresora del piso 2 no imprime")
+    vistos = {}
+
+    def responder(historial, casos=None):
+        vistos[historial[-1][1]] = casos
+        return "ok", False
+
+    monkeypatch.setattr(evaluacion_minutito, "responder", responder)
+    evaluacion_minutito.generar_pendientes(session)
+    for e in session.exec(select(EvaluacionMinutito)).all():
+        if e.ticket_id == a.id:
+            e.solucion_esperada = "Lo gestiona sistemas: crear ticket con fecha de ingreso."
+            session.add(e)
+    session.commit()
+
+    vistos.clear()
+    evaluacion_minutito.generar_pendientes(session, todas=True)
+    assert vistos[b.texto] == [(a.texto, "Lo gestiona sistemas: crear ticket con fecha de ingreso.")]
+    assert vistos[a.texto] == []  # su propia solución no se usa
+    assert vistos["La impresora del piso 2 no imprime"] == []  # no se parece

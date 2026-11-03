@@ -186,10 +186,18 @@ export default function EvaluacionMinutito() {
     }
   }
 
-  async function generar() {
+  async function generar(todas = false) {
+    if (
+      todas &&
+      !window.confirm(
+        "Se volverán a generar las respuestas de todos los tickets usando las soluciones anotadas. " +
+          "Las marcas de «Lo resolvería / No lo resolvería» se borran, porque cambian las respuestas. ¿Continuar?"
+      )
+    )
+      return;
     setError(null);
     try {
-      setAviso((await generarEvaluacionMinutito()).mensaje);
+      setAviso((await generarEvaluacionMinutito(todas)).mensaje);
     } catch (e) {
       setError(e.message);
     }
@@ -207,7 +215,8 @@ export default function EvaluacionMinutito() {
         a Minutito el texto de cada ticket y tú marcas si su respuesta lo habría resuelto. Es una{" "}
         <strong className="font-semibold">estimación por evaluación experta</strong>: no crea conversaciones ni
         cambia los tickets, y no se mezcla con la resolución autónoma real. En cada ticket puedes anotar qué se debía
-        hacer, como referencia para decidir; la respuesta de Minutito no se edita, porque es lo que se evalúa.
+        hacer: Minutito aprende de esas soluciones para casos parecidos (también en el chat real). Su respuesta no se
+        edita, porque es lo que se evalúa.
       </Alert>
       {error && <Alert variant="danger">{error}</Alert>}
       {aviso && <Alert variant="success">{aviso}</Alert>}
@@ -247,9 +256,21 @@ export default function EvaluacionMinutito() {
                 : `Generadas para los ${datos.tickets_cargados} tickets cargados.`}
             </p>
             {faltan > 0 && (
-              <Button size="sm" variant="dark" onClick={generar}>
+              <Button size="sm" variant="dark" onClick={() => generar()}>
                 Generar respuestas pendientes
               </Button>
+            )}
+            {datos.con_solucion > 0 && (
+              <>
+                <p className="text-sm text-gray-600">
+                  Minutito aprende de {datos.con_solucion}{" "}
+                  {datos.con_solucion === 1 ? "solución anotada" : "soluciones anotadas"}. Cada ticket se responde
+                  con las de los demás, nunca con la suya.
+                </p>
+                <Button size="sm" variant="outlinePrimary" onClick={() => generar(true)}>
+                  Volver a generar con lo aprendido
+                </Button>
+              </>
             )}
           </Card.Body>
         </Card>

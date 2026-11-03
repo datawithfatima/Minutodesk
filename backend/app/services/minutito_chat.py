@@ -67,13 +67,25 @@ def _contexto(textos_usuario: list[str]) -> str | None:
     )
 
 
-def armar_mensajes(historial: Iterable[tuple[str, str]]) -> list[dict]:
-    """`historial`: pares (rol, texto) con rol «usuario» o «minutito», el último es la pregunta."""
+def _casos(casos: list[tuple[str, str]]) -> str:
+    bloques = "\n\n".join(f"Consulta: {c}\nQué se debía hacer: {s}" for c, s in casos)
+    return (
+        "Casos parecidos ya resueltos por el equipo de sistemas. Si la consulta actual es del "
+        "mismo tipo, sigue el mismo criterio (por ejemplo, si el equipo indicó que se crea un "
+        f"ticket, ofrécelo); no copies datos de esos casos:\n\n{bloques}"
+    )
+
+
+def armar_mensajes(historial: Iterable[tuple[str, str]], casos: list[tuple[str, str]] | None = None) -> list[dict]:
+    """`historial`: pares (rol, texto) con rol «usuario» o «minutito», el último es la pregunta.
+    `casos`: pares (consulta, solución) de casos resueltos parecidos (casos_resueltos.py)."""
     historial = list(historial)[-HISTORIAL_MAXIMO:]
     mensajes = [{"role": "system", "content": PROMPT}]
     contexto = _contexto([t for r, t in historial if r == "usuario"])
     if contexto:
         mensajes.append({"role": "system", "content": contexto})
+    if casos:
+        mensajes.append({"role": "system", "content": _casos(casos)})
     mensajes += [
         {"role": "user" if rol == "usuario" else "assistant", "content": texto} for rol, texto in historial
     ]
@@ -94,21 +106,23 @@ def _llamar(mensajes: list[dict], stream: bool):
         raise MinutitoNoDisponible(f"No se pudo hablar con Ollama: {e}") from e
 
 
-def responder(historial: Iterable[tuple[str, str]]) -> tuple[str, bool]:
+def responder(historial: Iterable[tuple[str, str]], casos: list[tuple[str, str]] | None = None) -> tuple[str, bool]:
     """Respuesta completa (sin ir mostrándola): (texto, ofrece_ticket)."""
-    respuesta = _llamar(armar_mensajes(historial), stream=False)
+    respuesta = _llamar(armar_mensajes(historial, casos), stream=False)
     texto, ofrece = separar_marca(respuesta.message.content or "")
     if not texto:
         raise MinutitoNoDisponible("Ollama devolvió una respuesta vacía")
     return texto, ofrece
 
 
-def responder_en_vivo(historial: Iterable[tuple[str, str]]) -> Iterator[str]:
+def responder_en_vivo(
+    historial: Iterable[tuple[str, str]], casos: list[tuple[str, str]] | None = None
+) -> Iterator[str]:
     """Va entregando el texto a medida que el modelo lo escribe. Retiene lo que podría ser
     el comienzo de la marca de ticket para que nunca llegue a la pantalla."""
     pendiente = ""
     try:
-        for parte in _llamar(armar_mensajes(historial), stream=True):
+        for parte in _llamar(armar_mensajes(historial, casos), stream=True):
             pendiente += parte.message.content or ""
             pendiente = pendiente.replace(MARCA_TICKET, "")
             corte = pendiente.rfind("[")

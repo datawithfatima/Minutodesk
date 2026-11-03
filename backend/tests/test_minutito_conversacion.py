@@ -5,7 +5,7 @@ from app.services import minutito_chat
 
 
 def _respuestas(monkeypatch, partes):
-    monkeypatch.setattr(minutito_chat, "responder_en_vivo", lambda historial: iter(partes))
+    monkeypatch.setattr(minutito_chat, "responder_en_vivo", lambda historial, casos=None: iter(partes))
 
 
 def _enviar(client, h, conv_id, texto):
@@ -90,7 +90,7 @@ def test_minutito_caido_avisa_y_la_conversacion_sigue_abierta(client, crear_cuen
     h = entrar("ana@ejemplo.com")
     conv = client.post("/minutito/conversaciones", headers=h).json()
 
-    def caido(historial):
+    def caido(historial, casos=None):
         raise minutito_chat.MinutitoNoDisponible("sin ollama")
         yield  # noqa: unreachable — lo vuelve generador
 

@@ -15,6 +15,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models import Cliente, EvaluacionMinutito, Ticket
+from app.services.casos_resueltos import casos_parecidos
 from app.services.minutito_chat import MinutitoNoDisponible, responder
 
 logger = logging.getLogger("minutodesk.evaluacion")
@@ -24,26 +25,31 @@ META = 0.30
 MAX_SOLUCION = 2000
 
 
-def _pendientes(session: Session) -> list[Ticket]:
-    evaluados = set(session.exec(select(EvaluacionMinutito.ticket_id).where(EvaluacionMinutito.error == None)).all())  # noqa: E711
+def _pendientes(session: Session, todas: bool = False) -> list[Ticket]:
+    evaluados = set() if todas else set(
+        session.exec(select(EvaluacionMinutito.ticket_id).where(EvaluacionMinutito.error == None)).all()  # noqa: E711
+    )
     tickets = session.exec(
         select(Ticket).where(Ticket.id_externo != None).order_by(Ticket.creado_en)  # noqa: E711
     ).all()
     return [t for t in tickets if t.id not in evaluados]
 
 
-def generar_pendientes(session: Session, limite: Optional[int] = None) -> dict:
-    """Pide a Minutito la respuesta para los tickets que aún no la tienen. Si Ollama no
-    está disponible se detiene: lo que falte se completa en otra corrida."""
+def generar_pendientes(session: Session, limite: Optional[int] = None, todas: bool = False) -> dict:
+    """Pide a Minutito la respuesta para los tickets que aún no la tienen (o, con
+    `todas`, vuelve a generarlas para que use los casos anotados desde entonces). Si
+    Ollama no está disponible se detiene: lo que falte se completa en otra corrida."""
     hechos = 0
-    pendientes = _pendientes(session)
+    pendientes = _pendientes(session, todas)
     for ticket in pendientes[:limite]:
         registro = session.exec(
             select(EvaluacionMinutito).where(EvaluacionMinutito.ticket_id == ticket.id)
         ).first() or EvaluacionMinutito(ticket_id=ticket.id)
         try:
             # Como si la persona le escribiera a Minutito el texto de su ticket.
-            respuesta, ofrece_ticket = responder([("usuario", ticket.texto)])
+            # Aprende de los demás casos anotados, nunca del suyo (ver casos_resueltos.py).
+            casos = casos_parecidos(session, [ticket.texto], excluir_ticket_id=ticket.id)
+            respuesta, ofrece_ticket = responder([("usuario", ticket.texto)], casos=casos)
         except MinutitoNoDisponible as e:
             logger.warning("Minutito no disponible al evaluar: %s", e)
             return {"generadas": hechos, "pendientes": len(pendientes) - hechos, "error": str(e)}
@@ -102,6 +108,7 @@ def resumen(session: Session) -> dict:
         "tickets_cargados": len(session.exec(select(Ticket.id).where(Ticket.id_externo != None)).all()),  # noqa: E711
         "con_respuesta": len(con_respuesta),
         "sin_evaluar": sum(e.veredicto is None for e, _ in con_respuesta),
+        "con_solucion": sum(bool(e.solucion_esperada) for e, _ in filas),
         **cuenta,
         # Igual que la meta de la tesis: sobre las consultas de primer nivel.
         "pct_resolveria": round(cuenta["resuelve"] / primer_nivel, 4) if primer_nivel else None,

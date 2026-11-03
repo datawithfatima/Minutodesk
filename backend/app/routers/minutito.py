@@ -22,6 +22,7 @@ from app.schemas import (
     ResumenConversacion,
 )
 from app.services import minutito_chat
+from app.services.casos_resueltos import casos_parecidos
 from app.services.auth import es_personal, obtener_usuario_actual
 from app.services.classifier import sugerir
 
@@ -160,13 +161,14 @@ def enviar_mensaje(
     session.add(MensajeMinutito(conversacion_id=conversacion.id, rol="usuario", texto=texto))
     session.commit()
     historial = [(m.rol, m.texto) for m in _mensajes(session, conversacion.id)]
+    casos = casos_parecidos(session, [t for r, t in historial if r == "usuario"][-3:])
     motor = session.get_bind()  # la sesión de la petición se cierra antes de terminar de transmitir
 
     def transmitir():
         partes = []
         try:
             try:
-                for delta in minutito_chat.responder_en_vivo(historial):
+                for delta in minutito_chat.responder_en_vivo(historial, casos=casos):
                     partes.append(delta)
                     yield json.dumps({"delta": delta}, ensure_ascii=False) + "\n"
             except minutito_chat.MinutitoNoDisponible:

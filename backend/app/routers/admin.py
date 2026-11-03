@@ -260,19 +260,20 @@ def restablecer_password(
     return EnlaceEnviado(mensaje=mensaje, envio=envio)
 
 
-def _generar_en_segundo_plano() -> None:
+def _generar_en_segundo_plano(todas: bool) -> None:
     with Session(engine) as session:
-        evaluacion_minutito.generar_pendientes(session)
+        evaluacion_minutito.generar_pendientes(session, todas=todas)
 
 
 @router.post("/evaluacion-minutito/generar", response_model=MensajeRespuesta)
 def generar_evaluacion_minutito(
     tareas: BackgroundTasks,
+    todas: bool = False,
     admin: Cliente = Depends(requerir_admin),
 ):
     """Pide a Minutito, en segundo plano, la respuesta para los tickets cargados que aún
     no la tienen (con Ollama puede tardar varios segundos por ticket)."""
-    tareas.add_task(_generar_en_segundo_plano)
+    tareas.add_task(_generar_en_segundo_plano, todas)
     return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. Vuelve a cargar en unos minutos.")
 
 

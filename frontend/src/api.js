@@ -203,7 +203,9 @@ export const crearUsuario = (data) => enviar("POST", "/admin/usuarios", data);
 export const actualizarUsuario = (id, data) => enviar("PATCH", `/admin/usuarios/${id}`, data);
 // Evaluación simulada de Minutito con los tickets cargados (solo administrador).
 export const obtenerEvaluacionMinutito = () => get("/reportes/evaluacion-minutito");
-export const generarEvaluacionMinutito = () => enviar("POST", "/admin/evaluacion-minutito/generar");
+// Con `todas`, vuelve a generar todas las respuestas para que usen los casos anotados.
+export const generarEvaluacionMinutito = (todas = false) =>
+  enviar("POST", `/admin/evaluacion-minutito/generar${todas ? "?todas=true" : ""}`);
 export const guardarSolucionEsperada = (id, solucion) =>
   enviar("PATCH", `/admin/evaluacion-minutito/${id}/solucion`, { solucion });
 export const marcarEvaluacionMinutito = (id, veredicto) =>
