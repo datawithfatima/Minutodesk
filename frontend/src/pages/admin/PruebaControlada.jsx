@@ -103,6 +103,14 @@ export default function PruebaControlada() {
     cargar().catch((e) => setError(e.message));
   }, [cargar]);
 
+  // Mientras corre en segundo plano, la pantalla se actualiza sola.
+  const enCurso = datos?.progreso?.en_curso;
+  useEffect(() => {
+    if (!enCurso) return undefined;
+    const intervalo = setInterval(() => cargar().catch(() => {}), 10000);
+    return () => clearInterval(intervalo);
+  }, [enCurso, cargar]);
+
   const items = useMemo(
     () => (datos?.items ?? []).filter((i) => !soloPendientes || i.veredicto == null),
     [datos, soloPendientes]
@@ -126,6 +134,7 @@ export default function PruebaControlada() {
     setError(null);
     try {
       setAviso((await generarPruebaControlada(todas)).mensaje);
+      await cargar();
     } catch (e) {
       setError(e.message);
     }
@@ -177,20 +186,29 @@ export default function PruebaControlada() {
         <Card>
           <Card.Body className="space-y-2">
             <div className="text-sm font-medium text-gray-500">Conversaciones</div>
-            <p className="text-sm text-gray-600">
-              {faltan > 0
-                ? `Faltan ${faltan} de ${datos.escenarios} (necesita Ollama encendido; 1 o 2 minutos cada una).`
-                : `Corridas las ${datos.escenarios}.`}
-            </p>
-            {faltan > 0 && (
-              <Button size="sm" variant="dark" onClick={() => generar()}>
-                Correr las que faltan
-              </Button>
-            )}
-            {datos.generadas > 0 && (
-              <Button size="sm" variant="outlinePrimary" onClick={() => generar(true)}>
-                Volver a correr todas
-              </Button>
+            {enCurso ? (
+              <p className="flex items-center gap-2 text-sm font-medium text-acento">
+                <Spinner size="sm" />
+                Corriendo: {datos.progreso.hechas} de {datos.progreso.total || "…"}. Se actualiza solo.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">
+                  {faltan > 0
+                    ? `Faltan ${faltan} de ${datos.escenarios} (necesita Ollama encendido; 1 o 2 minutos cada una).`
+                    : `Corridas las ${datos.escenarios}.`}
+                </p>
+                {faltan > 0 && (
+                  <Button size="sm" variant="dark" onClick={() => generar()}>
+                    Correr las que faltan
+                  </Button>
+                )}
+                {datos.generadas > 0 && (
+                  <Button size="sm" variant="outlinePrimary" onClick={() => generar(true)}>
+                    Volver a correr todas
+                  </Button>
+                )}
+              </>
             )}
           </Card.Body>
         </Card>

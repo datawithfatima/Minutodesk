@@ -35,12 +35,26 @@ def _pendientes(session: Session, todas: bool = False) -> list[Ticket]:
     return [t for t in tickets if t.id not in evaluados]
 
 
-def generar_pendientes(session: Session, limite: Optional[int] = None, todas: bool = False) -> dict:
+# Avance de la corrida en segundo plano, para que la pantalla lo muestre y no se lancen
+# dos a la vez (las dos competirían por el mismo procesador).
+progreso = {"en_curso": False, "hechas": 0, "total": 0}
+
+
+def generar_pendientes(session: Session, *args, **kwargs) -> dict:
+    progreso.update(en_curso=True, hechas=0, total=0)
+    try:
+        return _generar(session, *args, **kwargs)
+    finally:
+        progreso["en_curso"] = False
+
+
+def _generar(session: Session, limite: Optional[int] = None, todas: bool = False) -> dict:
     """Pide a Minutito la respuesta para los tickets que aún no la tienen (o, con
     `todas`, vuelve a generarlas para que use los casos anotados desde entonces). Si
     Ollama no está disponible se detiene: lo que falte se completa en otra corrida."""
     hechos = 0
     pendientes = _pendientes(session, todas)
+    progreso["total"] = len(pendientes[:limite])
     for ticket in pendientes[:limite]:
         registro = session.exec(
             select(EvaluacionMinutito).where(EvaluacionMinutito.ticket_id == ticket.id)
@@ -61,6 +75,7 @@ def generar_pendientes(session: Session, limite: Optional[int] = None, todas: bo
         session.add(registro)
         session.commit()
         hechos += 1
+        progreso["hechas"] = hechos
     return {"generadas": hechos, "pendientes": len(pendientes) - hechos, "error": None}
 
 
@@ -112,6 +127,7 @@ def resumen(session: Session) -> dict:
         **cuenta,
         # Igual que la meta de la tesis: sobre las consultas de primer nivel.
         "pct_resolveria": round(cuenta["resuelve"] / primer_nivel, 4) if primer_nivel else None,
+        "progreso": dict(progreso),
         "items": [
             {
                 "id": e.id,

@@ -161,6 +161,14 @@ export default function EvaluacionMinutito() {
     cargar().catch((e) => setError(e.message));
   }, [cargar]);
 
+  // Mientras corre en segundo plano, la pantalla se actualiza sola.
+  const enCurso = datos?.progreso?.en_curso;
+  useEffect(() => {
+    if (!enCurso) return undefined;
+    const intervalo = setInterval(() => cargar().catch(() => {}), 10000);
+    return () => clearInterval(intervalo);
+  }, [enCurso, cargar]);
+
   const items = useMemo(
     () => (datos?.items ?? []).filter((i) => !soloPendientes || i.veredicto == null),
     [datos, soloPendientes]
@@ -198,6 +206,7 @@ export default function EvaluacionMinutito() {
     setError(null);
     try {
       setAviso((await generarEvaluacionMinutito(todas)).mensaje);
+      await cargar();
     } catch (e) {
       setError(e.message);
     }
@@ -250,26 +259,35 @@ export default function EvaluacionMinutito() {
         <Card>
           <Card.Body className="space-y-2">
             <div className="text-sm font-medium text-gray-500">Respuestas de Minutito</div>
-            <p className="text-sm text-gray-600">
-              {faltan > 0
-                ? `Faltan ${faltan} de ${datos.tickets_cargados} tickets por generar (necesita Ollama encendido).`
-                : `Generadas para los ${datos.tickets_cargados} tickets cargados.`}
-            </p>
-            {faltan > 0 && (
-              <Button size="sm" variant="dark" onClick={() => generar()}>
-                Generar respuestas pendientes
-              </Button>
-            )}
-            {datos.con_solucion > 0 && (
+            {enCurso ? (
+              <p className="flex items-center gap-2 text-sm font-medium text-acento">
+                <Spinner size="sm" />
+                Generando respuestas: {datos.progreso.hechas} de {datos.progreso.total || "…"}. Se actualiza solo.
+              </p>
+            ) : (
               <>
                 <p className="text-sm text-gray-600">
-                  Minutito aprende de {datos.con_solucion}{" "}
-                  {datos.con_solucion === 1 ? "solución anotada" : "soluciones anotadas"}. Cada ticket se responde
-                  con las de los demás, nunca con la suya.
+                  {faltan > 0
+                    ? `Faltan ${faltan} de ${datos.tickets_cargados} tickets por generar (necesita Ollama encendido).`
+                    : `Generadas para los ${datos.tickets_cargados} tickets cargados.`}
                 </p>
-                <Button size="sm" variant="outlinePrimary" onClick={() => generar(true)}>
-                  Volver a generar con lo aprendido
-                </Button>
+                {faltan > 0 && (
+                  <Button size="sm" variant="dark" onClick={() => generar()}>
+                    Generar respuestas pendientes
+                  </Button>
+                )}
+                {datos.con_solucion > 0 && (
+                  <>
+                    <p className="text-sm text-gray-600">
+                      Minutito aprende de {datos.con_solucion}{" "}
+                      {datos.con_solucion === 1 ? "solución anotada" : "soluciones anotadas"}. Cada ticket se responde
+                      con las de los demás, nunca con la suya.
+                    </p>
+                    <Button size="sm" variant="outlinePrimary" onClick={() => generar(true)}>
+                      Volver a generar con lo aprendido
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </Card.Body>

@@ -273,6 +273,9 @@ def generar_evaluacion_minutito(
 ):
     """Pide a Minutito, en segundo plano, la respuesta para los tickets cargados que aún
     no la tienen (con Ollama puede tardar varios segundos por ticket)."""
+    if evaluacion_minutito.progreso["en_curso"]:
+        return MensajeRespuesta(mensaje="Ya se están generando las respuestas; la pantalla muestra el avance.")
+    evaluacion_minutito.progreso.update(en_curso=True, hechas=0, total=0)  # se ve en curso desde ya
     tareas.add_task(_generar_en_segundo_plano, todas)
     return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. Vuelve a cargar en unos minutos.")
 
@@ -322,6 +325,9 @@ def generar_prueba_controlada(
 ):
     """Corre en segundo plano las conversaciones del colaborador simulado con Minutito
     (con Ollama, uno o dos minutos por escenario)."""
+    if prueba_controlada.progreso["en_curso"]:
+        return MensajeRespuesta(mensaje="La prueba ya está corriendo; la pantalla muestra el avance.")
+    prueba_controlada.progreso.update(en_curso=True, hechas=0, total=0)  # se ve en curso desde ya
     tareas.add_task(_probar_en_segundo_plano, todas)
     return MensajeRespuesta(mensaje="Corriendo la prueba con Minutito. Vuelve a cargar en unos minutos.")
 

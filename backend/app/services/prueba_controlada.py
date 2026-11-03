@@ -99,7 +99,20 @@ def simular(session: Session, escenario: Escenario) -> tuple[list[tuple[str, str
     return historial, "ticket" if ofrece_ticket else "sin_cierre"
 
 
-def generar_pendientes(session: Session, todas: bool = False) -> dict:
+# Avance de la corrida en segundo plano, para que la pantalla lo muestre y no se lancen
+# dos a la vez (las dos competirían por el mismo procesador).
+progreso = {"en_curso": False, "hechas": 0, "total": 0}
+
+
+def generar_pendientes(session: Session, *args, **kwargs) -> dict:
+    progreso.update(en_curso=True, hechas=0, total=0)
+    try:
+        return _generar(session, *args, **kwargs)
+    finally:
+        progreso["en_curso"] = False
+
+
+def _generar(session: Session, todas: bool = False) -> dict:
     """Corre las conversaciones que faltan (o todas otra vez). Si Ollama no responde se
     detiene: lo que falte se completa en otra corrida."""
     hechos = 0
@@ -107,6 +120,7 @@ def generar_pendientes(session: Session, todas: bool = False) -> dict:
     pendientes = [
         e for e in ESCENARIOS if todas or e.clave not in existentes or existentes[e.clave].conversacion is None
     ]
+    progreso["total"] = len(pendientes)
     for escenario in pendientes:
         registro = existentes.get(escenario.clave) or PruebaMinutito(clave=escenario.clave)
         try:
@@ -123,6 +137,7 @@ def generar_pendientes(session: Session, todas: bool = False) -> dict:
         session.add(registro)
         session.commit()
         hechos += 1
+        progreso["hechas"] = hechos
     return {"generadas": hechos, "pendientes": len(pendientes) - hechos, "error": None}
 
 
@@ -157,6 +172,7 @@ def resumen(session: Session) -> dict:
         "sin_evaluar": sum(p.veredicto is None for p in hechas),
         **cuenta,
         "pct_resolveria": round(cuenta["resuelve"] / primer_nivel, 4) if primer_nivel else None,
+        "progreso": dict(progreso),
         "items": [
             {
                 "id": p.id,
