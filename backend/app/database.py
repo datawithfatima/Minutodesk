@@ -29,6 +29,7 @@ COLUMNAS_NUEVAS = {
         ("solicitante_externo", "TEXT"),
     ],
     "historial_estado_ticket": [("motivo", "TEXT")],
+    "evaluacion_minutito": [("solucion_esperada", "TEXT")],
 }
 
 

@@ -1,11 +1,17 @@
-import { Bot } from "lucide-react";
+import { Bot, ClipboardList, Pencil } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { generarEvaluacionMinutito, marcarEvaluacionMinutito, obtenerEvaluacionMinutito } from "../../api";
+import {
+  generarEvaluacionMinutito,
+  guardarSolucionEsperada,
+  marcarEvaluacionMinutito,
+  obtenerEvaluacionMinutito,
+} from "../../api";
 import Alert from "../../components/ui/Alert";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
+import { inputClass } from "../../components/ui/formStyles";
 
 const OPCIONES = [
   { valor: "resuelve", texto: "Lo resolvería", variante: "outlineSuccess" },
@@ -17,7 +23,85 @@ function porcentaje(valor) {
   return valor == null ? "—" : `${Math.round(valor * 1000) / 10}%`;
 }
 
-function Item({ item, onMarcar }) {
+// Lo que el equipo considera la solución correcta: es la referencia para el veredicto,
+// no reemplaza la respuesta de Minutito (que es lo que se evalúa).
+function SolucionEsperada({ item, onGuardar }) {
+  const [editando, setEditando] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  function abrir() {
+    setTexto(item.solucion_esperada ?? "");
+    setEditando(true);
+  }
+
+  async function guardar() {
+    setGuardando(true);
+    if (await onGuardar(item.id, texto)) setEditando(false);
+    setGuardando(false);
+  }
+
+  if (editando) {
+    return (
+      <div className="space-y-2">
+        <label htmlFor={`solucion-${item.id}`} className="text-xs font-medium text-gray-600">
+          Qué se debía hacer
+        </label>
+        <textarea
+          id={`solucion-${item.id}`}
+          rows={3}
+          maxLength={2000}
+          className={inputClass}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="La solución correcta o los pasos que había que seguir…"
+          autoFocus
+        />
+        <div className="flex gap-2">
+          <Button size="sm" variant="primary" onClick={guardar} disabled={guardando}>
+            Guardar
+          </Button>
+          <Button size="sm" variant="outlineSecondary" onClick={() => setEditando(false)} disabled={guardando}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!item.solucion_esperada) {
+    return (
+      <button
+        type="button"
+        onClick={abrir}
+        className="flex items-center gap-1.5 text-sm font-medium text-acento hover:underline"
+      >
+        <ClipboardList size={14} aria-hidden="true" />
+        Escribir qué se debía hacer
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-green-200 bg-green-50 px-3.5 py-2.5">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-green-800">Qué se debía hacer</span>
+        <button
+          type="button"
+          onClick={abrir}
+          aria-label="Editar qué se debía hacer"
+          className="flex items-center gap-1 text-xs text-green-800 hover:underline"
+        >
+          <Pencil size={12} aria-hidden="true" />
+          Editar
+        </button>
+      </div>
+      <p className="whitespace-pre-line break-words text-sm text-gray-700">{item.solucion_esperada}</p>
+    </div>
+  );
+}
+
+function Item({ item, onMarcar, onGuardarSolucion }) {
   const [guardando, setGuardando] = useState(false);
 
   async function marcar(valor) {
@@ -45,6 +129,7 @@ function Item({ item, onMarcar }) {
             {item.respuesta}
           </div>
         </div>
+        <SolucionEsperada item={item} onGuardar={onGuardarSolucion} />
         <div className="flex flex-wrap gap-2" role="group" aria-label="¿La respuesta lo resolvería?">
           {OPCIONES.map((o) => (
             <Button
@@ -90,6 +175,17 @@ export default function EvaluacionMinutito() {
     }
   }
 
+  async function guardarSolucion(id, solucion) {
+    try {
+      await guardarSolucionEsperada(id, solucion);
+      await cargar();
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    }
+  }
+
   async function generar() {
     setError(null);
     try {
@@ -110,7 +206,8 @@ export default function EvaluacionMinutito() {
         Estos tickets se atendieron en la herramienta anterior, así que nadie habló con Minutito. Aquí se le pasa
         a Minutito el texto de cada ticket y tú marcas si su respuesta lo habría resuelto. Es una{" "}
         <strong className="font-semibold">estimación por evaluación experta</strong>: no crea conversaciones ni
-        cambia los tickets, y no se mezcla con la resolución autónoma real.
+        cambia los tickets, y no se mezcla con la resolución autónoma real. En cada ticket puedes anotar qué se debía
+        hacer, como referencia para decidir; la respuesta de Minutito no se edita, porque es lo que se evalúa.
       </Alert>
       {error && <Alert variant="danger">{error}</Alert>}
       {aviso && <Alert variant="success">{aviso}</Alert>}
@@ -170,7 +267,7 @@ export default function EvaluacionMinutito() {
       ) : (
         <div className="grid gap-3 xl:grid-cols-2">
           {items.map((i) => (
-            <Item key={i.id} item={i} onMarcar={marcar} />
+            <Item key={i.id} item={i} onMarcar={marcar} onGuardarSolucion={guardarSolucion} />
           ))}
         </div>
       )}

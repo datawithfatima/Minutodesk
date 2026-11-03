@@ -21,6 +21,7 @@ logger = logging.getLogger("minutodesk.evaluacion")
 
 VEREDICTOS = ("resuelve", "no_resuelve", "no_aplica")
 META = 0.30
+MAX_SOLUCION = 2000
 
 
 def _pendientes(session: Session) -> list[Ticket]:
@@ -72,6 +73,21 @@ def marcar(session: Session, evaluacion_id: int, veredicto: Optional[str], quien
     return registro
 
 
+def guardar_solucion(session: Session, evaluacion_id: int, solucion: Optional[str]) -> EvaluacionMinutito:
+    """Anota qué se debía hacer en ese ticket, como referencia para el veredicto."""
+    registro = session.get(EvaluacionMinutito, evaluacion_id)
+    if registro is None:
+        raise LookupError("Evaluación no encontrada")
+    texto = (solucion or "").strip()
+    if len(texto) > MAX_SOLUCION:
+        raise ValueError(f"La solución es demasiado larga (máximo {MAX_SOLUCION} caracteres).")
+    registro.solucion_esperada = texto or None
+    session.add(registro)
+    session.commit()
+    session.refresh(registro)
+    return registro
+
+
 def resumen(session: Session) -> dict:
     filas = session.exec(
         select(EvaluacionMinutito, Ticket)
@@ -99,6 +115,7 @@ def resumen(session: Session) -> dict:
                 "respuesta": e.respuesta,
                 "escalado": e.escalado,
                 "veredicto": e.veredicto,
+                "solucion_esperada": e.solucion_esperada,
             }
             for e, t in con_respuesta
         ],

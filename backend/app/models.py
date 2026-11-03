@@ -220,6 +220,9 @@ class EvaluacionMinutito(SQLModel, table=True):
     veredicto: Optional[str] = Field(default=None)
     evaluado_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
     evaluado_en: Optional[datetime] = Field(default=None)
+    # Lo que el equipo considera la solución correcta: la referencia para dar el
+    # veredicto. No cambia la respuesta de Minutito (eso es lo que se evalúa).
+    solucion_esperada: Optional[str] = Field(default=None)
 
 
 class TicketHistorico(SQLModel, table=True):

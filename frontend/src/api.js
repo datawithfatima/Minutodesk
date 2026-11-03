@@ -204,6 +204,8 @@ export const actualizarUsuario = (id, data) => enviar("PATCH", `/admin/usuarios/
 // Evaluación simulada de Minutito con los tickets cargados (solo administrador).
 export const obtenerEvaluacionMinutito = () => get("/reportes/evaluacion-minutito");
 export const generarEvaluacionMinutito = () => enviar("POST", "/admin/evaluacion-minutito/generar");
+export const guardarSolucionEsperada = (id, solucion) =>
+  enviar("PATCH", `/admin/evaluacion-minutito/${id}/solucion`, { solucion });
 export const marcarEvaluacionMinutito = (id, veredicto) =>
   enviar("POST", `/admin/evaluacion-minutito/${id}`, { veredicto });
 export const obtenerSimulacionTiempos = (minutosMinutito) =>

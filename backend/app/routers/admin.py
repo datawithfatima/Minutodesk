@@ -29,6 +29,7 @@ from app.schemas import (
     UsuarioCreado,
     UsuarioCreate,
     UsuarioUpdate,
+    SolucionEsperada,
     VeredictoEvaluacion,
 )
 from app.services import correo, evaluacion_minutito, tokens_acceso
@@ -273,6 +274,22 @@ def generar_evaluacion_minutito(
     no la tienen (con Ollama puede tardar varios segundos por ticket)."""
     tareas.add_task(_generar_en_segundo_plano)
     return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. Vuelve a cargar en unos minutos.")
+
+
+@router.patch("/evaluacion-minutito/{evaluacion_id}/solucion")
+def guardar_solucion_esperada(
+    evaluacion_id: int,
+    data: SolucionEsperada,
+    admin: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    try:
+        registro = evaluacion_minutito.guardar_solucion(session, evaluacion_id, data.solucion)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"id": registro.id, "solucion_esperada": registro.solucion_esperada}
 
 
 @router.post("/evaluacion-minutito/{evaluacion_id}")

@@ -72,6 +72,29 @@ def test_evaluacion_solo_para_el_administrador(client, crear_cuenta, entrar):
     h = entrar("tec@ejemplo.com")
     assert client.get("/reportes/evaluacion-minutito", headers=h).status_code == 403
     assert client.post("/admin/evaluacion-minutito/generar", headers=h).status_code == 403
+    assert client.patch("/admin/evaluacion-minutito/1/solucion", json={"solucion": "x"}, headers=h).status_code == 403
+
+
+def test_solucion_esperada_se_guarda_sin_tocar_la_respuesta_de_minutito(
+    session, crear_cuenta, client, entrar, monkeypatch
+):
+    usuario = crear_cuenta("x@ejemplo.com")
+    crear_cuenta("adm@ejemplo.com", "administrador")
+    _ticket_cargado(session, usuario.id, "1", "No tengo internet")
+    monkeypatch.setattr(evaluacion_minutito, "responder", lambda historial: ("Reinicia el router.", False))
+    evaluacion_minutito.generar_pendientes(session)
+    h = entrar("adm@ejemplo.com")
+    eid = client.get("/reportes/evaluacion-minutito", headers=h).json()["items"][0]["id"]
+
+    r = client.patch(f"/admin/evaluacion-minutito/{eid}/solucion", json={"solucion": "  Revisar el cable de red  "}, headers=h)
+    assert r.status_code == 200
+    item = client.get("/reportes/evaluacion-minutito", headers=h).json()["items"][0]
+    assert (item["solucion_esperada"], item["respuesta"]) == ("Revisar el cable de red", "Reinicia el router.")
+
+    client.patch(f"/admin/evaluacion-minutito/{eid}/solucion", json={"solucion": "   "}, headers=h)
+    assert client.get("/reportes/evaluacion-minutito", headers=h).json()["items"][0]["solucion_esperada"] is None
+    assert client.patch(f"/admin/evaluacion-minutito/{eid}/solucion", json={"solucion": "x" * 2001}, headers=h).status_code == 400
+    assert client.patch("/admin/evaluacion-minutito/999/solucion", json={"solucion": "x"}, headers=h).status_code == 404
 
 
 def test_limpiar_texto_quita_menciones_y_nombres_antes_de_la_cedula():
