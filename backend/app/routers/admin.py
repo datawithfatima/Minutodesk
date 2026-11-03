@@ -1,8 +1,9 @@
 """Gestión de usuarios y áreas. Solo para el rol administrador."""
 import re
+import threading
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_
 from sqlmodel import Session, select
 
@@ -260,6 +261,14 @@ def restablecer_password(
     return EnlaceEnviado(mensaje=mensaje, envio=envio)
 
 
+def _en_hilo(funcion, *args) -> None:
+    """Las corridas con Ollama duran de minutos a una hora: van en un hilo aparte y no
+    como tarea de la petición, que al reiniciarse el servidor lo dejaría esperando sin
+    responder hasta que terminen. Si el servidor se reinicia, la corrida se corta y se
+    retoma con «las que faltan»."""
+    threading.Thread(target=funcion, args=args, daemon=True).start()
+
+
 def _generar_en_segundo_plano(todas: bool) -> None:
     with Session(engine) as session:
         evaluacion_minutito.generar_pendientes(session, todas=todas)
@@ -267,7 +276,6 @@ def _generar_en_segundo_plano(todas: bool) -> None:
 
 @router.post("/evaluacion-minutito/generar", response_model=MensajeRespuesta)
 def generar_evaluacion_minutito(
-    tareas: BackgroundTasks,
     todas: bool = False,
     admin: Cliente = Depends(requerir_admin),
 ):
@@ -276,7 +284,7 @@ def generar_evaluacion_minutito(
     if evaluacion_minutito.progreso["en_curso"]:
         return MensajeRespuesta(mensaje="Ya se están generando las respuestas; la pantalla muestra el avance.")
     evaluacion_minutito.progreso.update(en_curso=True, hechas=0, total=0)  # se ve en curso desde ya
-    tareas.add_task(_generar_en_segundo_plano, todas)
+    _en_hilo(_generar_en_segundo_plano, todas)
     return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. Vuelve a cargar en unos minutos.")
 
 
@@ -319,7 +327,6 @@ def _probar_en_segundo_plano(todas: bool) -> None:
 
 @router.post("/prueba-controlada/generar", response_model=MensajeRespuesta)
 def generar_prueba_controlada(
-    tareas: BackgroundTasks,
     todas: bool = False,
     admin: Cliente = Depends(requerir_admin),
 ):
@@ -328,7 +335,7 @@ def generar_prueba_controlada(
     if prueba_controlada.progreso["en_curso"]:
         return MensajeRespuesta(mensaje="La prueba ya está corriendo; la pantalla muestra el avance.")
     prueba_controlada.progreso.update(en_curso=True, hechas=0, total=0)  # se ve en curso desde ya
-    tareas.add_task(_probar_en_segundo_plano, todas)
+    _en_hilo(_probar_en_segundo_plano, todas)
     return MensajeRespuesta(mensaje="Corriendo la prueba con Minutito. Vuelve a cargar en unos minutos.")
 
 
