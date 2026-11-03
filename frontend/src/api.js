@@ -210,6 +210,12 @@ export const guardarSolucionEsperada = (id, solucion) =>
   enviar("PATCH", `/admin/evaluacion-minutito/${id}/solucion`, { solucion });
 export const marcarEvaluacionMinutito = (id, veredicto) =>
   enviar("POST", `/admin/evaluacion-minutito/${id}`, { veredicto });
+// Prueba controlada: un colaborador simulado conversa con Minutito (solo administrador).
+export const obtenerPruebaControlada = () => get("/reportes/prueba-controlada");
+export const generarPruebaControlada = (todas = false) =>
+  enviar("POST", `/admin/prueba-controlada/generar${todas ? "?todas=true" : ""}`);
+export const marcarPruebaControlada = (id, veredicto) =>
+  enviar("POST", `/admin/prueba-controlada/${id}`, { veredicto });
 export const obtenerSimulacionTiempos = (minutosMinutito) =>
   get("/reportes/simulacion-tiempos", { minutos_minutito: minutosMinutito });
 export const eliminarUsuario = (id) => enviar("DELETE", `/admin/usuarios/${id}`);

@@ -1,4 +1,4 @@
-import { Archive, Bot, Timer, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
+import { Archive, Bot, FlaskConical, Timer, BarChart3, Ban, CheckCircle2, Database, Gauge, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { obtenerHistorico } from "../../api";
@@ -24,6 +24,7 @@ import {
 } from "../../components/charts/tokens";
 import TicketsImportados from "./TicketsImportados";
 import EvaluacionMinutito from "./EvaluacionMinutito";
+import PruebaControlada from "./PruebaControlada";
 import SimulacionTiempos from "./SimulacionTiempos";
 
 function fechaCorta(iso) {
@@ -183,6 +184,7 @@ const VISTAS = [
   { clave: "analisis", etiqueta: "Análisis", icono: BarChart3 },
   { clave: "tickets", etiqueta: "Tickets importados", icono: Archive },
   { clave: "minutito", etiqueta: "Evaluación de Minutito", icono: Bot },
+  { clave: "prueba", etiqueta: "Prueba controlada", icono: FlaskConical },
   { clave: "tiempos", etiqueta: "Simulación de tiempos", icono: Timer },
 ];
 
@@ -223,6 +225,7 @@ export default function DatosHistoricosPage() {
       {vista === "analisis" && <Historico />}
       {vista === "tickets" && <TicketsImportados />}
       {vista === "minutito" && <EvaluacionMinutito />}
+      {vista === "prueba" && <PruebaControlada />}
       {vista === "tiempos" && <SimulacionTiempos />}
     </>
   );

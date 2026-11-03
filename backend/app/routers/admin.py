@@ -32,7 +32,7 @@ from app.schemas import (
     SolucionEsperada,
     VeredictoEvaluacion,
 )
-from app.services import correo, evaluacion_minutito, tokens_acceso
+from app.services import correo, evaluacion_minutito, prueba_controlada, tokens_acceso
 from app.services.auth import requerir_admin
 from app.services.usuarios import a_cliente_read, mapa_areas
 
@@ -302,6 +302,39 @@ def marcar_evaluacion_minutito(
 ):
     try:
         registro = evaluacion_minutito.marcar(session, evaluacion_id, data.veredicto, admin)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"id": registro.id, "veredicto": registro.veredicto}
+
+
+def _probar_en_segundo_plano(todas: bool) -> None:
+    with Session(engine) as session:
+        prueba_controlada.generar_pendientes(session, todas=todas)
+
+
+@router.post("/prueba-controlada/generar", response_model=MensajeRespuesta)
+def generar_prueba_controlada(
+    tareas: BackgroundTasks,
+    todas: bool = False,
+    admin: Cliente = Depends(requerir_admin),
+):
+    """Corre en segundo plano las conversaciones del colaborador simulado con Minutito
+    (con Ollama, uno o dos minutos por escenario)."""
+    tareas.add_task(_probar_en_segundo_plano, todas)
+    return MensajeRespuesta(mensaje="Corriendo la prueba con Minutito. Vuelve a cargar en unos minutos.")
+
+
+@router.post("/prueba-controlada/{prueba_id}")
+def marcar_prueba_controlada(
+    prueba_id: int,
+    data: VeredictoEvaluacion,
+    admin: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    try:
+        registro = prueba_controlada.marcar(session, prueba_id, data.veredicto, admin)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except LookupError as e:

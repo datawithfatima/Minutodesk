@@ -225,6 +225,31 @@ class EvaluacionMinutito(SQLModel, table=True):
     solucion_esperada: Optional[str] = Field(default=None)
 
 
+class PruebaMinutito(SQLModel, table=True):
+    """Prueba controlada: un agente hace de colaborador con un problema de primer nivel
+    ya definido (escenarios_prueba.py) y conversa con Minutito. Una persona del equipo
+    revisa la conversación y marca si Minutito lo resolvió."""
+
+    __tablename__ = "prueba_minutito"
+    __table_args__ = (
+        CheckConstraint(
+            "veredicto IS NULL OR veredicto IN ('resuelve','no_resuelve','no_aplica')",
+            name="ck_prueba_veredicto",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    clave: str = Field(unique=True, index=True)  # el escenario
+    conversacion: Optional[str] = Field(default=None)  # JSON: [{"rol", "texto"}]
+    # Cómo terminó: «resuelto» (el colaborador dijo que funcionó), «ticket» (Minutito
+    # ofreció crear el ticket) o «sin_cierre» (se acabaron los turnos).
+    termino: Optional[str] = Field(default=None)
+    generada_en: Optional[datetime] = Field(default=None)
+    veredicto: Optional[str] = Field(default=None)
+    evaluado_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
+    evaluado_en: Optional[datetime] = Field(default=None)
+
+
 class TicketHistorico(SQLModel, table=True):
     """Ticket del export mensual de la herramienta anterior.
 
