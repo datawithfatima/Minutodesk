@@ -5,21 +5,24 @@ from app.services import minutito_chat, prueba_controlada
 from app.services.escenarios_prueba import ESCENARIOS
 
 
-def _modelo(monkeypatch, colaborador, minutito):
-    """Simula Ollama: `colaborador` y `minutito` son listas de respuestas en orden."""
-    colaborador, minutito = list(colaborador), list(minutito)
+def _modelo(monkeypatch, colaborador, juez, minutito):
+    """Simula Ollama: mensajes del colaborador, respuestas SI/NO a «¿le dio el arreglo?»
+    y respuestas de Minutito, cada lista en orden."""
+    colaborador, juez, minutito = list(colaborador), list(juez), list(minutito)
 
     def llamar(mensajes, stream):
-        return SimpleNamespace(message=SimpleNamespace(content=colaborador.pop(0)))
+        lista = juez if mensajes[0]["content"].startswith("Decide si") else colaborador
+        return SimpleNamespace(message=SimpleNamespace(content=lista.pop(0)))
 
     monkeypatch.setattr(minutito_chat, "_llamar", llamar)
     monkeypatch.setattr(minutito_chat, "responder", lambda historial, casos=None: minutito.pop(0))
 
 
-def test_conversacion_termina_cuando_el_colaborador_dice_que_funciono(session, monkeypatch):
+def test_se_resuelve_cuando_minutito_da_el_arreglo(session, monkeypatch):
     _modelo(
         monkeypatch,
-        ["no me sale ninguna red wifi", "ya lo desactivé y funcionó, gracias [RESUELTO]"],
+        ["no me sale ninguna red wifi", "ya lo desactivé y funcionó, gracias"],
+        ["SI"],
         [("Revisa si tienes el modo avión activado.", False)],
     )
     historial, termino = prueba_controlada.simular(session, ESCENARIOS[1])
@@ -31,18 +34,23 @@ def test_conversacion_termina_cuando_el_colaborador_dice_que_funciono(session, m
     ]
 
 
-def test_conversacion_con_ticket_o_sin_cierre(session, monkeypatch):
-    _modelo(monkeypatch, ["no imprime", "dale, créalo [TICKET]"], [("Eso lo revisa el equipo, ¿creo el ticket?", True)])
-    historial, termino = prueba_controlada.simular(session, ESCENARIOS[4])
-    assert termino == "ticket" and historial[-1] == ("usuario", "dale, créalo")
-
-    # ofrece el ticket pero junto con el paso correcto: el colaborador lo prueba
-    _modelo(monkeypatch, ["no imprime", "cancelé la cola y salió [RESUELTO]"], [("Cancela la cola de impresión. Si no, creo el ticket.", True)])
+def test_aunque_ofrezca_ticket_cuenta_si_dio_el_arreglo(session, monkeypatch):
+    _modelo(monkeypatch, ["no imprime", "cancelé la cola y salió"], ["Sí."], [("Cancela la cola. Si no, creo el ticket.", True)])
     assert prueba_controlada.simular(session, ESCENARIOS[4])[1] == "resuelto"
 
-    _modelo(monkeypatch, ["no imprime", "sigue igual", "nada, sigue igual"], [("Paso 1", False), ("Paso 2", False), ("Paso 3", False)])
+
+def test_sigue_conversando_hasta_tres_respuestas(session, monkeypatch):
+    _modelo(
+        monkeypatch,
+        ["no imprime", "sigue igual", "nada, sigue igual"],
+        ["NO", "NO", "NO"],
+        [("Paso 1", False), ("Paso 2", False), ("¿Creo el ticket?", True)],
+    )
     historial, termino = prueba_controlada.simular(session, ESCENARIOS[4])
-    assert termino == "sin_cierre" and [r for r, _ in historial].count("minutito") == 3
+    assert termino == "ticket" and [r for r, _ in historial].count("minutito") == 3
+
+    _modelo(monkeypatch, ["no imprime", "sigue", "sigue"], ["NO"] * 3, [("Paso 1", False), ("Paso 2", False), ("Paso 3", False)])
+    assert prueba_controlada.simular(session, ESCENARIOS[4])[1] == "sin_cierre"
 
 
 def test_generar_evaluar_y_porcentaje(session, client, crear_cuenta, entrar, monkeypatch):

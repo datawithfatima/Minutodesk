@@ -2,8 +2,10 @@
 
 Para cada escenario de primer nivel (escenarios_prueba.py) un agente, con el mismo
 modelo local, hace de colaborador: cuenta el problema con sus palabras y responde a lo
-que Minutito le pide. Solo dice que se arregló si Minutito le indica lo que de verdad lo
-arregla. Minutito responde igual que en el chat real (con los casos que aprendió).
+que Minutito le pide. Si una respuesta de Minutito incluye lo que de verdad lo arregla
+(se pregunta aparte, con una pregunta cerrada), el colaborador dice que funcionó; si no,
+que sigue igual, hasta 3 respuestas. Minutito responde igual que en el chat real (con
+los casos que aprendió).
 
 El agente no califica: una persona del equipo lee cada conversación y marca si Minutito
 lo resolvió, igual que en la evaluación con los tickets de la empresa.
@@ -26,47 +28,34 @@ logger = logging.getLogger("minutodesk.prueba")
 VEREDICTOS = ("resuelve", "no_resuelve", "no_aplica")
 META = 0.30
 MAX_RESPUESTAS = 3  # respuestas de Minutito por conversación
-MARCA_RESUELTO = "[RESUELTO]"
-MARCA_TICKET = "[TICKET]"
-INICIO = "(Escribe ahora tu primer mensaje al asistente de soporte.)"
 
+# El colaborador no conoce la solución: así no la «adivina» ni la sugiere. Qué le pasa
+# al seguir los pasos se decide aparte (_le_dio_el_arreglo) y se le dice en cada turno.
 PROMPT_COLABORADOR = """Eres un colaborador de una constructora e inmobiliaria que le escribe por chat al asistente de soporte de sistemas. No sabes mucho de computadoras.
 
 Tu situación: {situacion}
-Lo que de verdad pasa (tú NO lo sabes, nunca lo digas): {causa}
-Lo único que lo arregla: {arreglo}
 
-Reglas:
-- Escribe como una persona real por chat: de 1 a 3 frases, informal, en español, sin listas ni formato.
-- En tu primer mensaje cuenta el problema con tus palabras, sin decir la causa ni la solución, y sin decir que ya probaste cosas.
-- Si el asistente te pregunta algo, respóndele de forma coherente con tu situación.
-- Cuando el asistente te dé pasos, haz como que los hiciste en ese momento y cuenta el resultado; no digas «voy a probar».
-- Si alguno de esos pasos equivale a lo que lo arregla, di cuál hiciste y que con eso funcionó, y termina tu mensaje con {marca}
-- Si ninguno equivale a lo que lo arregla, di que los probaste y que sigue igual (puedes contar qué ves).
-- Si el asistente solo te ofrece crear un ticket, sin nada nuevo que probar, acepta y termina tu mensaje con {marca_ticket}
-- Nunca digas que funcionó si no te indicó lo que lo arregla."""
+Escribe como una persona real por chat: de 1 a 3 frases, informal, en español, sin listas ni formato. No inventes que ya probaste cosas que nadie te indicó."""
+
+PRIMER_MENSAJE = "(Escribe tu primer mensaje al asistente: cuenta el problema con tus palabras.)"
+FUNCIONO = "(Hiciste lo que te indicó y con el paso «{arreglo}» se arregló. Respóndele en 1 o 2 frases que ya funcionó y agradécele.)"
+NO_FUNCIONO = "(Hiciste lo que te indicó, pero el problema sigue igual. Respóndele en 1 o 2 frases qué hiciste y que sigue igual; si te hizo preguntas, respóndelas de forma coherente con tu situación.)"
+
+PROMPT_COINCIDE = """Decide si la respuesta de un asistente de soporte le indica a la persona hacer un paso concreto.
+
+Paso que arregla el problema: {arreglo}
+
+Respuesta del asistente:
+{respuesta}
+
+¿La respuesta le indica hacer ese paso o uno equivalente (aunque lo diga con otras palabras, entre otros pasos)? Contesta solo SI o NO."""
 
 
 def _por_clave() -> dict[str, Escenario]:
     return {e.clave: e for e in ESCENARIOS}
 
 
-def _colaborador(escenario: Escenario, historial: list[tuple[str, str]]) -> str:
-    """Siguiente mensaje del colaborador. Para el agente, Minutito es el «usuario»."""
-    mensajes = [
-        {
-            "role": "system",
-            "content": PROMPT_COLABORADOR.format(
-                situacion=escenario.situacion,
-                causa=escenario.causa,
-                arreglo=escenario.arreglo,
-                marca=MARCA_RESUELTO,
-                marca_ticket=MARCA_TICKET,
-            ),
-        },
-        {"role": "user", "content": INICIO},
-    ]
-    mensajes += [{"role": "assistant" if r == "usuario" else "user", "content": t} for r, t in historial]
+def _texto(mensajes: list[dict]) -> str:
     respuesta = minutito_chat._llamar(mensajes, stream=False)
     texto = (respuesta.message.content or "").strip()
     if not texto:
@@ -74,28 +63,40 @@ def _colaborador(escenario: Escenario, historial: list[tuple[str, str]]) -> str:
     return texto
 
 
-def _sin_marcas(texto: str) -> str:
-    return texto.replace(MARCA_RESUELTO, "").replace(MARCA_TICKET, "").strip()
+def _le_dio_el_arreglo(escenario: Escenario, respuesta: str) -> bool:
+    """¿La respuesta de Minutito incluye lo que arregla el problema? Es una pregunta
+    cerrada y aparte: el modelo la acierta mucho mejor que actuando a la vez de persona."""
+    veredicto = _texto([{"role": "user", "content": PROMPT_COINCIDE.format(arreglo=escenario.arreglo, respuesta=respuesta)}])
+    return veredicto.upper().lstrip("¡¿ *").startswith(("SI", "SÍ"))
+
+
+def _colaborador(escenario: Escenario, historial: list[tuple[str, str]], indicacion: str) -> str:
+    """Siguiente mensaje del colaborador. Para el agente, Minutito es el «usuario»."""
+    mensajes = [{"role": "system", "content": PROMPT_COLABORADOR.format(situacion=escenario.situacion)}]
+    mensajes.append({"role": "user", "content": PRIMER_MENSAJE})
+    turnos = [{"role": "assistant" if r == "usuario" else "user", "content": t} for r, t in historial]
+    mensajes += turnos
+    if turnos:  # la indicación acompaña la última respuesta de Minutito
+        mensajes[-1] = {"role": "user", "content": f"{turnos[-1]['content']}\n\n{indicacion}"}
+    return _texto(mensajes)
 
 
 def simular(session: Session, escenario: Escenario) -> tuple[list[tuple[str, str]], str]:
-    """Conversación completa entre el colaborador simulado y Minutito, y cómo terminó.
-    Aunque Minutito ofrezca el ticket, el colaborador contesta: si junto con la oferta
-    le dio lo que lo arregla, lo prueba y se resuelve."""
-    historial = [("usuario", _sin_marcas(_colaborador(escenario, [])))]
+    """Conversación completa entre el colaborador simulado y Minutito, y cómo terminó:
+    «resuelto» si Minutito le dio lo que lo arregla, si no «ticket» (si lo ofreció al
+    final) o «sin_cierre»."""
+    historial = [("usuario", _colaborador(escenario, [], PRIMER_MENSAJE))]
     ofrece_ticket = False
     for turno in range(MAX_RESPUESTAS):
         casos = casos_parecidos(session, [t for r, t in historial if r == "usuario"][-3:])
         respuesta, ofrece_ticket = minutito_chat.responder(historial, casos=casos)
         historial.append(("minutito", respuesta))
+        if _le_dio_el_arreglo(escenario, respuesta):
+            historial.append(("usuario", _colaborador(escenario, historial, FUNCIONO.format(arreglo=escenario.arreglo))))
+            return historial, "resuelto"
         if turno == MAX_RESPUESTAS - 1:
             break
-        mensaje = _colaborador(escenario, historial)
-        historial.append(("usuario", _sin_marcas(mensaje)))
-        if MARCA_RESUELTO in mensaje:
-            return historial, "resuelto"
-        if MARCA_TICKET in mensaje:
-            return historial, "ticket"
+        historial.append(("usuario", _colaborador(escenario, historial, NO_FUNCIONO)))
     return historial, "ticket" if ofrece_ticket else "sin_cierre"
 
 
