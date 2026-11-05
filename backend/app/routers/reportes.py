@@ -15,6 +15,7 @@ from app.services.auth import (
     requerir_admin,
     requerir_personal,
 )
+from app.services.catalogos import TIPO_INCIDENCIA
 from app.services.classifier import cargar_metricas
 from app.services import evaluacion_minutito, prueba_controlada, simulacion_tiempos
 from app.services.historico import resumen_historico
@@ -139,6 +140,19 @@ def resumen(
         consulta_conv = consulta_conv.where(ConversacionMinutito.cliente_id == usuario.id)
     conversaciones = session.exec(consulta_conv).all()
     conv_resueltas = sum(c.estado == "resuelta" for c in conversaciones)
+    # Primer nivel: lo que Minutito resolvió más los tickets de incidencia que salieron de
+    # una conversación. El tipo es el que confirmó el personal o, si no, el que predijo el SVM.
+    ids_ticket = [c.ticket_id for c in conversaciones if c.ticket_id is not None]
+    incidencias = (
+        sum(
+            1
+            for t in session.exec(select(Ticket).where(Ticket.id.in_(ids_ticket))).all()
+            if (t.tipo or t.tipo_predicho) == TIPO_INCIDENCIA
+        )
+        if ids_ticket
+        else 0
+    )
+    primer_nivel = conv_resueltas + incidencias
     if conversaciones:
         pct_autonoma = round(100 * conv_resueltas / len(conversaciones), 1)
     else:
@@ -165,6 +179,8 @@ def resumen(
         pct_resolucion_autonoma=pct_autonoma,
         conversaciones_minutito=len(conversaciones),
         conversaciones_resueltas=conv_resueltas,
+        conversaciones_primer_nivel=primer_nivel,
+        pct_primer_nivel=round(100 * conv_resueltas / primer_nivel, 1) if primer_nivel else None,
         tiempo_medio_resolucion_horas=round(mean(horas), 1) if horas else None,
         # Dato del modelo, no del ticket: solo lo ve el administrador.
         confianza_media=(

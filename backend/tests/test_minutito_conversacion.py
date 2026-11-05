@@ -2,6 +2,7 @@
 import json
 
 from app.services import minutito_chat
+from app.services.catalogos import TIPO_INCIDENCIA, TIPO_SOLICITUD
 
 
 def _respuestas(monkeypatch, partes):
@@ -80,6 +81,11 @@ def test_crear_ticket_desde_la_conversacion_la_enlaza(client, crear_cuenta, entr
     assert client.get(f"/minutito/tickets/{ticket_id}", headers=h_beto).status_code == 404
     resumen = client.get("/reportes/resumen", headers=h).json()
     assert (resumen["conversaciones_minutito"], resumen["conversaciones_resueltas"], resumen["pct_resolucion_autonoma"]) == (1, 0, 0.0)
+    # una solicitud no es de primer nivel: no cuenta para el objetivo 2; una incidencia sí
+    for tipo, esperado in [(TIPO_SOLICITUD, (0, None)), (TIPO_INCIDENCIA, (1, 0.0))]:
+        client.patch(f"/tickets/{ticket_id}", json={"tipo": tipo}, headers=h_tec)
+        resumen = client.get("/reportes/resumen", headers=h).json()
+        assert (resumen["conversaciones_primer_nivel"], resumen["pct_primer_nivel"]) == esperado
     # resuelto por un técnico después de intentar con Minutito: 3 puntos
     client.patch(f"/tickets/{ticket_id}", json={"estado": "resuelto"}, headers=h_tec)
     assert client.get("/auth/yo", headers=h).json()["puntos"] == 3

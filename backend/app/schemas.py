@@ -468,3 +468,7 @@ class ReporteResumen(SQLModel):
     # Conversaciones con Minutito ya terminadas: resueltas sin ticket o convertidas en ticket.
     conversaciones_minutito: int = 0
     conversaciones_resueltas: int = 0
+    # Objetivo 2: solo consultas de primer nivel (las resueltas y las que terminaron en un
+    # ticket de incidencia); las solicitudes las atiende sistemas y no cuentan.
+    conversaciones_primer_nivel: int = 0
+    pct_primer_nivel: Optional[float] = None

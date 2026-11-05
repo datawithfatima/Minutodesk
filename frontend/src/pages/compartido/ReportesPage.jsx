@@ -65,7 +65,9 @@ function Estado({ icono: Icono, color, texto }) {
 
 function Plataforma({ resumen, personal }) {
   const total = resumen.total;
-  const pct = resumen.pct_resolucion_autonoma;
+  // La meta (objetivo 2) es sobre consultas de primer nivel; si aún no hay, sobre todas.
+  const primerNivel = resumen.pct_primer_nivel != null;
+  const pct = primerNivel ? resumen.pct_primer_nivel : resumen.pct_resolucion_autonoma;
   const cumple = pct >= META_AUTONOMIA;
   const pendientes = resumen.abiertos + resumen.en_proceso;
 
@@ -75,7 +77,9 @@ function Plataforma({ resumen, personal }) {
         <Panel className="lg:col-span-2">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-sm font-medium text-gray-500">Resolución autónoma de Minutito</div>
+              <div className="text-sm font-medium text-gray-500">
+                Resolución autónoma de Minutito{primerNivel ? " · primer nivel" : ""}
+              </div>
               <div className="mt-1 text-5xl font-semibold tracking-tight text-noche sm:text-6xl">{pct}%</div>
               {total === 0 && !resumen.conversaciones_minutito ? (
                 <Estado icono={Target} color={GRIS_SIN_DATO} texto="Aún no hay tickets en la plataforma" />
@@ -91,8 +95,16 @@ function Plataforma({ resumen, personal }) {
               {resumen.conversaciones_minutito > 0 ? (
                 <>
                   <strong className="font-semibold text-noche">{resumen.conversaciones_resueltas}</strong> de{" "}
-                  <strong className="font-semibold text-noche">{resumen.conversaciones_minutito}</strong> consultas a
-                  Minutito se resolvieron sin crear ticket (la persona lo confirmó).
+                  <strong className="font-semibold text-noche">
+                    {primerNivel ? resumen.conversaciones_primer_nivel : resumen.conversaciones_minutito}
+                  </strong>{" "}
+                  {primerNivel ? "consultas de primer nivel" : "consultas"} se resolvieron con Minutito, sin ticket.
+                  {primerNivel && (
+                    <span className="mt-2 block">
+                      Contando también las solicitudes que solo atiende sistemas: {resumen.pct_resolucion_autonoma}% (
+                      {resumen.conversaciones_resueltas} de {resumen.conversaciones_minutito}).
+                    </span>
+                  )}
                 </>
               ) : (
                 <>
