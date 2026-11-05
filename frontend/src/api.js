@@ -1,8 +1,11 @@
 import { cerrarSesion, obtenerToken } from "./auth";
 
-// En el mismo equipo usa localhost; si se abre desde otro equipo de la red, usa ese mismo host.
+// En el mismo equipo usa localhost y desde otro equipo de la red, ese mismo host (la página
+// llega por el puerto 5173). Por el túnel de Cloudflare la página llega sin puerto: ahí el
+// backend se pide en /api, que el servidor de Vite reenvía al puerto 8000.
 const API_BASE =
-  import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+  import.meta.env.VITE_API_URL ||
+  (window.location.port ? `${window.location.protocol}//${window.location.hostname}:8000` : "/api");
 
 function headers(conJson = true) {
   const h = {};
