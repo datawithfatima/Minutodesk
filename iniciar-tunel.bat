@@ -29,4 +29,4 @@ echo  Busca abajo la linea con https://....trycloudflare.com
 echo  Ese es el enlace para compartir. Deja esta ventana abierta.
 echo ================================================================
 echo.
-"%ProgramFiles(x86)%\cloudflared\cloudflared.exe" tunnel --url http://localhost:5173
+"%ProgramFiles(x86)%\cloudflared\cloudflared.exe" tunnel --protocol http2 --url http://localhost:5173
