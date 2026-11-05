@@ -35,3 +35,6 @@ dist/
 
 # Configuracion local de Claude Code
 .claude/
+
+# Contraseña de las cuentas de demostración
+backend/cuentas_demo.txt

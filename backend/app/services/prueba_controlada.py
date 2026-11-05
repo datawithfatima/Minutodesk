@@ -91,7 +91,10 @@ def simular(session: Session, escenario: Escenario) -> tuple[list[tuple[str, str
         casos = casos_parecidos(session, [t for r, t in historial if r == "usuario"][-3:])
         respuesta, ofrece_ticket = minutito_chat.responder(historial, casos=casos)
         historial.append(("minutito", respuesta))
-        if _le_dio_el_arreglo(escenario, respuesta):
+        if not escenario.arreglo:  # una solicitud que solo atiende sistemas: no hay arreglo por chat
+            if ofrece_ticket:
+                return historial, "ticket"
+        elif _le_dio_el_arreglo(escenario, respuesta):
             historial.append(("usuario", _colaborador(escenario, historial, FUNCIONO.format(arreglo=escenario.arreglo))))
             return historial, "resuelto"
         if turno == MAX_RESPUESTAS - 1:
