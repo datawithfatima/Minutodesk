@@ -39,41 +39,68 @@ export default function SimulacionTiempos() {
   if (error) return <Alert variant="danger">{error}</Alert>;
   if (!datos) return <Spinner size="sm" />;
 
-  const { linea_base_historico: base, muestra } = datos;
-  const cumple = muestra.reduccion != null && muestra.reduccion >= datos.meta;
+  const inc = datos.incidencias;
+  const total = datos.muestra;
+  const cumple = inc.muestra.reduccion != null && inc.muestra.reduccion >= datos.meta;
+  const pct = (v) => (v == null ? "—" : `${Math.round(v * 1000) / 10}%`);
+  const detalleMuestra = (m) =>
+    `${m.tickets} tickets resueltos; Minutito habría resuelto ${m.resueltos_por_minutito}. ${
+      m.sin_evaluar ? `Faltan ${m.sin_evaluar} por evaluar.` : "Todos evaluados."
+    }`;
 
   return (
     <div className="space-y-4">
       <Alert variant="info">
-        Se toman los tickets nuevos cargados que ya se resolvieron. A los que, según la{" "}
-        <strong className="font-semibold">Evaluación de Minutito</strong>, Minutito habría resuelto se les asigna el
-        tiempo de una conversación; el resto conserva su tiempo real. Los que aún no evaluaste cuentan como no
-        resueltos por Minutito.
+        El objetivo 3 se mide en las <strong className="font-semibold">incidencias</strong> (algo dejó de funcionar),
+        que es lo que Minutito atiende. Se toman las incidencias nuevas cargadas que ya se resolvieron: a las que, según
+        la <strong className="font-semibold">Evaluación de Minutito</strong>, Minutito habría resuelto se les asigna el
+        tiempo de una conversación; el resto conserva su tiempo real.
       </Alert>
 
+      <h2 className="text-sm font-semibold text-noche">Incidencias (objetivo 3)</h2>
       <div className="grid gap-3 md:grid-cols-3">
         <Cifra
-          titulo="Línea base: histórico"
-          valor={dias(base.media_dias)}
-          detalle={`Promedio de ${base.tickets} tickets completados (creación → fecha de solución). En días hábiles: ${dias(base.media_dias_habiles)}; mediana ${dias(base.mediana_dias)}.`}
+          titulo="Línea base: incidencias del histórico"
+          valor={dias(inc.linea_base_historico.media_dias)}
+          detalle={`Promedio de ${inc.linea_base_historico.tickets} incidencias completadas. En días hábiles: ${dias(
+            inc.linea_base_historico.media_dias_habiles
+          )}; mediana ${dias(inc.linea_base_historico.mediana_dias)}.`}
         />
         <Cifra
           titulo="Muestra: tiempo real → simulado"
-          valor={`${dias(muestra.media_real_dias)} → ${dias(muestra.media_simulada_dias)}`}
-          detalle={`${muestra.tickets} tickets resueltos; Minutito habría resuelto ${muestra.resueltos_por_minutito}. ${
-            muestra.sin_evaluar ? `Faltan ${muestra.sin_evaluar} por evaluar.` : "Todos evaluados."
-          }`}
+          valor={`${dias(inc.muestra.media_real_dias)} → ${dias(inc.muestra.media_simulada_dias)}`}
+          detalle={detalleMuestra(inc.muestra)}
         />
-        <Cifra
-          titulo="Reducción del tiempo promedio"
-          valor={muestra.reduccion == null ? "—" : `${Math.round(muestra.reduccion * 1000) / 10}%`}
-        >
-          {muestra.reduccion != null && (
+        <Cifra titulo="Reducción del tiempo promedio" valor={pct(inc.muestra.reduccion)}>
+          {inc.muestra.reduccion != null && (
             <Badge color={cumple ? "green" : "amber"}>
               {cumple ? "Cumple" : "Por debajo de"} la meta de {Math.round(datos.meta * 100)}%
             </Badge>
           )}
         </Cifra>
+      </div>
+
+      <h2 className="pt-2 text-sm font-semibold text-noche">Todos los tickets (referencia)</h2>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Cifra
+          titulo="Línea base: histórico completo"
+          valor={dias(datos.linea_base_historico.media_dias)}
+          detalle={`Promedio de ${datos.linea_base_historico.tickets} tickets completados. En días hábiles: ${dias(
+            datos.linea_base_historico.media_dias_habiles
+          )}; mediana ${dias(datos.linea_base_historico.mediana_dias)}.`}
+        />
+        <Cifra
+          titulo="Muestra: tiempo real → simulado"
+          valor={`${dias(total.media_real_dias)} → ${dias(total.media_simulada_dias)}`}
+          detalle={detalleMuestra(total)}
+        />
+        <Cifra
+          titulo="Reducción del tiempo promedio"
+          valor={pct(total.reduccion)}
+          detalle={`Las incidencias son solo el ${pct(
+            inc.parte_del_tiempo_total
+          )} del tiempo total del histórico; las solicitudes y los accesos los atiende siempre el equipo, así que este es el techo de lo que Minutito puede reducir aquí.`}
+        />
       </div>
 
       <Card>

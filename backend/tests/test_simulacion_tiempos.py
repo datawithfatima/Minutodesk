@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from app.models import EvaluacionMinutito, Ticket, TicketHistorico
+from app.services.catalogos import TIPO_INCIDENCIA, TIPO_SOLICITUD
 
 
 def _cargado(session, cliente_id, id_externo, creado, cerrado):
@@ -40,3 +41,26 @@ def test_simulacion_reemplaza_el_tiempo_de_lo_que_minutito_resolveria(client, cr
 def test_simulacion_solo_para_el_administrador(client, crear_cuenta, entrar):
     crear_cuenta("tec@ejemplo.com", "tecnico")
     assert client.get("/reportes/simulacion-tiempos", headers=entrar("tec@ejemplo.com")).status_code == 403
+
+
+def test_objetivo_3_se_mide_en_las_incidencias(client, crear_cuenta, entrar, session):
+    usuario = crear_cuenta("x@ejemplo.com")
+    crear_cuenta("adm@ejemplo.com", "administrador")
+    # histórico: una incidencia de 2 días y una solicitud de 6 -> las incidencias son el 25 % del tiempo
+    session.add(TicketHistorico(id_externo="1", estado="Completado", tipo=TIPO_INCIDENCIA,
+                                creado_en=datetime(2026, 3, 2, 9), resuelto_en=datetime(2026, 3, 4, 9)))
+    session.add(TicketHistorico(id_externo="2", estado="Completado", tipo=TIPO_SOLICITUD,
+                                creado_en=datetime(2026, 3, 2, 9), resuelto_en=datetime(2026, 3, 8, 9)))
+    session.commit()
+    inc = _cargado(session, usuario.id, "100", datetime(2026, 9, 1, 9), datetime(2026, 9, 3, 9))  # 2 días
+    inc.tipo = TIPO_INCIDENCIA
+    sol = _cargado(session, usuario.id, "101", datetime(2026, 9, 1, 9), datetime(2026, 9, 9, 9))  # 8 días
+    sol.tipo = TIPO_SOLICITUD
+    session.add_all([inc, sol, EvaluacionMinutito(ticket_id=inc.id, respuesta="pasos", veredicto="resuelve")])
+    session.commit()
+
+    r = client.get("/reportes/simulacion-tiempos", params={"minutos_minutito": 1440}, headers=entrar("adm@ejemplo.com")).json()
+    i = r["incidencias"]
+    assert (i["linea_base_historico"]["tickets"], i["parte_del_tiempo_total"]) == (1, 0.25)
+    assert (i["muestra"]["tickets"], i["muestra"]["reduccion"]) == (1, 0.5)  # 2 días pasan a 1
+    assert r["muestra"]["reduccion"] == 0.1  # sobre todos: 5 -> 4,5 días
