@@ -8,13 +8,12 @@ import Spinner from "../../components/ui/Spinner";
 import {
   ChartCard,
   ColumnChart,
-  Donut,
   HBars,
   LineChart,
   SinDatos,
   StackedBar,
-  StatTile,
 } from "../../components/charts/Charts";
+import { FlujoEtapas, FranjaIndicadores } from "../../components/charts/Tablero";
 import {
   COLOR_ESTADO_HISTORICO,
   COLOR_PRIORIDAD,
@@ -81,42 +80,39 @@ function Historico() {
         {fechaCorta(datos.ultima_importacion)}.
       </p>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <StatTile
-          icono={Ticket}
-          tono={0}
-          titulo="Tickets históricos"
-          valor={formatoNumero(datos.total)}
-          detalle="Importados del CSV"
-          tendencia={datos.por_mes.map((m) => m.total)}
-        />
-        <StatTile
-          icono={CheckCircle2}
-          tono={2}
-          titulo="Completados"
-          valor={`${pctCompletados}%`}
-          detalle={`${formatoNumero(datos.completados)} de ${formatoNumero(datos.total)}`}
-        />
-        <StatTile
-          icono={Gauge}
-          tono={6}
-          titulo="Tiempo medio de resolución"
-          valor={datos.dias_medio_resolucion != null ? `${datos.dias_medio_resolucion} d` : "—"}
-          detalle="Días entre creación y solución"
-          tendencia={diasPorMes.some((v) => v != null) ? diasPorMes.map((v) => v ?? 0) : undefined}
-        />
-        <StatTile
-          icono={Ban}
-          tono={1}
-          titulo="Cancelados"
-          valor={formatoNumero(datos.cancelados)}
-          detalle={`${pctCancelados}% del total`}
-        />
-      </div>
+      <FranjaIndicadores
+        items={[
+          {
+            icono: Ticket,
+            titulo: "Tickets históricos",
+            valor: formatoNumero(datos.total),
+            detalle: "Importados del CSV",
+            tendencia: datos.por_mes.map((m) => m.total),
+          },
+          {
+            icono: CheckCircle2,
+            titulo: "Completados",
+            valor: `${pctCompletados}%`,
+            detalle: `${formatoNumero(datos.completados)} de ${formatoNumero(datos.total)}`,
+          },
+          {
+            icono: Gauge,
+            titulo: "Tiempo medio de resolución",
+            valor: datos.dias_medio_resolucion != null ? `${datos.dias_medio_resolucion} d` : "—",
+            detalle: "Días entre creación y solución",
+            tendencia: diasPorMes.some((v) => v != null) ? diasPorMes.map((v) => v ?? 0) : undefined,
+          },
+          {
+            icono: Ban,
+            titulo: "Cancelados",
+            valor: formatoNumero(datos.cancelados),
+            detalle: `${pctCancelados}% del total`,
+          },
+        ]}
+      />
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4">
         <ChartCard
-          className="lg:col-span-2"
           titulo="Tickets por mes"
           subtitulo="Cuántas solicitudes se crearon cada mes"
           tabla={{ columnas: ["Mes", "Tickets"], filas: datos.por_mes.map((m) => [etiquetaMes(m.etiqueta), m.total]) }}
@@ -136,7 +132,7 @@ function Historico() {
           subtitulo="Situación de todo el histórico"
           tabla={{ columnas: ["Estado", "Tickets"], filas: estados.map((e) => [e.etiqueta, e.valor]) }}
         >
-          <Donut datos={estados} centroValor={formatoNumero(datos.total)} centroTitulo="tickets" />
+          <FlujoEtapas etapas={estados} />
         </ChartCard>
       </div>
 

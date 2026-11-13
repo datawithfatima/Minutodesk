@@ -3,12 +3,17 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { listarTickets, obtenerGamificacion, obtenerResumen } from "../../api";
 import { obtenerUsuario } from "../../auth";
-import { Panel, StatTile } from "../../components/charts/Charts";
+import { Panel } from "../../components/charts/Charts";
+import { FranjaIndicadores } from "../../components/charts/Tablero";
 import { formatoNumero } from "../../components/charts/tokens";
 import EstadoBadge from "../../components/EstadoBadge";
 import MinutitoPanel from "../../components/MinutitoPanel";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
 import Spinner from "../../components/ui/Spinner";
+import { ICONO_ETAPA } from "../../components/obra/insignias";
+
+// Mismas etapas que «Mi obra» (pages/usuario/GamificacionPage.jsx).
+const ETAPAS_OBRA = ["Cimientos", "Estructura", "Acabados", "Entrega de llaves"];
 
 export default function DashboardPage() {
   const usuario = obtenerUsuario();
@@ -95,46 +100,42 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-          <Link to="/usuario/mis-tickets" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
-            <StatTile
-              icono={Ticket}
-              tono={0}
-              titulo="Mis tickets"
-              valor={resumen ? formatoNumero(resumen.total) : "—"}
-              detalle={resumen ? `${resumen.resueltos} resueltos` : undefined}
+        {/* Indicadores en una sola franja; cada celda lleva a su sección. */}
+        <FranjaIndicadores
+          oscuro={false}
+          items={[
+            {
+              icono: Ticket,
+              titulo: "Mis tickets",
+              valor: resumen ? formatoNumero(resumen.total) : "—",
+              detalle: resumen ? `${resumen.resueltos} resueltos` : undefined,
               // Sin tickets en los últimos días la línea quedaría plana: no se muestra.
-              tendencia={resumen?.ultimos_dias.some((d) => d.total) ? resumen.ultimos_dias.map((d) => d.total) : undefined}
-            />
-          </Link>
-          <Link to="/usuario/mis-tickets" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
-            <StatTile
-              icono={Inbox}
-              tono={1}
-              titulo="Pendientes"
-              valor={resumen ? formatoNumero(pendientes) : "—"}
-              detalle={resumen ? `${resumen.en_proceso} en proceso` : undefined}
-            />
-          </Link>
-          <Link to="/usuario/historico" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
-            <StatTile
-              icono={CheckCircle2}
-              tono={2}
-              titulo="Resueltos por Minutito"
-              valor={resumen ? formatoNumero(resumen.resueltos_por_minutito) : "—"}
-              detalle="Consultas resueltas sin ticket"
-            />
-          </Link>
-          <Link to="/usuario/logros" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
-            <StatTile
-              icono={Trophy}
-              tono={3}
-              titulo="Mis puntos"
-              valor={logros ? formatoNumero(logros.puntos) : "—"}
-              detalle={logros?.nivel}
-            />
-          </Link>
-        </div>
+              tendencia: resumen?.ultimos_dias.some((d) => d.total) ? resumen.ultimos_dias.map((d) => d.total) : undefined,
+              to: "/usuario/mis-tickets",
+            },
+            {
+              icono: Inbox,
+              titulo: "Pendientes",
+              valor: resumen ? formatoNumero(pendientes) : "—",
+              detalle: resumen ? `${resumen.en_proceso} en proceso` : undefined,
+              to: "/usuario/mis-tickets",
+            },
+            {
+              icono: CheckCircle2,
+              titulo: "Resueltos por Minutito",
+              valor: resumen ? formatoNumero(resumen.resueltos_por_minutito) : "—",
+              detalle: "Consultas resueltas sin ticket",
+              to: "/usuario/historico",
+            },
+            {
+              icono: Trophy,
+              titulo: "Mis puntos",
+              valor: logros ? formatoNumero(logros.puntos) : "—",
+              detalle: logros?.nivel,
+              to: "/usuario/logros",
+            },
+          ]}
+        />
 
         <Panel relleno="p-0" className="overflow-hidden">
           <div className="flex items-center justify-between px-4 pb-3 pt-4 sm:px-5">
@@ -214,6 +215,54 @@ export default function DashboardPage() {
             </div>
           )}
         </Panel>
+
+        {/* Avance de «Mi obra»: las etapas como un cronograma, con la actual resaltada. */}
+        {logros && (
+          <Link to="/usuario/logros" className="group block">
+            <Panel>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-noche">
+                  <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+                  Avance de mi obra
+                </h2>
+                <span className="text-xs text-gray-500">
+                  {logros.siguiente_etapa
+                    ? `Te faltan ${logros.puntos_para_siguiente} puntos para ${logros.siguiente_etapa}`
+                    : "¡Obra entregada!"}
+                  <span aria-hidden="true" className="ml-1 inline-block transition-transform group-hover:translate-x-0.5">→</span>
+                </span>
+              </div>
+              <ol className="mt-4 grid grid-cols-4 gap-2">
+                {ETAPAS_OBRA.map((etapa, k) => {
+                  const Icono = ICONO_ETAPA[k];
+                  const actual = k + 1 === logros.numero_etapa;
+                  const hecha = k + 1 < logros.numero_etapa;
+                  return (
+                    <li key={etapa} className="min-w-0">
+                      <div
+                        className={`h-1.5 rounded-[2px] ${hecha ? "bg-acento" : actual ? "franja-obra" : "bg-gray-100"}`}
+                      />
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <span
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] ${
+                            actual ? "anim-sello bg-noche text-casco" : hecha ? "bg-acento-50 text-acento" : "bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          {Icono && <Icono size={13} aria-hidden="true" />}
+                        </span>
+                        <span className={`truncate text-xs ${actual ? "font-bold text-noche" : "text-gray-500"}`}>{etapa}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="mt-3 text-xs text-gray-500">
+                {formatoNumero(logros.puntos)} puntos · {logros.pisos} pisos ·{" "}
+                {logros.insignias.filter((i) => i.obtenida).length} de {logros.insignias.length} insignias
+              </p>
+            </Panel>
+          </Link>
+        )}
       </div>
 
       <div id="minutito" className="scroll-mt-20 lg:col-span-1">

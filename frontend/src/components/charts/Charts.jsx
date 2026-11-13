@@ -333,13 +333,18 @@ export function HBars({ datos, color = SERIES[0], nombreValor = "Tickets" }) {
   const max = Math.max(...datos.map((d) => d.valor), 1);
   const total = datos.reduce((s, d) => s + d.valor, 0);
   return (
-    <div ref={tt.ref} className="relative space-y-2.5">
+    // Ranking: cada fila con su número, la etiqueta sobre la barra y la barra sobre una pista con marcas.
+    // Con muchas categorías se reparte en dos columnas.
+    <div
+      ref={tt.ref}
+      className={`relative grid grid-cols-1 gap-x-8 gap-y-3 ${datos.length > 6 ? "md:grid-cols-2" : ""}`}
+    >
       {datos.map((d, i) => (
         <div
           key={d.etiqueta}
           tabIndex={0}
           aria-label={`${d.etiqueta}: ${formatoNumero(d.valor)}`}
-          className="group -mx-1 flex items-center gap-3 rounded px-1 py-0.5 focus:bg-marfil focus:outline-none hover:bg-marfil"
+          className="group -mx-1.5 flex items-start gap-3 rounded px-1.5 py-1 focus:bg-marfil focus:outline-none hover:bg-marfil"
           onPointerMove={(e) =>
             tt.mostrar(e, {
               titulo: d.etiqueta,
@@ -350,15 +355,35 @@ export function HBars({ datos, color = SERIES[0], nombreValor = "Tickets" }) {
           onFocus={(e) => tt.mostrar(e, { titulo: d.etiqueta, filas: [{ color, etiqueta: nombreValor, valor: formatoNumero(d.valor) }] })}
           onBlur={tt.ocultar}
         >
-          <span className="w-24 shrink-0 truncate text-sm text-gray-600 sm:w-36" title={d.etiqueta}>
-            {d.etiqueta}
+          <span
+            className={`mt-0.5 w-6 shrink-0 font-mono text-[11px] font-medium ${i < 3 ? "text-acento" : "text-gray-400"}`}
+          >
+            {String(i + 1).padStart(2, "0")}
           </span>
-          <div className="flex flex-1 items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="truncate text-sm text-gray-700" title={d.etiqueta}>
+                {d.etiqueta}
+              </span>
+              <span className="shrink-0 text-sm font-bold tabular-nums text-noche">
+                {formatoNumero(d.valor)}
+                <span className="ml-1.5 font-mono text-[11px] font-normal text-gray-400">
+                  {total > 0 ? `${Math.round((d.valor / total) * 100)}%` : ""}
+                </span>
+              </span>
+            </div>
             <div
-              className="anim-vaciar-x h-2.5 rounded-r-[2px] transition-opacity group-hover:opacity-80"
-              style={{ width: `${(d.valor / max) * 100}%`, minWidth: 3, background: color, animationDelay: `${i * 50}ms` }}
-            />
-            <span className="text-sm font-semibold text-noche">{formatoNumero(d.valor)}</span>
+              className="mt-1.5 h-2 w-full rounded-[2px] bg-gray-100"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(to right, transparent 0 calc(10% - 1px), rgb(27 30 34 / 0.08) calc(10% - 1px) 10%)",
+              }}
+            >
+              <div
+                className="anim-vaciar-x h-full rounded-[2px] transition-opacity group-hover:opacity-80"
+                style={{ width: `${(d.valor / max) * 100}%`, minWidth: 3, background: color, animationDelay: `${i * 50}ms` }}
+              />
+            </div>
           </div>
         </div>
       ))}

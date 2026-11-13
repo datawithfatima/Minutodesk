@@ -17,6 +17,7 @@ import { coincideBusqueda } from "../../components/tickets/formato";
 import Alert from "../../components/ui/Alert";
 import Card from "../../components/ui/Card";
 import PageHeader from "../../components/ui/PageHeader";
+import { FranjaIndicadores } from "../../components/charts/Tablero";
 import Spinner from "../../components/ui/Spinner";
 import { inputClass } from "../../components/ui/formStyles";
 import EstadoBadge from "../../components/EstadoBadge";
@@ -31,20 +32,6 @@ const TABS = [
 ];
 
 const POR_PAGINA = 10;
-
-function StatCard({ icon: Icon, label, valor }) {
-  return (
-    <Card>
-      <Card.Body className="flex items-center gap-3">
-        <Icon className="shrink-0 text-gray-700" size={20} />
-        <div>
-          <div className="text-lg font-bold text-noche">{valor}</div>
-          <div className="text-xs text-gray-500">{label}</div>
-        </div>
-      </Card.Body>
-    </Card>
-  );
-}
 
 function FilaCompacta({ base, ticket, cliente }) {
   return (
@@ -255,12 +242,16 @@ export default function TicketsWorkspace({
 
       {!cargando && (
         <>
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-            <StatCard icon={Inbox} label="Total" valor={stats.total} />
-            <StatCard icon={CircleDot} label="Nuevos" valor={stats.nuevos} />
-            <StatCard icon={Clock} label="En proceso" valor={stats.enProceso} />
-            <StatCard icon={CheckCircle2} label="Resueltos hoy" valor={stats.resueltosHoy} />
-          </div>
+          <FranjaIndicadores
+            oscuro={false}
+            className="mb-4"
+            items={[
+              { icono: Inbox, titulo: "Total", valor: stats.total },
+              { icono: CircleDot, titulo: "Nuevos", valor: stats.nuevos },
+              { icono: Clock, titulo: "En proceso", valor: stats.enProceso },
+              { icono: CheckCircle2, titulo: "Resueltos hoy", valor: stats.resueltosHoy },
+            ]}
+          />
 
           <Card className="mb-4">
             <Card.Body className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">

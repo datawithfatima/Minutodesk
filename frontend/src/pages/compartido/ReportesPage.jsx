@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
+  Ban,
   BarChart3,
+  CircleDot,
   CheckCircle2,
   Clock,
   Inbox,
@@ -16,15 +18,14 @@ import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import {
   ChartCard,
-  Donut,
   HBars,
   LineChart,
   Meter,
   Panel,
   SinDatos,
   StackedBar,
-  StatTile,
 } from "../../components/charts/Charts";
+import { EncabezadoSeccion, FlujoEtapas, FranjaIndicadores, Medidor } from "../../components/charts/Tablero";
 import {
   ESTADO_AVISO,
   ESTADO_OK,
@@ -42,13 +43,8 @@ function formatearHoras(horas) {
   return `${horas} h`;
 }
 
-function Seccion({ titulo, subtitulo }) {
-  return (
-    <div className="mb-3 mt-9 first:mt-0">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">{titulo}</h2>
-      {subtitulo && <p className="mt-0.5 text-sm text-gray-500">{subtitulo}</p>}
-    </div>
-  );
+function Seccion({ numero, titulo, subtitulo }) {
+  return <EncabezadoSeccion numero={numero} titulo={titulo} subtitulo={subtitulo} />;
 }
 
 function Estado({ icono: Icono, color, texto }) {
@@ -73,57 +69,122 @@ function Plataforma({ resumen, personal }) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel className="lg:col-span-2">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-sm font-medium text-gray-500">
-                Resolución autónoma de Minutito{primerNivel ? " · primer nivel" : ""}
-              </div>
-              <div className="mt-1 text-5xl font-semibold tracking-tight text-noche sm:text-6xl">{pct}%</div>
-              {total === 0 && !resumen.conversaciones_minutito ? (
-                <Estado icono={Target} color={GRIS_SIN_DATO} texto="Aún no hay tickets en la plataforma" />
-              ) : personal ? (
-                cumple ? (
-                  <Estado icono={CheckCircle2} color={ESTADO_OK} texto={`Meta de ${META_AUTONOMIA}% alcanzada`} />
-                ) : (
-                  <Estado icono={AlertTriangle} color={ESTADO_AVISO} texto={`Por debajo de la meta de ${META_AUTONOMIA}%`} />
-                )
-              ) : null}
+      {/* Indicadores principales en una sola franja */}
+      <FranjaIndicadores
+        items={[
+          {
+            icono: Ticket,
+            titulo: "Tickets",
+            valor: formatoNumero(total),
+            detalle: `${resumen.resueltos} resueltos`,
+            tendencia: resumen.ultimos_dias.map((d) => d.total),
+          },
+          {
+            icono: Inbox,
+            titulo: "Pendientes",
+            valor: formatoNumero(pendientes),
+            detalle: `${resumen.en_proceso} en proceso`,
+          },
+          {
+            icono: Clock,
+            titulo: "Tiempo medio de resolución",
+            valor: formatearHoras(resumen.tiempo_medio_resolucion_horas),
+            detalle: "Tickets resueltos",
+          },
+          {
+            icono: MessagesSquare,
+            titulo: "Conversaciones con Minutito",
+            valor: formatoNumero(resumen.con_minutito),
+            detalle: total ? `${Math.round((100 * resumen.con_minutito) / total)}% de los tickets` : "Sin tickets",
+          },
+        ]}
+      />
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
+        {/* Medidor de autonomía de Minutito */}
+        <Panel className="lg:col-span-5">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+            <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+            Resolución autónoma de Minutito{primerNivel ? " · primer nivel" : ""}
+          </h3>
+          <div className="mt-3 flex flex-col items-center">
+            <Medidor
+              valor={pct}
+              meta={personal ? META_AUTONOMIA : undefined}
+              etiqueta="Resolución autónoma de Minutito"
+            />
+            <div className="-mt-1 text-5xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112]">
+              {pct}%
             </div>
-            <div className="text-sm text-gray-500 sm:max-w-[220px]">
-              {resumen.conversaciones_minutito > 0 ? (
-                <>
-                  <strong className="font-semibold text-noche">{resumen.conversaciones_resueltas}</strong> de{" "}
-                  <strong className="font-semibold text-noche">
-                    {primerNivel ? resumen.conversaciones_primer_nivel : resumen.conversaciones_minutito}
-                  </strong>{" "}
-                  {primerNivel ? "consultas de primer nivel" : "consultas"} se resolvieron con Minutito, sin ticket.
-                  {primerNivel && (
-                    <span className="mt-2 block">
-                      Contando también las solicitudes que solo atiende sistemas: {resumen.pct_resolucion_autonoma}% (
-                      {resumen.conversaciones_resueltas} de {resumen.conversaciones_minutito}).
-                    </span>
-                  )}
-                </>
+            {total === 0 && !resumen.conversaciones_minutito ? (
+              <Estado icono={Target} color={GRIS_SIN_DATO} texto="Aún no hay tickets en la plataforma" />
+            ) : personal ? (
+              cumple ? (
+                <Estado icono={CheckCircle2} color={ESTADO_OK} texto={`Meta de ${META_AUTONOMIA}% alcanzada`} />
               ) : (
-                <>
-                  <strong className="font-semibold text-noche">{resumen.resueltos_por_minutito}</strong> de{" "}
-                  <strong className="font-semibold text-noche">{total - resumen.cancelados}</strong> tickets los resolvió
-                  Minutito y el usuario lo confirmó{resumen.cancelados > 0 ? " (sin contar los cancelados)" : ""}.
-                </>
-              )}
-            </div>
+                <Estado icono={AlertTriangle} color={ESTADO_AVISO} texto={`Por debajo de la meta de ${META_AUTONOMIA}%`} />
+              )
+            ) : null}
           </div>
-
-          <div className="mt-4">
-            <Meter valor={pct} meta={personal ? META_AUTONOMIA : undefined} color={SERIES[0]} />
+          <div className="mt-4 rounded-md border border-dashed border-linea bg-gray-50 p-3 text-sm text-gray-600">
+            {resumen.conversaciones_minutito > 0 ? (
+              <>
+                <strong className="font-semibold text-noche">{resumen.conversaciones_resueltas}</strong> de{" "}
+                <strong className="font-semibold text-noche">
+                  {primerNivel ? resumen.conversaciones_primer_nivel : resumen.conversaciones_minutito}
+                </strong>{" "}
+                {primerNivel ? "consultas de primer nivel" : "consultas"} se resolvieron con Minutito, sin ticket.
+                {primerNivel && (
+                  <span className="mt-2 block">
+                    Contando también las solicitudes que solo atiende sistemas: {resumen.pct_resolucion_autonoma}% (
+                    {resumen.conversaciones_resueltas} de {resumen.conversaciones_minutito}).
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold text-noche">{resumen.resueltos_por_minutito}</strong> de{" "}
+                <strong className="font-semibold text-noche">{total - resumen.cancelados}</strong> tickets los resolvió
+                Minutito y el usuario lo confirmó{resumen.cancelados > 0 ? " (sin contar los cancelados)" : ""}.
+              </>
+            )}
           </div>
+        </Panel>
 
-          <div className="mt-5 border-t border-gray-100 pt-4">
-            <div className="mb-2 text-xs font-medium text-gray-500">
-              Quién resolvió los casos: consultas que Minutito cerró sin ticket y tickets que cerró el equipo
-            </div>
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+          {/* Estado de las solicitudes como cronograma por etapas */}
+          <ChartCard
+            titulo="Tickets por estado"
+            subtitulo="Cómo van las solicitudes ahora"
+            tabla={{
+              columnas: ["Estado", "Tickets"],
+              filas: [
+                ["Nuevos", resumen.abiertos],
+                ["En proceso", resumen.en_proceso],
+                ["Resueltos", resumen.resueltos],
+                ["Cancelados", resumen.cancelados],
+              ],
+            }}
+          >
+            <FlujoEtapas
+              etapas={[
+                { etiqueta: "Nuevos", valor: resumen.abiertos, color: SERIES[0], icono: CircleDot },
+                { etiqueta: "En proceso", valor: resumen.en_proceso, color: SERIES[1], icono: Clock },
+                { etiqueta: "Resueltos", valor: resumen.resueltos, color: SERIES[2], icono: CheckCircle2 },
+                { etiqueta: "Cancelados", valor: resumen.cancelados, color: GRIS_SIN_DATO, icono: Ban },
+              ]}
+            />
+          </ChartCard>
+
+          {/* Quién resolvió */}
+          <Panel className="flex-1">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+              <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+              Quién resolvió los casos
+            </h3>
+            <p className="mb-4 mt-0.5 text-xs text-gray-500">
+              Consultas que Minutito cerró sin ticket y tickets que cerró el equipo
+            </p>
             {resumen.resueltos_por_minutito + resumen.resueltos_por_tecnico === 0 ? (
               <div className="text-sm text-gray-400">Todavía no hay casos resueltos.</div>
             ) : (
@@ -134,65 +195,8 @@ function Plataforma({ resumen, personal }) {
                 ]}
               />
             )}
-          </div>
-        </Panel>
-
-        <ChartCard
-          titulo="Tickets por estado"
-          subtitulo="Cómo van las solicitudes ahora"
-          tabla={{
-            columnas: ["Estado", "Tickets"],
-            filas: [
-              ["Nuevos", resumen.abiertos],
-              ["En proceso", resumen.en_proceso],
-              ["Resueltos", resumen.resueltos],
-              ["Cancelados", resumen.cancelados],
-            ],
-          }}
-        >
-          <Donut
-            centroValor={formatoNumero(total)}
-            centroTitulo="tickets"
-            datos={[
-              { etiqueta: "Nuevos", valor: resumen.abiertos, color: SERIES[0] },
-              { etiqueta: "En proceso", valor: resumen.en_proceso, color: SERIES[1] },
-              { etiqueta: "Resueltos", valor: resumen.resueltos, color: SERIES[2] },
-              { etiqueta: "Cancelados", valor: resumen.cancelados, color: GRIS_SIN_DATO },
-            ]}
-          />
-        </ChartCard>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <StatTile
-          icono={Ticket}
-          tono={0}
-          titulo="Tickets"
-          valor={formatoNumero(total)}
-          detalle={`${resumen.resueltos} resueltos`}
-          tendencia={resumen.ultimos_dias.map((d) => d.total)}
-        />
-        <StatTile
-          icono={Inbox}
-          tono={1}
-          titulo="Pendientes"
-          valor={formatoNumero(pendientes)}
-          detalle={`${resumen.en_proceso} en proceso`}
-        />
-        <StatTile
-          icono={Clock}
-          tono={2}
-          titulo="Tiempo medio de resolución"
-          valor={formatearHoras(resumen.tiempo_medio_resolucion_horas)}
-          detalle="Tickets resueltos"
-        />
-        <StatTile
-          icono={MessagesSquare}
-          tono={6}
-          titulo="Conversaciones con Minutito"
-          valor={formatoNumero(resumen.con_minutito)}
-          detalle={total ? `${Math.round((100 * resumen.con_minutito) / total)}% de los tickets` : "Sin tickets"}
-        />
+          </Panel>
+        </div>
       </div>
 
       <ChartCard
@@ -239,59 +243,83 @@ function Clasificador() {
   return (
     <>
       <Seccion
+        numero={2}
         titulo="Calidad del clasificador"
         subtitulo={`Medida con ${m.metodo} sobre ${formatoNumero(cat.tickets)} tickets: cada ticket se predice sin haberlo visto al entrenar. Entrenado el ${fechaYHora(m.entrenado_en)}.`}
       />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel>
-          <div className="text-sm font-medium text-gray-500">Categoría · precisión global</div>
-          <div className="mt-1 text-4xl font-semibold tracking-tight text-noche">{pct(cat.accuracy)}</div>
-          <Estado
-            icono={global >= meta ? CheckCircle2 : AlertTriangle}
-            color={global >= meta ? ESTADO_OK : ESTADO_AVISO}
-            texto={global >= meta ? `Meta de ${meta}% alcanzada` : `Por debajo de la meta de ${meta}%`}
-          />
-          <div className="mt-3">
-            <Meter valor={global} meta={meta} />
-          </div>
-        </Panel>
+      {/* Las tres precisiones en una sola lámina, cada una con su medidor */}
+      <Panel relleno="p-0" className="overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3">
+          {[
+            {
+              titulo: "Categoría · precisión global",
+              valor: global,
+              texto: pct(cat.accuracy),
+              estado: (
+                <Estado
+                  icono={global >= meta ? CheckCircle2 : AlertTriangle}
+                  color={global >= meta ? ESTADO_OK : ESTADO_AVISO}
+                  texto={global >= meta ? `Meta de ${meta}% alcanzada` : `Por debajo de la meta de ${meta}%`}
+                />
+              ),
+            },
+            {
+              titulo:
+                cat.umbral != null
+                  ? `Categoría · con confianza ≥ ${Math.round(cat.umbral * 100)}%`
+                  : "Categoría · con confianza alta",
+              valor: enUmbral ?? 0,
+              texto: pct(cat.precision_en_umbral),
+              estado:
+                enUmbral != null ? (
+                  <Estado
+                    icono={enUmbral >= meta ? CheckCircle2 : AlertTriangle}
+                    color={enUmbral >= meta ? ESTADO_OK : ESTADO_AVISO}
+                    texto={`Cubre el ${Math.round(cat.cobertura_en_umbral * 100)}% de los tickets`}
+                  />
+                ) : (
+                  <Estado icono={AlertTriangle} color={ESTADO_AVISO} texto="Ningún umbral alcanza la meta" />
+                ),
+            },
+            {
+              titulo: "Tipo · precisión global",
+              valor: m.tipo.accuracy * 100,
+              texto: pct(m.tipo.accuracy),
+              estado: (
+                <Estado
+                  icono={m.tipo.accuracy * 100 >= meta ? CheckCircle2 : AlertTriangle}
+                  color={m.tipo.accuracy * 100 >= meta ? ESTADO_OK : ESTADO_AVISO}
+                  texto="Incidencia vs. solicitud"
+                />
+              ),
+            },
+          ].map((c, k) => (
+            <div
+              key={c.titulo}
+              className={`flex flex-col items-center p-5 text-center ${
+                k > 0 ? "border-t border-dashed border-linea md:border-l md:border-t-0" : ""
+              }`}
+            >
+              <div className="font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-gray-500">{c.titulo}</div>
+              <div className="mt-3">
+                <Medidor valor={c.valor} meta={meta} etiqueta={c.titulo} tamano={210} color={SERIES[0]} />
+              </div>
+              <div className="-mt-1 text-4xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112]">
+                {c.texto}
+              </div>
+              {c.estado}
+            </div>
+          ))}
+        </div>
+      </Panel>
 
-        <Panel>
-          <div className="text-sm font-medium text-gray-500">
-            {cat.umbral != null ? `Categoría · con confianza ≥ ${Math.round(cat.umbral * 100)}%` : "Categoría · con confianza alta"}
-          </div>
-          <div className="mt-1 text-4xl font-semibold tracking-tight text-noche">{pct(cat.precision_en_umbral)}</div>
-          {enUmbral != null ? (
-            <Estado
-              icono={enUmbral >= meta ? CheckCircle2 : AlertTriangle}
-              color={enUmbral >= meta ? ESTADO_OK : ESTADO_AVISO}
-              texto={`Cubre el ${Math.round(cat.cobertura_en_umbral * 100)}% de los tickets`}
-            />
-          ) : (
-            <Estado icono={AlertTriangle} color={ESTADO_AVISO} texto="Ningún umbral alcanza la meta" />
-          )}
-          <div className="mt-3">
-            <Meter valor={enUmbral ?? 0} meta={meta} />
-          </div>
-        </Panel>
-
-        <Panel>
-          <div className="text-sm font-medium text-gray-500">Tipo · precisión global</div>
-          <div className="mt-1 text-4xl font-semibold tracking-tight text-noche">{pct(m.tipo.accuracy)}</div>
-          <Estado
-            icono={m.tipo.accuracy * 100 >= meta ? CheckCircle2 : AlertTriangle}
-            color={m.tipo.accuracy * 100 >= meta ? ESTADO_OK : ESTADO_AVISO}
-            texto="Incidencia vs. solicitud"
-          />
-          <div className="mt-3">
-            <Meter valor={m.tipo.accuracy * 100} meta={meta} />
-          </div>
-        </Panel>
-      </div>
-
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
       {m.en_uso && (
-        <Panel className="mt-4">
-          <div className="text-sm font-medium text-gray-500">Acierto en uso real</div>
+        <Panel className="lg:col-span-5">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+            <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+            Acierto en uso real
+          </h3>
           <p className="mt-0.5 text-xs text-gray-400">
             Compara lo que sugirió el SVM con lo que eligió la persona al crear el ticket o corrigió el técnico.
           </p>
@@ -301,7 +329,7 @@ function Clasificador() {
               «Crear ticket».
             </p>
           ) : (
-            <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-6">
               {[
                 ["Categoría", m.en_uso.acierto_categoria, m.en_uso.tickets_categoria],
                 ["Tipo", m.en_uso.acierto_tipo, m.en_uso.tickets_tipo],
@@ -321,7 +349,7 @@ function Clasificador() {
       )}
 
       <ChartCard
-        className="mt-4"
+        className={m.en_uso ? "lg:col-span-7" : "lg:col-span-12"}
         titulo="Precisión y cobertura según la confianza del modelo"
         subtitulo="Al exigir más confianza el modelo acierta más, pero responde menos tickets."
         tabla={{
@@ -341,6 +369,7 @@ function Clasificador() {
           ]}
         />
       </ChartCard>
+      </div>
     </>
   );
 }
@@ -371,7 +400,7 @@ export default function ReportesPage() {
 
       {resumen && (
         <>
-          <Seccion titulo="Plataforma" subtitulo={personal ? "Tickets creados en MinutoDesk" : undefined} />
+          <Seccion numero={1} titulo="Plataforma" subtitulo={personal ? "Tickets creados en MinutoDesk" : undefined} />
           <Plataforma resumen={resumen} personal={personal} />
         </>
       )}

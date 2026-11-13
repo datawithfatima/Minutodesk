@@ -525,6 +525,29 @@ a:hover .cota::after {
   animation: aparecer-suave 0.35s var(--ease-obra) backwards;
 }
 
+/* Tableros: cifras que «se asientan», medidor que se llena y aguja que gira hasta su valor. */
+@keyframes cifra {
+  from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+}
+.anim-cifra {
+  animation: cifra 0.6s var(--ease-obra) backwards;
+}
+@keyframes medidor {
+  from { stroke-dasharray: 0 100; }
+}
+.anim-medidor {
+  animation: medidor 1.3s var(--ease-obra) 0.2s backwards;
+}
+@keyframes aguja {
+  from { transform: rotate(-90deg); }
+  75% { transform: rotate(calc(var(--angulo) + 4deg)); }
+  to { transform: rotate(var(--angulo)); }
+}
+.anim-aguja {
+  transform: rotate(var(--angulo));
+  animation: aguja 1.5s var(--ease-obra) 0.2s backwards;
+}
+
 /* Detalles de la ilustración del acceso */
 @keyframes encender {
   from { opacity: 0; }
