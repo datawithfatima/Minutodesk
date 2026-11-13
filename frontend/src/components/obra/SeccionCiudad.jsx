@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { obtenerCiudad } from "../../api";
+import { Trophy } from "lucide-react";
 import Alert from "../ui/Alert";
 import Spinner from "../ui/Spinner";
 import { ICONO_INSIGNIA } from "./insignias";
@@ -32,7 +33,7 @@ export default function SeccionCiudad() {
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-noche">🏙️ Ciudad MinutoDesk</h2>
+          <h2 className="text-lg font-bold text-noche">Ciudad MinutoDesk</h2>
           <p className="text-sm text-gray-500">
             Cada persona tiene su obra en la ciudad. Con nombre aparece el Top 5{" "}
             {periodo === "mes" ? "de este mes" : "de siempre"}; las demás son de compañeros.
@@ -80,14 +81,19 @@ export default function SeccionCiudad() {
               >
                 <div className="text-xs text-gray-500">#{l.posicion}</div>
                 <div className="truncate font-semibold text-noche">
-                  {l.posicion === 1 && "🏆 "}
-                  {l.es_yo ? "⭐ Tú" : l.nombre}
+                  {l.posicion === 1 && <Trophy size={13} className="mr-1 inline-block -translate-y-px text-amber-600" aria-label="Primer lugar" />}
+                  {l.es_yo ? "Tú" : l.nombre}
                 </div>
                 <div className="text-xs text-gray-600">{l.etapa}</div>
                 <div className="text-xs text-gray-600">
                   {periodo === "mes" ? `${l.puntos_periodo} pts este mes` : `${l.puntos} pts`} · {l.pisos} pisos
                 </div>
-                <div className="mt-0.5 text-sm">{l.insignias.map((i) => ICONO_INSIGNIA[i]).join(" ")}</div>
+                <div className="mt-1 flex gap-1 text-gray-500">
+                  {l.insignias.map((i) => {
+                    const IconoInsignia = ICONO_INSIGNIA[i];
+                    return IconoInsignia ? <IconoInsignia key={i} size={14} aria-hidden="true" /> : null;
+                  })}
+                </div>
               </div>
             ))}
           </div>

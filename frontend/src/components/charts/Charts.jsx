@@ -32,7 +32,9 @@ function useAncho(ref, minimo = 200) {
 
 export function Panel({ className = "", relleno = "p-4 sm:p-5", children }) {
   return (
-    <div className={`min-w-0 rounded-xl border border-linea bg-white shadow-sm ${relleno} ${className}`}>
+    <div
+      className={`lamina min-w-0 rounded-md border border-linea bg-white shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)] ${relleno} ${className}`}
+    >
       {children}
     </div>
   );
@@ -44,14 +46,17 @@ export function ChartCard({ titulo, subtitulo, tabla, className = "", children }
     <Panel className={className}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-noche">{titulo}</h3>
+          <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+            <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+            {titulo}
+          </h3>
           {subtitulo && <p className="mt-0.5 text-xs text-gray-500">{subtitulo}</p>}
         </div>
         {tabla && (
           <button
             type="button"
             onClick={() => setVerTabla((v) => !v)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-linea px-2 py-1 text-xs text-gray-500 hover:bg-marfil"
+            className="btn-obra inline-flex shrink-0 items-center gap-1 rounded-md border border-linea px-2 py-1 text-xs text-gray-500 hover:border-gray-300 hover:bg-marfil hover:text-noche"
           >
             {verTabla ? <BarChart3 size={13} /> : <Table2 size={13} />}
             {verTabla ? "Ver gráfico" : "Ver tabla"}
@@ -94,7 +99,7 @@ function TablaDatos({ columnas, filas }) {
 
 export function SinDatos({ texto = "Todavía no hay datos para mostrar." }) {
   return (
-    <div className="flex h-40 items-center justify-center rounded-lg bg-marfil text-sm text-gray-400">
+    <div className="flex h-40 items-center justify-center rounded-md border border-dashed border-gray-300 bg-marfil text-sm text-gray-400">
       {texto}
     </div>
   );
@@ -129,10 +134,10 @@ export function Sparkline({ valores, color = SERIES[0], ancho = 96, alto = 36 })
 export function StatTile({ icono: Icono, tono = 0, titulo, valor, detalle, tendencia }) {
   const color = SERIES[tono];
   return (
-    <Panel relleno="p-4">
+    <Panel relleno="p-4" className="group h-full">
       <div className="flex items-start justify-between gap-2">
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl"
+          className="flex h-10 w-10 items-center justify-center rounded-md transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-translate-y-0.5 group-hover:rotate-[-4deg]"
           style={{ background: hexA(color, 0.12), color }}
         >
           {Icono && <Icono size={20} />}
@@ -142,8 +147,10 @@ export function StatTile({ icono: Icono, tono = 0, titulo, valor, detalle, tende
           <Sparkline valores={tendencia} color={color} />
         </div>
       </div>
-      <div className="mt-3 text-xs font-medium text-gray-500">{titulo}</div>
-      <div className="mt-0.5 break-words text-2xl font-semibold tracking-tight text-noche sm:text-3xl">{valor}</div>
+      <div className="mt-3 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-gray-500">{titulo}</div>
+      <div className="mt-1 break-words text-2xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112] sm:text-3xl">
+        {valor}
+      </div>
       {detalle && <div className="mt-0.5 text-xs text-gray-400">{detalle}</div>}
     </Panel>
   );
@@ -160,8 +167,8 @@ export function Meter({ valor, meta, color = SERIES[0], pista = AZUL_PISTA, etiq
           {etiquetaMeta ?? `Meta ${meta}%`}
         </div>
       )}
-      <div className="relative h-2.5 w-full rounded-lg" style={{ background: pista }}>
-        <div className="h-full rounded-lg" style={{ width: `${pct}%`, background: color }} />
+      <div className="relative h-2.5 w-full rounded-[3px]" style={{ background: pista }}>
+        <div className="anim-vaciar-x h-full rounded-[3px]" style={{ width: `${pct}%`, background: color }} />
         {meta != null && (
           <div
             className="absolute -top-1.5 h-5 w-0.5 rounded bg-noche"
@@ -181,7 +188,7 @@ export function StackedBar({ segmentos, formato = formatoNumero }) {
   const visibles = segmentos.filter((s) => s.valor > 0);
   return (
     <div ref={tt.ref} className="relative">
-      <div className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-lg bg-gray-100">
+      <div className="anim-vaciar-x flex h-3.5 w-full gap-0.5 overflow-hidden rounded-[3px] bg-gray-100">
         {total > 0 &&
           visibles.map((s, i) => (
             <div
@@ -327,7 +334,7 @@ export function HBars({ datos, color = SERIES[0], nombreValor = "Tickets" }) {
   const total = datos.reduce((s, d) => s + d.valor, 0);
   return (
     <div ref={tt.ref} className="relative space-y-2.5">
-      {datos.map((d) => (
+      {datos.map((d, i) => (
         <div
           key={d.etiqueta}
           tabIndex={0}
@@ -348,8 +355,8 @@ export function HBars({ datos, color = SERIES[0], nombreValor = "Tickets" }) {
           </span>
           <div className="flex flex-1 items-center gap-2">
             <div
-              className="h-2.5 rounded-r-[4px] transition-opacity group-hover:opacity-80"
-              style={{ width: `${(d.valor / max) * 100}%`, minWidth: 3, background: color }}
+              className="anim-vaciar-x h-2.5 rounded-r-[2px] transition-opacity group-hover:opacity-80"
+              style={{ width: `${(d.valor / max) * 100}%`, minWidth: 3, background: color, animationDelay: `${i * 50}ms` }}
             />
             <span className="text-sm font-semibold text-noche">{formatoNumero(d.valor)}</span>
           </div>
@@ -404,10 +411,11 @@ export function ColumnChart({ datos, etiquetaX, color = SERIES[0], parcialUltimo
           return (
             <g key={d.etiqueta}>
               <path
-                d={trazoColumna(x, y(d.valor), ancho, h, 4)}
+                d={trazoColumna(x, y(d.valor), ancho, h, 2)}
                 fill={color}
                 opacity={parcial ? 0.45 : activo === null || activo === i ? 1 : 0.55}
-                style={{ transition: "opacity 120ms" }}
+                className="anim-vaciar-y"
+                style={{ transition: "opacity 120ms", animationDelay: `${i * 35}ms` }}
               />
               {i === iMax && (
                 <text x={x + ancho / 2} y={y(d.valor) - 6} textAnchor="middle" fontSize="11" fontWeight="600" fill={INK.primary}>
@@ -536,7 +544,17 @@ export function LineChart({ etiquetas, series, etiquetaX = (x) => x, formatoValo
                 {area && (
                   <path d={`${trazo(s.valores)} L${x(ult)},${y(0)} L${x(idx[0])},${y(0)} Z`} fill={s.color} opacity="0.1" />
                 )}
-                <path d={trazo(s.valores)} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+                <path
+                  d={trazo(s.valores)}
+                  pathLength={1}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  className="anim-trazar"
+                  style={{ "--largo": 1, animationDuration: "1.4s" }}
+                />
                 <circle cx={x(ult)} cy={y(s.valores[ult])} r="4" fill={s.color} stroke={INK.surface} strokeWidth="2" />
                 {activo !== null && s.valores[activo] != null && (
                   <circle cx={x(activo)} cy={y(s.valores[activo])} r="4.5" fill={s.color} stroke={INK.surface} strokeWidth="2" />

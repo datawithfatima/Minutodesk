@@ -91,7 +91,7 @@ function CancelarTicket({ deshabilitado, onConfirmar }) {
         type="button"
         onClick={() => setAbierto(true)}
         disabled={deshabilitado}
-        className="mt-1 rounded-lg py-1.5 text-sm font-medium text-red-600 transition-colors duration-150 hover:bg-red-50 disabled:opacity-50"
+        className="mt-1 rounded-md py-1.5 text-sm font-medium text-red-600 transition-colors duration-150 hover:bg-red-50 disabled:opacity-50"
       >
         Cancelar ticket
       </button>
@@ -108,7 +108,7 @@ function CancelarTicket({ deshabilitado, onConfirmar }) {
 
   const valido = motivo.trim().length >= MIN_MOTIVO;
   return (
-    <form onSubmit={confirmar} className="mt-1 space-y-2 rounded-xl border border-red-200 bg-red-50/40 p-3">
+    <form onSubmit={confirmar} className="mt-1 space-y-2 rounded-lg border border-red-200 bg-red-50/40 p-3">
       <label htmlFor="motivo-cancelacion" className="block text-sm font-medium text-noche">
         Motivo de la cancelación
       </label>
@@ -264,7 +264,7 @@ export default function TicketDetailPage() {
                 <PrioridadPastilla prioridad={ticket.prioridad} />
                 <button
                   onClick={copiarLink}
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-gray-500 transition-colors duration-150 hover:bg-marfil hover:text-noche"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-gray-500 transition-colors duration-150 hover:bg-marfil hover:text-noche"
                 >
                   {copiado ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
                   {copiado ? "Enlace copiado" : "Copiar enlace"}

@@ -76,7 +76,7 @@ function PasoTicket({ ticket, base, etiqueta, Icono, alFinal = false }) {
     </>
   );
   const cls =
-    "inline-flex h-9 items-center gap-1 rounded-lg border border-linea px-2.5 text-sm font-medium transition-colors duration-150";
+    "inline-flex h-9 items-center gap-1 rounded-md border border-linea px-2.5 text-sm font-medium transition-colors duration-150";
   if (!ticket) {
     return (
       <span aria-disabled="true" aria-label={etiqueta} className={`${cls} cursor-not-allowed text-gray-300`}>
@@ -103,12 +103,12 @@ function BarraDetalle({ base, titulo, lista, seleccionadoId, filtro }) {
   return (
     <nav
       aria-label="Navegación entre tickets"
-      className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-linea bg-white px-2 py-2 sm:px-3"
+      className="mb-4 flex items-center justify-between gap-3 lamina rounded-lg border border-linea bg-white px-2 py-2 sm:px-3"
     >
       <div className="flex min-w-0 items-center gap-2">
         <Link
           to={base}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-noche transition-colors duration-150 hover:bg-marfil"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-noche transition-colors duration-150 hover:bg-marfil"
         >
           <ArrowLeft size={16} aria-hidden="true" />
           {titulo}
@@ -275,7 +275,7 @@ export default function TicketsWorkspace({
                       role="tab"
                       aria-selected={tab === t.key}
                       onClick={() => cambiarTab(t.key)}
-                      className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                      className={`shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
                         tab === t.key
                           ? "bg-noche text-white"
                           : "text-gray-600 ring-1 ring-inset ring-linea hover:bg-marfil"
@@ -401,7 +401,7 @@ export default function TicketsWorkspace({
                 disabled={paginaSegura <= 1}
                 onClick={() => setPagina((p) => p - 1)}
                 aria-label="Página anterior"
-                className="rounded-lg border border-linea bg-white p-1.5 hover:bg-marfil disabled:opacity-40"
+                className="rounded-md border border-linea bg-white p-1.5 hover:bg-marfil disabled:opacity-40"
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
@@ -412,7 +412,7 @@ export default function TicketsWorkspace({
                 disabled={paginaSegura >= totalPaginas}
                 onClick={() => setPagina((p) => p + 1)}
                 aria-label="Página siguiente"
-                className="rounded-lg border border-linea bg-white p-1.5 hover:bg-marfil disabled:opacity-40"
+                className="rounded-md border border-linea bg-white p-1.5 hover:bg-marfil disabled:opacity-40"
               >
                 <ChevronRight size={16} aria-hidden="true" />
               </button>

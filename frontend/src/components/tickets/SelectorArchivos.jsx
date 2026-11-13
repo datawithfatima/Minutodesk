@@ -40,7 +40,7 @@ export default function SelectorArchivos({ archivos, onCambio, limites }) {
           setArrastrando(false);
           agregar(e.dataTransfer.files);
         }}
-        className={`flex flex-wrap items-center gap-3 rounded-lg border border-dashed p-4 text-sm transition-colors ${
+        className={`flex flex-wrap items-center gap-3 rounded-md border border-dashed p-4 text-sm transition-colors ${
           arrastrando ? "border-noche bg-marfil" : "border-gray-300"
         }`}
       >
@@ -48,7 +48,7 @@ export default function SelectorArchivos({ archivos, onCambio, limites }) {
           type="button"
           onClick={() => entrada.current?.click()}
           disabled={archivos.length >= maximo}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Paperclip size={15} /> Adjuntar archivos
         </button>
@@ -73,7 +73,7 @@ export default function SelectorArchivos({ archivos, onCambio, limites }) {
       {archivos.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {archivos.map((f, i) => (
-            <li key={`${f.name}-${i}`} className="flex items-center gap-2 rounded-lg bg-marfil px-3 py-1.5 text-sm">
+            <li key={`${f.name}-${i}`} className="flex items-center gap-2 rounded-md bg-marfil px-3 py-1.5 text-sm">
               <FileText size={15} className="shrink-0 text-gray-400" />
               <span className="min-w-0 flex-1 truncate text-gray-800" title={f.name}>
                 {f.name}

@@ -83,7 +83,7 @@ function SolucionEsperada({ item, onGuardar }) {
   }
 
   return (
-    <div className="rounded-xl border border-green-200 bg-green-50 px-3.5 py-2.5">
+    <div className="rounded-lg border border-green-200 bg-green-50 px-3.5 py-2.5">
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-green-800">Qué se debía hacer</span>
         <button

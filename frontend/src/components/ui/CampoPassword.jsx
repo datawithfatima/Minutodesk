@@ -14,7 +14,7 @@ export default function CampoPassword({ id, className = "", ...props }) {
         aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
         aria-pressed={visible}
         aria-controls={id}
-        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-gray-400 transition-colors duration-150 hover:text-noche"
+        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-gray-400 transition-colors duration-150 hover:text-noche"
       >
         {visible ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
       </button>

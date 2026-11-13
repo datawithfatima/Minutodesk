@@ -41,44 +41,62 @@ export default function DashboardPage() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
       <div className="min-w-0 space-y-4 lg:col-span-2">
-        <Panel className="flex items-center justify-between gap-4 overflow-hidden">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-noche">¡Hola, {usuario?.nombre?.split(" ")[0]}!</h1>
-            <p className="mb-2 text-gray-500">¿En qué podemos ayudarte hoy?</p>
-            <p className="max-w-md text-sm text-gray-500">
+        {/* Bienvenida como lámina de plano: grafito con cuadrícula, cota y franja de obra. */}
+        <section className="relative flex items-center justify-between gap-4 overflow-hidden rounded-lg bg-noche p-5 text-white shadow-[0_1px_0_rgb(0_0_0/0.2)] sm:p-6">
+          <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full">
+            <defs>
+              <pattern id="trama-bienvenida" width="24" height="24" patternUnits="userSpaceOnUse">
+                <path d="M24 0H0v24" fill="none" stroke="#fff" strokeOpacity=".05" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#trama-bienvenida)" />
+          </svg>
+          <span aria-hidden="true" className="franja-obra absolute inset-x-0 bottom-0 h-1.5" />
+          <div className="relative min-w-0">
+            <p className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-casco">
+              Mesa de ayuda · {new Date().toLocaleDateString("es-EC", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
+            <h1 className="text-[26px] font-bold leading-tight text-white sm:text-3xl">¡Hola, {usuario?.nombre?.split(" ")[0]}!</h1>
+            <p className="mb-2 text-white/75">¿En qué podemos ayudarte hoy?</p>
+            <p className="max-w-md text-sm text-white/60">
               Crea un ticket, revisa el estado de tus solicitudes o cuéntale tu problema a Minutito.
             </p>
-            <div className="mt-4 grid grid-cols-1 gap-2 min-[420px]:flex min-[420px]:flex-wrap">
+            <div className="mt-5 grid grid-cols-1 gap-2 min-[420px]:flex min-[420px]:flex-wrap">
               <Link
                 to="/usuario/nuevo-ticket"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-acento px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors duration-150 hover:bg-acento-600"
+                className="btn-obra inline-flex h-10 items-center justify-center gap-2 rounded-md bg-acento px-4 text-sm font-semibold text-white hover:bg-acento-600"
               >
                 <Plus size={16} /> Crear ticket
               </Link>
               {/* En móvil el chat queda debajo: este atajo lleva directo a él. */}
               <a
                 href="#minutito"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-linea bg-white px-4 py-2 text-sm font-medium text-noche transition-colors duration-150 hover:border-gray-300 hover:bg-marfil lg:hidden"
+                className="btn-obra inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/[0.06] px-4 text-sm font-semibold text-white hover:border-white/40 hover:bg-white/10 lg:hidden"
               >
                 <Bot size={16} /> Hablar con Minutito
               </a>
               <Link
                 to="/usuario/mis-tickets"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-linea bg-white px-4 py-2 text-sm font-medium text-noche transition-colors duration-150 hover:border-gray-300 hover:bg-marfil"
+                className="btn-obra inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/[0.06] px-4 text-sm font-semibold text-white hover:border-white/40 hover:bg-white/10"
               >
                 Ver mis tickets
               </Link>
             </div>
           </div>
-          <img
-            src="/img/robot-minutito.jpg"
-            alt="Minutito"
-            className="hidden h-32 w-32 shrink-0 object-contain sm:block"
-          />
-        </Panel>
+          <div className="group relative hidden shrink-0 sm:block">
+            {/* Minutito sobre su «lote»: un pedestal con cota, como una maqueta. */}
+            <div className="relative h-36 w-36 rounded-full bg-white/[0.06] p-2 ring-1 ring-white/10">
+              <img
+                src="/img/robot-minutito.jpg"
+                alt="Minutito"
+                className="anim-saludo h-full w-full rounded-full bg-white object-contain p-1.5 transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-translate-y-1 group-hover:-rotate-3"
+              />
+            </div>
+          </div>
+        </section>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-          <Link to="/usuario/mis-tickets" className="rounded-xl transition-transform duration-150 hover:-translate-y-0.5">
+          <Link to="/usuario/mis-tickets" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
             <StatTile
               icono={Ticket}
               tono={0}
@@ -89,7 +107,7 @@ export default function DashboardPage() {
               tendencia={resumen?.ultimos_dias.some((d) => d.total) ? resumen.ultimos_dias.map((d) => d.total) : undefined}
             />
           </Link>
-          <Link to="/usuario/mis-tickets" className="rounded-xl transition-transform duration-150 hover:-translate-y-0.5">
+          <Link to="/usuario/mis-tickets" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
             <StatTile
               icono={Inbox}
               tono={1}
@@ -98,7 +116,7 @@ export default function DashboardPage() {
               detalle={resumen ? `${resumen.en_proceso} en proceso` : undefined}
             />
           </Link>
-          <Link to="/usuario/historico" className="rounded-xl transition-transform duration-150 hover:-translate-y-0.5">
+          <Link to="/usuario/historico" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
             <StatTile
               icono={CheckCircle2}
               tono={2}
@@ -107,7 +125,7 @@ export default function DashboardPage() {
               detalle="Consultas resueltas sin ticket"
             />
           </Link>
-          <Link to="/usuario/logros" className="rounded-xl transition-transform duration-150 hover:-translate-y-0.5">
+          <Link to="/usuario/logros" className="block rounded-md transition-transform duration-200 hover:-translate-y-0.5">
             <StatTile
               icono={Trophy}
               tono={3}

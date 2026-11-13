@@ -39,7 +39,7 @@ export default function MenuUsuario({ usuario, onLogout }) {
   }, [abierto]);
 
   const item =
-    "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors duration-150 focus-visible:outline-none";
+    "flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm transition-colors duration-150 focus-visible:outline-none";
 
   return (
     <div ref={contenedor} className="relative">
@@ -53,9 +53,9 @@ export default function MenuUsuario({ usuario, onLogout }) {
         aria-haspopup="menu"
         aria-expanded={abierto}
         aria-label={`Cuenta de ${usuario?.nombre ?? "usuario"}`}
-        className="flex min-w-0 items-center gap-2.5 rounded-xl p-1 pr-1.5 transition-colors duration-150 hover:bg-marfil sm:pr-2"
+        className="flex min-w-0 items-center gap-2.5 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-marfil sm:pr-2"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-noche text-xs font-semibold text-white">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-noche text-xs font-semibold text-casco">
           {iniciales}
         </span>
         <span className="hidden min-w-0 text-left sm:block">
@@ -75,12 +75,13 @@ export default function MenuUsuario({ usuario, onLogout }) {
         <div
           role="menu"
           aria-label="Opciones de la cuenta"
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 rounded-xl border border-linea bg-white p-1.5 shadow-[0_12px_32px_-12px_rgba(16,27,48,0.25)]"
+          className="anim-desplegar absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-md border border-linea bg-white p-1.5 pt-[9px] shadow-[0_16px_32px_-12px_rgb(27_30_34/0.3)]"
         >
+          <span aria-hidden="true" className="franja-obra absolute inset-x-0 top-0 h-[3px]" />
           <div className="border-b border-linea px-3 pb-2.5 pt-2">
             <div className="truncate text-sm font-semibold text-noche">{usuario?.nombre}</div>
             {usuario?.email && <div className="truncate text-xs text-gray-500">{usuario.email}</div>}
-            <div className="mt-1.5 inline-flex rounded-full bg-acento-50 px-2 py-0.5 text-[11px] font-medium text-acento-600">
+            <div className="mt-1.5 inline-flex rounded bg-acento-50 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-acento-600">
               {ETIQUETA_ROL[usuario?.rol] || usuario?.rol}
             </div>
           </div>

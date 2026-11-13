@@ -49,18 +49,19 @@ export default function Avisos() {
         aria-haspopup="true"
         aria-expanded={abierto}
         aria-label={total ? `Avisos: ${total} ${total === 1 ? "pendiente" : "pendientes"}` : "Avisos: nada pendiente"}
-        className="relative rounded-lg p-2 text-gray-600 transition-colors duration-150 hover:bg-marfil"
+        className="btn-obra relative rounded-md p-2 text-gray-600 hover:bg-marfil"
       >
-        <Bell size={20} aria-hidden="true" />
+        <Bell size={20} aria-hidden="true" className={total > 0 ? "anim-gancho" : ""} key={total} />
         {total > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-acento px-1 text-[10px] font-semibold leading-none text-white">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-acento px-1 font-mono text-[10px] font-semibold leading-none text-white">
             {total > 9 ? "9+" : total}
           </span>
         )}
       </button>
 
       {abierto && (
-        <div className="absolute right-0 z-40 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-linea bg-white shadow-lg">
+        <div className="anim-desplegar absolute right-0 z-40 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-md border border-linea bg-white shadow-[0_16px_32px_-12px_rgb(27_30_34/0.3)]">
+          <div className="franja-obra h-[3px]" aria-hidden="true" />
           <div className="border-b border-linea px-4 py-2.5 text-sm font-semibold text-noche">Avisos</div>
           {total === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-gray-500">No tienes nada pendiente.</p>

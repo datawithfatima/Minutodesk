@@ -1,4 +1,4 @@
-import { Bot, Building2, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket } from "lucide-react";
+import { Building2, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
@@ -23,18 +23,24 @@ function MinutitoAcceso() {
   return (
     <Link
       to="/usuario#minutito"
-      className="group mx-3 mb-3 block rounded-xl border border-white/10 bg-white/[0.04] p-3 transition-colors duration-150 hover:border-acento/60 hover:bg-white/[0.07]"
+      className="group relative mx-3 mb-3 block overflow-hidden rounded-md border border-white/10 bg-white/[0.04] p-3 transition-colors duration-150 hover:border-casco/60 hover:bg-white/[0.07]"
     >
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-acento text-white">
-          <Bot size={16} aria-hidden="true" />
-        </div>
+        <img
+          src="/img/robot-minutito.jpg"
+          alt=""
+          className="h-9 w-9 rounded-md bg-white object-contain p-0.5 transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-rotate-6 group-hover:scale-110"
+        />
         <div className="min-w-0">
           <div className="text-xs font-semibold text-white">Minutito</div>
           <div className="text-[11px] text-noche-300">Tu asistente de soporte</div>
         </div>
       </div>
-      <span className="mt-2 block text-xs text-white/80 group-hover:text-white">Pídele ayuda ahora →</span>
+      <span className="mt-2 flex items-center justify-between text-xs text-white/80 group-hover:text-white">
+        Pídele ayuda ahora
+        <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+      </span>
+      <span aria-hidden="true" className="franja-obra absolute inset-x-0 bottom-0 h-[3px] origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
     </Link>
   );
 }

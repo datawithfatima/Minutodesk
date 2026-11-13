@@ -117,7 +117,7 @@ export default function ArchivosTicket({ ticketId, resuelto, avisoInicial, onCam
       )}
 
       {adjuntos && adjuntos.length > 0 && (
-        <ul className="divide-y divide-gray-100 rounded-lg border border-linea">
+        <ul className="divide-y divide-gray-100 rounded-md border border-linea">
           {adjuntos.map((a) => {
             const Icono = iconoDe(a.nombre_original);
             return (
@@ -134,7 +134,7 @@ export default function ArchivosTicket({ ticketId, resuelto, avisoInicial, onCam
                 <button
                   onClick={() => bajar(a)}
                   aria-label={`Descargar ${a.nombre_original}`}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-marfil"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-marfil"
                 >
                   <Download size={13} /> <span className="hidden sm:inline">Descargar</span>
                 </button>
@@ -158,7 +158,7 @@ export default function ArchivosTicket({ ticketId, resuelto, avisoInicial, onCam
           <button
             onClick={() => entrada.current?.click()}
             disabled={subiendo}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-marfil disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-marfil disabled:opacity-50"
           >
             {subiendo ? <Spinner size="sm" /> : <Paperclip size={15} />} Adjuntar archivo
           </button>

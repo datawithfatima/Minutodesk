@@ -20,7 +20,7 @@ export default function Sidebar({
   const location = useLocation();
 
   const tema = dark
-    ? "bg-noche text-white"
+    ? "bg-noche text-white lg:border-r lg:border-black/40"
     : "border-r border-linea bg-white";
   const cajon = abierto
     ? "max-lg:translate-x-0"
@@ -56,7 +56,7 @@ export default function Sidebar({
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar menú"
-            className={`rounded-lg p-1.5 ${
+            className={`rounded-md p-1.5 ${
               dark ? "text-noche-300 hover:bg-white/10 hover:text-white" : "text-gray-500 hover:bg-marfil"
             }`}
           >
@@ -71,12 +71,20 @@ export default function Sidebar({
         )}
 
         <nav className="flex-1 space-y-0.5 px-3 py-4" aria-label="Secciones">
+          <p
+            aria-hidden="true"
+            className={`mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.16em] ${
+              dark ? "text-noche-300/70" : "text-gray-400"
+            }`}
+          >
+            Secciones
+          </p>
           {navItems.map((item) => {
             if (item.disabled) {
               return (
                 <div
                   key={item.label}
-                  className={`flex cursor-not-allowed items-center justify-between rounded-lg px-3 py-2 text-sm ${
+                  className={`flex cursor-not-allowed items-center justify-between rounded-md px-3 py-2 text-sm ${
                     dark ? "text-noche-300/60" : "text-gray-300"
                   }`}
                   title="Próximamente"
@@ -86,7 +94,7 @@ export default function Sidebar({
                     {item.label}
                   </span>
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                    className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${
                       dark ? "bg-white/5 text-noche-300" : "bg-gray-100 text-gray-400"
                     }`}
                   >
@@ -100,10 +108,10 @@ export default function Sidebar({
               ? item.isActive(location.pathname)
               : location.pathname === item.to;
             const activoCls = dark
-              ? "bg-white/[0.08] font-medium text-white"
-              : "bg-acento-50 font-medium text-noche";
+              ? "bg-white/[0.07] font-semibold text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]"
+              : "bg-acento-50 font-semibold text-noche";
             const inactivoCls = dark
-              ? "text-noche-300 hover:bg-white/[0.05] hover:text-white"
+              ? "text-noche-300 hover:bg-white/[0.04] hover:text-white"
               : "text-gray-600 hover:bg-marfil hover:text-noche";
 
             return (
@@ -111,23 +119,30 @@ export default function Sidebar({
                 <Link
                   to={item.to}
                   aria-current={activo ? "page" : undefined}
-                  className={`relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150 lg:py-2 ${
+                  className={`group/nav relative flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors duration-150 lg:py-2 ${
                     activo ? activoCls : inactivoCls
                   }`}
                 >
-                  {/* Barra de acento: la sección activa se reconoce también por forma, no solo por color. */}
+                  {/* Viga de acento: la sección activa se reconoce también por forma, no solo por color.
+                      Crece desde el centro como una columna recién vaciada. */}
                   {activo && (
                     <span
                       aria-hidden="true"
-                      className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-acento"
+                      className={`viga absolute inset-y-1 left-0 w-[3px] rounded-r-[1px] ${dark ? "bg-casco" : "bg-acento"}`}
                     />
                   )}
-                  <item.icon size={17} aria-hidden="true" className={activo ? "text-white" : ""} />
-                  {item.label}
+                  <item.icon
+                    size={17}
+                    aria-hidden="true"
+                    className={`shrink-0 transition-transform duration-200 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover/nav:-translate-y-0.5 ${
+                      activo ? (dark ? "text-casco" : "text-acento") : ""
+                    }`}
+                  />
+                  <span className="cota">{item.label}</span>
                 </Link>
                 {item.badge != null && (
                   <span
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ${
                       dark ? "bg-white/10 text-white" : "bg-gray-200 text-gray-700"
                     }`}
                   >
@@ -143,7 +158,7 @@ export default function Sidebar({
 
         {footer && (
           <p
-            className={`border-t px-4 py-3 text-center text-[11px] leading-relaxed ${
+            className={`border-t px-4 py-3 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.08em] ${
               dark ? "border-white/10 text-noche-300/80" : "border-linea text-gray-400"
             }`}
           >

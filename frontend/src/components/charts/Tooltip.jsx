@@ -35,7 +35,7 @@ export function useTooltip() {
   const capa = tip ? (
     <div
       role="tooltip"
-      className="pointer-events-none absolute z-20 min-w-[130px] rounded-lg border border-linea bg-white px-3 py-2 text-xs shadow-lg"
+      className="pointer-events-none absolute z-20 min-w-[130px] rounded-md border border-linea bg-white px-3 py-2 text-xs shadow-lg"
       style={{ left: tip.x, top: tip.y, transform: "translate(-50%, calc(-100% - 12px))" }}
     >
       {tip.contenido.titulo && <div className="mb-1 text-gray-500">{tip.contenido.titulo}</div>}

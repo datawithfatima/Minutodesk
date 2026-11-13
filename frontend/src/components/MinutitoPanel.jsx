@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, Plus, Send, Ticket } from "lucide-react";
+import { CheckCircle2, Plus, Send, Ticket } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -46,7 +46,7 @@ function BorradorTicket({ conversacionId, onCancelar }) {
 
   if (!catalogos) {
     return (
-      <div className="rounded-xl border border-linea bg-white p-3 text-sm text-gray-500">
+      <div className="lamina rounded-lg border border-linea bg-white p-3 text-sm text-gray-500">
         {error ? <span className="text-red-600">{error}</span> : <><Spinner size="sm" /> Preparando tu ticket con lo que conversamos…</>}
       </div>
     );
@@ -87,7 +87,7 @@ function BorradorTicket({ conversacionId, onCancelar }) {
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3 rounded-xl border border-acento/30 bg-acento-50/40 p-3 text-sm">
+    <form onSubmit={enviar} className="space-y-3 rounded-lg border border-acento/30 bg-acento-50/40 p-3 text-sm">
       <div className="font-semibold text-noche">Tu ticket para el equipo de sistemas</div>
       <p className="text-xs text-gray-600">Lo armé con nuestra conversación. Revísalo y cámbialo si hace falta.</p>
       {error && <p className="text-red-600">{error}</p>}
@@ -131,7 +131,7 @@ function BorradorTicket({ conversacionId, onCancelar }) {
         </div>
       </div>
       {esAlta ? (
-        <p className="rounded-lg bg-white p-2 text-gray-700">
+        <p className="rounded-md bg-white p-2 text-gray-700">
           Las altas de colaboradores, accesos y permisos van en su propio formulario.{" "}
           <Link to="/usuario/nuevo-ticket" className="font-medium text-acento underline">
             Ir al formulario
@@ -183,14 +183,14 @@ function Burbuja({ rol, texto, escribiendo }) {
   if (rol === "usuario") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-noche px-3.5 py-2.5 text-sm text-white">
+        <div className="anim-colocar max-w-[85%] origin-bottom-right whitespace-pre-wrap break-words rounded-2xl rounded-br-[4px] bg-noche px-3.5 py-2.5 text-sm text-white">
           {texto}
         </div>
       </div>
     );
   }
   return (
-    <div className="max-w-[94%] break-words rounded-2xl rounded-tl-md border border-linea bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-700">
+    <div className="anim-colocar max-w-[94%] origin-top-left break-words rounded-2xl rounded-tl-[4px] border border-linea bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-700">
       {texto ? <Markdown texto={texto} /> : null}
       {escribiendo && (
         <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
@@ -284,14 +284,25 @@ export default function MinutitoPanel() {
   const puedeActuar = conversacion && hayRespuesta && !escribiendo && !resuelta;
 
   return (
-    <div className="flex h-full max-h-[calc(100dvh-7rem)] min-h-[28rem] flex-col rounded-xl border border-linea bg-white shadow-[0_1px_2px_rgba(16,27,48,0.04)]">
-      <div className="flex items-center justify-between gap-3 border-b border-gray-100 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-acento text-white">
-            <Bot size={18} aria-hidden="true" />
-          </div>
+    <div className="relative flex h-full max-h-[calc(100dvh-7rem)] min-h-[28rem] flex-col overflow-hidden rounded-lg border border-linea bg-white shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)]">
+      <span aria-hidden="true" className="franja-obra absolute inset-x-0 top-0 h-[3px]" />
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/70 p-4 pt-[19px]">
+        <div className="group flex items-center gap-3">
+          <span className="relative">
+            <img
+              src="/img/robot-minutito.jpg"
+              alt=""
+              className={`h-10 w-10 rounded-md border border-linea bg-white object-contain p-0.5 transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-rotate-6 ${
+                escribiendo ? "anim-asentir" : ""
+              }`}
+            />
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-[3px] border-2 border-white bg-green-600"
+            />
+          </span>
           <div>
-            <div className="text-sm font-semibold text-noche">Minutito</div>
+            <div className="text-sm font-bold text-noche">Minutito</div>
             <div className="text-xs text-gray-500">Asistente virtual de soporte</div>
           </div>
         </div>
@@ -300,7 +311,7 @@ export default function MinutitoPanel() {
             type="button"
             onClick={empezarDeNuevo}
             disabled={escribiendo}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-marfil hover:text-noche"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-marfil hover:text-noche"
           >
             <Plus size={14} /> Nueva conversación
           </button>
@@ -317,8 +328,15 @@ export default function MinutitoPanel() {
         ))}
 
         {resuelta && (
-          <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-            <CheckCircle2 size={16} /> ¡Qué bueno que se resolvió! Ganaste 10 puntos de autoservicio.
+          <div className="relative flex items-center gap-2 overflow-hidden rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+            {/* Celebración de obra: el sello de «resuelto» se estampa y sube un piso con los puntos. */}
+            <CheckCircle2 size={16} className="anim-sello shrink-0" /> ¡Qué bueno que se resolvió! Ganaste 10 puntos de autoservicio.
+            <span
+              aria-hidden="true"
+              className="anim-sube-puntos absolute right-3 top-1/2 rounded-[3px] bg-casco px-1.5 py-0.5 font-mono text-[11px] font-semibold text-noche"
+            >
+              +10
+            </span>
           </div>
         )}
 
@@ -359,7 +377,7 @@ export default function MinutitoPanel() {
             id="mensaje-minutito"
             rows={1}
             maxLength={2000}
-            className="max-h-32 min-h-10 min-w-0 flex-1 resize-none overflow-y-hidden rounded-2xl border border-linea bg-marfil px-4 py-2 text-base leading-6 transition-colors duration-150 focus:border-acento focus:bg-white focus:outline-none focus-visible:outline-none focus:ring-3 focus:ring-acento/25 sm:text-sm"
+            className="campo-obra max-h-32 min-h-10 min-w-0 flex-1 resize-none overflow-y-hidden rounded-md border border-linea bg-gray-50 px-4 py-2 text-base leading-6 transition-colors duration-150 focus:border-acento focus:bg-white focus:outline-none focus-visible:outline-none focus:ring-3 focus:ring-acento/25 sm:text-sm"
             value={texto}
             onChange={(e) => {
               setTexto(e.target.value);
@@ -382,9 +400,13 @@ export default function MinutitoPanel() {
             type="submit"
             disabled={escribiendo || !texto.trim()}
             aria-label="Enviar mensaje"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-acento text-white transition-colors duration-150 hover:bg-acento-600 disabled:bg-acento/40"
+            className="btn-obra group flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-acento text-white hover:bg-acento-600 disabled:bg-acento/40"
           >
-            {escribiendo ? <Spinner size="sm" /> : <Send size={16} />}
+            {escribiendo ? (
+              <Spinner size="sm" />
+            ) : (
+              <Send size={16} className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            )}
           </button>
         </form>
       )}

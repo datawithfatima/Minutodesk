@@ -53,7 +53,7 @@ function Solicitud({ a, onRespondida }) {
           <Badge color={estado.color}>{estado.texto}</Badge>
         </div>
 
-        <div className="rounded-lg bg-marfil px-3 py-2 text-sm">
+        <div className="rounded-md bg-marfil px-3 py-2 text-sm">
           <div className="text-xs font-medium text-gray-500">Qué se debe aprobar</div>
           <p className="whitespace-pre-line break-words text-noche">{a.descripcion}</p>
         </div>

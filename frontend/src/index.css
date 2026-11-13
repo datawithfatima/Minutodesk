@@ -1,23 +1,56 @@
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
 @import "tailwindcss";
 
-/* Identidad de MinutoDesk: azul noche, marfil frío, superficies blancas y un solo acento.
-   Verde, ámbar y rojo quedan reservados para estados y alertas. */
+/* ──────────────────────────────────────────────────────────────────────────────
+   Identidad de MinutoDesk para Minutocorp (constructora y promotora inmobiliaria).
+   El lenguaje visual sale de la obra y del plano arquitectónico:
+   · grafito (asfalto, acero) para las superficies oscuras y el texto;
+   · hormigón claro para el fondo, con la cuadrícula del papel de plano;
+   · naranja de señalización para lo que se puede tocar;
+   · amarillo de casco y chaleco (el de Minutito) solo para marcas y franjas de seguridad.
+   Verde, ámbar y rojo quedan reservados para estados y alertas.
+   Los nombres de los tokens (noche, marfil, acento…) se mantienen para no tocar las pantallas.
+   ────────────────────────────────────────────────────────────────────────────── */
 @theme {
-  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Archivo Variable", "Archivo", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  --color-noche: #101b30;
-  --color-noche-700: #1b2844;
-  --color-noche-600: #26355a;
-  --color-noche-300: #8e9bb6;
+  /* Grafito */
+  --color-noche: #1b1e22;
+  --color-noche-700: #262a30;
+  --color-noche-600: #343941;
+  --color-noche-300: #a3a7ad;
 
-  --color-marfil: #f6f7fa;
-  --color-linea: #e3e6ee;
+  /* Hormigón y líneas de plano */
+  --color-marfil: #f3f1ec;
+  --color-linea: #e1ddd3;
 
-  --color-acento: #3458eb;
-  --color-acento-600: #2747cc;
-  --color-acento-50: #eef1fe;
-  --color-acento-100: #dce3fd;
+  /* Naranja de señalización (texto blanco encima: contraste 5,1:1) */
+  --color-acento: #c2410c;
+  --color-acento-600: #9f3409;
+  --color-acento-50: #fdf3ec;
+  --color-acento-100: #fadfcc;
+
+  /* Amarillo de casco: decorativo, nunca para texto sobre blanco */
+  --color-casco: #f5b800;
+  --color-casco-100: #fff4cc;
+
+  /* Grises cálidos de hormigón en lugar de los grises azulados por defecto */
+  --color-gray-50: #f8f7f4;
+  --color-gray-100: #efede8;
+  --color-gray-200: #e1ddd5;
+  --color-gray-300: #c9c4ba;
+  --color-gray-400: #9b968c;
+  --color-gray-500: #6f6b63;
+  --color-gray-600: #57544e;
+  --color-gray-700: #423f3b;
+  --color-gray-800: #2c2a27;
+  --color-gray-900: #1c1b19;
+
+  --ease-obra: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-grua: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 html {
@@ -31,7 +64,38 @@ body {
   background-color: var(--color-marfil);
   color: var(--color-noche);
   font-family: var(--font-sans);
-  font-feature-settings: "cv11", "ss01";
+  font-variation-settings: "wdth" 100;
+}
+
+/* Títulos con un ancho algo expandido, como la rotulación de un letrero de obra. */
+h1,
+h2 {
+  font-variation-settings: "wdth" 112;
+  letter-spacing: -0.02em;
+}
+h3 {
+  font-variation-settings: "wdth" 106;
+}
+
+/* Cifras y códigos con números del mismo ancho. */
+table,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Encabezados de tabla rotulados como el cuadro de un plano. */
+@layer base {
+  thead th {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+
+::selection {
+  background: var(--color-casco);
+  color: var(--color-noche);
 }
 
 /* Foco siempre visible para quien navega con teclado. */
@@ -46,6 +110,364 @@ body {
   }
 }
 
+/* ───────────── Texturas ───────────── */
+
+/* Papel de plano: cuadrícula fina con una línea más marcada cada 5 módulos. */
+.papel-plano {
+  background-color: var(--color-marfil);
+  background-image:
+    linear-gradient(to right, rgb(27 30 34 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(27 30 34 / 0.045) 1px, transparent 1px),
+    linear-gradient(to right, rgb(27 30 34 / 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(27 30 34 / 0.025) 1px, transparent 1px);
+  background-size:
+    120px 120px,
+    120px 120px,
+    24px 24px,
+    24px 24px;
+  background-attachment: fixed;
+}
+
+/* Franja de seguridad amarilla y grafito. */
+.franja-obra {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-casco) 0 8px,
+    var(--color-noche) 8px 16px
+  );
+}
+
+/* ───────────── Animaciones de obra ───────────── */
+
+/* Al entrar a una pantalla, los bloques se levantan uno tras otro, como pisos. */
+@keyframes levantar {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    clip-path: inset(100% 0 0 0);
+  }
+  60% {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+}
+.anim-levantar > *,
+.anim-levantar > * > * {
+  animation: levantar 0.55s var(--ease-obra) backwards;
+}
+.anim-levantar > * > * {
+  animation-name: aparecer-suave;
+}
+.anim-levantar > :nth-child(2) { animation-delay: 60ms; }
+.anim-levantar > :nth-child(3) { animation-delay: 120ms; }
+.anim-levantar > :nth-child(4) { animation-delay: 180ms; }
+.anim-levantar > :nth-child(n + 5) { animation-delay: 240ms; }
+.anim-levantar > * > :nth-child(1) { animation-delay: 80ms; }
+.anim-levantar > * > :nth-child(2) { animation-delay: 140ms; }
+.anim-levantar > * > :nth-child(3) { animation-delay: 200ms; }
+.anim-levantar > * > :nth-child(4) { animation-delay: 260ms; }
+.anim-levantar > * > :nth-child(n + 5) { animation-delay: 320ms; }
+
+@keyframes aparecer-suave {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Cinta de seguridad que recorre la parte superior al cambiar de pantalla. */
+@keyframes cinta-avance {
+  0% { transform: scaleX(0); opacity: 1; }
+  70% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+@keyframes cinta-desliza {
+  to { background-position: 32px 0; }
+}
+.cinta-ruta {
+  transform-origin: left;
+  animation:
+    cinta-avance 0.75s var(--ease-obra) forwards,
+    cinta-desliza 0.4s linear infinite;
+}
+
+/* Desplegar menús como un plano que se desenrolla. */
+@keyframes desplegar {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.92);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+}
+.anim-desplegar {
+  transform-origin: top;
+  animation: desplegar 0.24s var(--ease-obra) both;
+}
+
+/* La campanita se balancea como el gancho de una grúa cuando hay avisos. */
+@keyframes gancho {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  45% { transform: rotate(-10deg); }
+  65% { transform: rotate(6deg); }
+  85% { transform: rotate(-3deg); }
+}
+.anim-gancho {
+  transform-origin: 50% 2px;
+  animation: gancho 1.4s var(--ease-obra) 0.4s 1;
+}
+
+/* Sello de inspección: los avisos de éxito se «estampan». */
+@keyframes sello {
+  0% { transform: scale(1.9) rotate(-18deg); opacity: 0; }
+  60% { transform: scale(0.92) rotate(3deg); opacity: 1; }
+  100% { transform: none; }
+}
+.anim-sello {
+  animation: sello 0.45s var(--ease-grua) both;
+}
+
+/* Vibración breve de un aviso de error (como un martillo neumático, pero corto). */
+@keyframes vibrar {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(1px); }
+}
+.anim-vibrar {
+  animation: vibrar 0.4s ease-out 1;
+}
+
+/* Barras y medidores que se «vacían» como hormigón: crecen desde la base. */
+@keyframes vaciar-x {
+  from { transform: scaleX(0); }
+}
+@keyframes vaciar-y {
+  from { transform: scaleY(0); }
+}
+.anim-vaciar-x {
+  transform-origin: left;
+  animation: vaciar-x 0.9s var(--ease-obra) backwards;
+}
+.anim-vaciar-y {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: vaciar-y 0.8s var(--ease-obra) backwards;
+}
+
+/* Trazo de plano que se dibuja solo. */
+@keyframes trazar {
+  from { stroke-dashoffset: var(--largo, 600); }
+  to { stroke-dashoffset: 0; }
+}
+.anim-trazar {
+  stroke-dasharray: var(--largo, 600);
+  animation: trazar 2.4s var(--ease-obra) both;
+}
+
+/* Gancho de la grúa del panel de acceso. */
+@keyframes balanceo {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+@keyframes izar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-38px); }
+}
+@keyframes cable {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.708); }
+}
+@keyframes carro {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-70px); }
+}
+
+/* Franjas de «obra en curso» que avanzan despacio (estado En proceso). */
+@keyframes franja-avanza {
+  to { background-position: 16px 0; }
+}
+.obra-en-curso {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgb(194 65 12 / 0.1) 0 4px,
+    transparent 4px 8px
+  );
+  background-size: 16px 16px;
+  animation: franja-avanza 1.6s linear infinite;
+}
+
+/* ───────────── Componentes con comportamiento de obra ───────────── */
+
+/* Botones: se hunden al presionar (como un pisón) y el principal muestra una franja al pasar. */
+@layer components {
+  .btn-obra {
+    position: relative;
+    overflow: hidden;
+  }
+}
+.btn-obra {
+  isolation: isolate;
+  transition:
+    transform 0.12s var(--ease-obra),
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+.btn-obra:not(:disabled):active {
+  transform: translateY(1px) scale(0.98);
+}
+.btn-obra::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  z-index: -1;
+  background-image: repeating-linear-gradient(-45deg, var(--color-casco) 0 6px, transparent 6px 12px);
+  background-size: 17px 3px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s var(--ease-obra);
+}
+.btn-obra:not(:disabled):hover::after {
+  transform: scaleX(1);
+  animation: cinta-desliza 0.6s linear infinite;
+}
+
+/* Campos: al enfocar, una cinta métrica se extiende por la base. */
+.campo-obra {
+  background-image:
+    repeating-linear-gradient(to right, var(--color-acento) 0 1px, transparent 1px 8px),
+    linear-gradient(var(--color-acento), var(--color-acento));
+  background-repeat: no-repeat;
+  background-position:
+    left calc(100% - 2px),
+    left bottom;
+  background-size:
+    0% 4px,
+    0% 2px;
+  transition:
+    background-size 0.45s var(--ease-obra),
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.campo-obra:focus {
+  background-size:
+    100% 4px,
+    100% 2px;
+}
+
+/* Tarjetas: al pasar el cursor aparecen las marcas de esquina de una lámina de plano. */
+@layer components {
+  .lamina {
+    position: relative;
+  }
+}
+.lamina::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+  border-radius: 2px;
+  opacity: 0;
+  transform: scale(1.015);
+  transition:
+    opacity 0.25s,
+    transform 0.35s var(--ease-obra);
+  --m: rgb(194 65 12 / 0.75);
+  background:
+    linear-gradient(var(--m), var(--m)) left top / 10px 1.5px,
+    linear-gradient(var(--m), var(--m)) left top / 1.5px 10px,
+    linear-gradient(var(--m), var(--m)) right top / 10px 1.5px,
+    linear-gradient(var(--m), var(--m)) right top / 1.5px 10px,
+    linear-gradient(var(--m), var(--m)) left bottom / 10px 1.5px,
+    linear-gradient(var(--m), var(--m)) left bottom / 1.5px 10px,
+    linear-gradient(var(--m), var(--m)) right bottom / 10px 1.5px,
+    linear-gradient(var(--m), var(--m)) right bottom / 1.5px 10px;
+  background-repeat: no-repeat;
+}
+.lamina:hover::before,
+a:hover > .lamina::before,
+a:focus-visible > .lamina::before {
+  opacity: 1;
+  transform: none;
+}
+
+/* Enlaces del menú: al pasar se traza una cota bajo el texto. */
+.cota {
+  position: relative;
+}
+.cota::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 5px;
+  background:
+    linear-gradient(currentColor, currentColor) left center / 1px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) right center / 1px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
+  opacity: 0;
+  transform: scaleX(0.3);
+  transition:
+    transform 0.3s var(--ease-obra),
+    opacity 0.2s;
+}
+a:hover .cota::after {
+  opacity: 0.45;
+  transform: none;
+}
+
+/* Viga activa del menú: crece desde el centro como una columna recién vaciada. */
+@keyframes viga {
+  from { transform: scaleY(0); }
+}
+.viga {
+  transform-origin: center;
+  animation: viga 0.35s var(--ease-grua) both;
+}
+
+/* Regla de medición bajo los títulos de pantalla. */
+.regla {
+  height: 8px;
+  background:
+    repeating-linear-gradient(to right, rgb(27 30 34 / 0.22) 0 1px, transparent 1px 8px) left bottom / 100% 4px no-repeat,
+    repeating-linear-gradient(to right, rgb(27 30 34 / 0.35) 0 1px, transparent 1px 40px) left bottom / 100% 8px no-repeat,
+    linear-gradient(rgb(27 30 34 / 0.18), rgb(27 30 34 / 0.18)) left bottom / 100% 1px no-repeat;
+  transform-origin: left;
+  animation: vaciar-x 1s var(--ease-obra) 0.1s backwards;
+}
+
+/* Cargadores: bloques que se apilan (grande) y pisos que suben (pequeño). */
+@keyframes apilar {
+  0%, 15% { transform: translateY(-140%); opacity: 0; }
+  35%, 80% { transform: none; opacity: 1; }
+  100% { transform: none; opacity: 0; }
+}
+.bloque-apila {
+  animation: apilar 1.6s var(--ease-grua) infinite backwards;
+}
+@keyframes piso {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.piso-sube {
+  transform-origin: bottom;
+  animation: piso 0.9s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -54,4 +476,62 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Mensajes del chat: cada burbuja se «coloca» como un bloque que baja la grúa. */
+@keyframes colocar {
+  0% { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  70% { opacity: 1; transform: translateY(1px) scale(1); }
+  100% { transform: none; }
+}
+.anim-colocar {
+  animation: colocar 0.38s var(--ease-grua) backwards;
+}
+
+/* «+10»: los puntos suben como un piso nuevo y se desvanecen. */
+@keyframes sube-puntos {
+  0% { transform: translateY(40%) scale(0.6); opacity: 0; }
+  25% { transform: translateY(-50%) scale(1.1); opacity: 1; }
+  75% { transform: translateY(-120%); opacity: 1; }
+  100% { transform: translateY(-220%); opacity: 0; }
+}
+.anim-sube-puntos {
+  animation: sube-puntos 1.8s var(--ease-obra) 0.3s both;
+}
+
+/* Minutito saluda al llegar a Inicio. */
+@keyframes saludo {
+  0% { transform: translateY(16px) rotate(-8deg); opacity: 0; }
+  55% { transform: translateY(-4px) rotate(4deg); opacity: 1; }
+  75% { transform: rotate(-2deg); }
+  100% { transform: none; }
+}
+.anim-saludo {
+  animation: saludo 0.9s var(--ease-grua) 0.25s backwards;
+}
+
+/* Minutito asiente mientras piensa. */
+@keyframes asentir {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-6deg) translateY(-1px); }
+  75% { transform: rotate(5deg); }
+}
+.anim-asentir {
+  animation: asentir 1.2s ease-in-out infinite;
+}
+
+/* Al cambiar de pestaña, el contenido nuevo sube a su sitio. */
+[role="tabpanel"] {
+  animation: aparecer-suave 0.35s var(--ease-obra) backwards;
+}
+
+/* Detalles de la ilustración del acceso */
+@keyframes encender {
+  from { opacity: 0; }
+}
+.anim-levantar-ventana {
+  animation: encender 0.6s ease-out backwards;
+}
+.anim-aparecer-tarde {
+  animation: encender 0.8s ease-out 1.8s backwards;
 }

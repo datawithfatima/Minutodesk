@@ -200,7 +200,7 @@ export default function NuevoTicketPage() {
                         aria-checked={elegido}
                         key={t.nombre}
                         onClick={() => setTipo(t.nombre)}
-                        className={`relative rounded-lg border p-3 text-left transition-colors ${
+                        className={`relative rounded-md border p-3 text-left transition-colors ${
                           elegido ? "border-noche bg-noche text-white" : "border-linea bg-white hover:border-gray-400"
                         }`}
                       >
@@ -267,7 +267,7 @@ export default function NuevoTicketPage() {
                       </p>
                     )}
                     {automatica && !sugiriendo && (
-                      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                      <div className="flex flex-wrap items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
                         <CheckCircle2 size={16} className="shrink-0" />
                         <span>
                           Clasificado automáticamente como <strong>{sugerencia.categoria}</strong> (
@@ -287,7 +287,7 @@ export default function NuevoTicketPage() {
                     )}
                     {!automatica && sugerencia && !sugiriendo && (
                       <div
-                        className={`mb-2 flex items-start gap-2 rounded-lg px-3 py-2 text-sm ${
+                        className={`mb-2 flex items-start gap-2 rounded-md px-3 py-2 text-sm ${
                           sugerencia.confiable ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900"
                         }`}
                       >
@@ -353,7 +353,7 @@ export default function NuevoTicketPage() {
                         aria-checked={elegida}
                         key={p}
                         onClick={() => setPrioridad(p)}
-                        className={`rounded-lg border p-2.5 text-left transition-colors ${
+                        className={`rounded-md border p-2.5 text-left transition-colors ${
                           elegida ? "border-noche ring-1 ring-noche" : "border-linea hover:border-gray-400"
                         }`}
                       >

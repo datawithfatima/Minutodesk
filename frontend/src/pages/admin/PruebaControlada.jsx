@@ -41,7 +41,7 @@ function Item({ item, onMarcar }) {
           <Badge color={termino.color}>{termino.texto}</Badge>
         </div>
         <p className="text-sm font-medium text-noche">{item.situacion}</p>
-        <div className="rounded-xl border border-green-200 bg-green-50 px-3.5 py-2 text-sm text-gray-700">
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3.5 py-2 text-sm text-gray-700">
           <span className="font-medium text-green-800">Lo que lo arregla: </span>
           {item.arreglo}
         </div>

@@ -3,10 +3,10 @@ import { COLOR_PRIORIDAD, GRIS_SIN_DATO, hexA } from "../charts/tokens";
 export function Pastilla({ texto, color, className = "" }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium text-gray-700 ${className}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium text-gray-700 ${className}`}
       style={{ background: hexA(color, 0.14) }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+      <span className="h-1.5 w-1.5 rounded-[1px]" style={{ background: color }} />
       {texto}
     </span>
   );

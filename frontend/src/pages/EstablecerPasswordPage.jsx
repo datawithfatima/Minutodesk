@@ -69,7 +69,7 @@ export default function EstablecerPasswordPage() {
           </Alert>
           <Link
             to="/login"
-            className="flex h-12 items-center justify-center rounded-lg bg-acento px-5 text-[15px] font-medium text-white shadow-sm transition-colors duration-150 hover:bg-acento-600"
+            className="flex h-12 items-center justify-center rounded-md bg-acento px-5 text-[15px] font-medium text-white shadow-sm transition-colors duration-150 hover:bg-acento-600"
           >
             Ir a iniciar sesión
           </Link>

@@ -2,7 +2,7 @@ import { Building2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { obtenerGamificacion } from "../../api";
 import { obtenerUsuario } from "../../auth";
-import { ICONO_INSIGNIA } from "../../components/obra/insignias";
+import { ICONO_ETAPA, ICONO_INSIGNIA } from "../../components/obra/insignias";
 import SeccionCiudad from "../../components/obra/SeccionCiudad";
 import Alert from "../../components/ui/Alert";
 import Badge from "../../components/ui/Badge";
@@ -11,7 +11,6 @@ import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 
 const ETAPAS = ["Cimientos", "Estructura", "Acabados", "Entrega de llaves"];
-const ICONO_ETAPA = ["🏗️", "🧱", "🪟", "🔑"];
 const INICIO_ETAPA = [0, 50, 150, 300];
 
 /** «Mi obra»: la etapa de la obra propia, sus insignias y la ciudad con el Top 5. */
@@ -45,14 +44,23 @@ export default function GamificacionPage() {
             <Card>
               <Card.Body>
                 <div className="text-sm text-gray-500">Tu obra está en</div>
-                <div className="mt-1 text-2xl font-semibold text-noche">
-                  {ICONO_ETAPA[i]} {detalle.nivel}
+                <div className="mt-1 flex items-center gap-2 text-2xl font-bold text-noche">
+                  {(() => {
+                    const IconoEtapa = ICONO_ETAPA[i];
+                    return IconoEtapa ? (
+                      <span className="anim-sello flex h-9 w-9 items-center justify-center rounded-md bg-noche text-casco">
+                        <IconoEtapa size={18} aria-hidden="true" />
+                      </span>
+                    ) : null;
+                  })()}
+                  {detalle.nivel}
                 </div>
                 <div className="mt-1 text-sm text-gray-600">
                   {detalle.puntos} puntos · {detalle.pisos} pisos
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
-                  <div className="h-full rounded-full bg-acento transition-all" style={{ width: `${avance}%` }} />
+                {/* Avance de la etapa como una barra de obra con franja de seguridad. */}
+                <div className="mt-3 h-2.5 overflow-hidden rounded-[3px] bg-gray-100">
+                  <div className="franja-obra anim-vaciar-x h-full rounded-[3px] transition-all" style={{ width: `${avance}%` }} />
                 </div>
                 <p className="mt-1.5 text-xs text-gray-500">
                   {detalle.siguiente_etapa
@@ -60,15 +68,20 @@ export default function GamificacionPage() {
                     : "¡Obra entregada! Eres experta/o en autoservicio."}
                 </p>
                 <div className="mt-3 flex gap-1">
-                  {ETAPAS.map((e, k) => (
-                    <span
-                      key={e}
-                      title={e}
-                      className={`flex-1 rounded-md py-1 text-center text-sm ${k <= i ? "bg-acento-50" : "bg-gray-50 opacity-40"}`}
-                    >
-                      {ICONO_ETAPA[k]}
-                    </span>
-                  ))}
+                  {ETAPAS.map((e, k) => {
+                    const IconoEtapa = ICONO_ETAPA[k];
+                    return (
+                      <span
+                        key={e}
+                        title={e}
+                        className={`flex flex-1 items-center justify-center rounded-md py-1.5 ${
+                          k <= i ? "bg-acento-50 text-acento" : "bg-gray-50 text-gray-400 opacity-60"
+                        }`}
+                      >
+                        {IconoEtapa && <IconoEtapa size={15} aria-label={e} />}
+                      </span>
+                    );
+                  })}
                 </div>
               </Card.Body>
             </Card>
@@ -79,9 +92,20 @@ export default function GamificacionPage() {
                   {detalle.insignias.map((ins) => (
                     <div
                       key={ins.clave}
-                      className={`rounded-xl border p-3 text-center ${ins.obtenida ? "border-acento/40 bg-acento-50/40" : "border-linea opacity-50 grayscale"}`}
+                      className={`rounded-lg border p-3 text-center ${ins.obtenida ? "border-acento/40 bg-acento-50/40" : "border-linea opacity-50 grayscale"}`}
                     >
-                      <div className="text-2xl">{ICONO_INSIGNIA[ins.clave]}</div>
+                      {(() => {
+                        const IconoInsignia = ICONO_INSIGNIA[ins.clave];
+                        return IconoInsignia ? (
+                          <span
+                            className={`mx-auto flex h-10 w-10 items-center justify-center rounded-md ${
+                              ins.obtenida ? "anim-sello bg-noche text-casco" : "bg-gray-100 text-gray-500"
+                            }`}
+                          >
+                            <IconoInsignia size={20} aria-hidden="true" />
+                          </span>
+                        ) : null;
+                      })()}
                       <div className="mt-1 text-sm font-semibold text-noche">{ins.nombre}</div>
                       <div className="text-xs text-gray-500">{ins.descripcion}</div>
                       {!ins.obtenida && <Badge className="mt-1">Por desbloquear</Badge>}

@@ -37,7 +37,7 @@ export default function ConversacionMinutito({ ticketId, nombre = "El usuario" }
           <div key={m.id} className="flex justify-end">
             <div className="max-w-[90%] sm:max-w-[75%]">
               <div className="mb-0.5 text-right text-[11px] text-gray-400">{nombre}</div>
-              <div className="whitespace-pre-line break-words rounded-2xl rounded-br-md bg-noche px-3.5 py-2.5 text-sm text-white">
+              <div className="whitespace-pre-line anim-colocar break-words rounded-2xl rounded-br-md bg-noche px-3.5 py-2.5 text-sm text-white">
                 {m.texto}
               </div>
             </div>
@@ -47,7 +47,7 @@ export default function ConversacionMinutito({ ticketId, nombre = "El usuario" }
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-acento-50 text-acento ring-1 ring-acento-100">
               <Bot size={14} aria-hidden="true" />
             </span>
-            <div className="max-w-[85%] break-words rounded-2xl rounded-tl-md border border-linea bg-white px-3.5 py-2.5 text-sm text-gray-700 sm:max-w-[75%]">
+            <div className="max-w-[85%] anim-colocar break-words rounded-2xl rounded-tl-md border border-linea bg-white px-3.5 py-2.5 text-sm text-gray-700 sm:max-w-[75%]">
               <Markdown texto={m.texto} />
             </div>
           </div>

@@ -35,7 +35,7 @@ function Mensaje({ m, propio }) {
           {!propio && m.autor_es_personal && " · Soporte"} · {fecha(m.creado_en)}
         </div>
         <div
-          className={`whitespace-pre-line break-words rounded-2xl px-3.5 py-2.5 text-sm ${
+          className={`whitespace-pre-line anim-colocar break-words rounded-2xl px-3.5 py-2.5 text-sm ${
             propio
               ? "rounded-br-md bg-noche text-white"
               : "rounded-tl-md border border-linea bg-white text-gray-700"
@@ -51,7 +51,7 @@ function Mensaje({ m, propio }) {
 function PasoAprobacion({ a }) {
   const estado = ESTADO_APROBACION[a.estado] ?? ESTADO_APROBACION.pendiente;
   return (
-    <div className="rounded-xl border border-dashed border-linea bg-marfil/60 px-4 py-3 text-sm">
+    <div className="rounded-lg border border-dashed border-linea bg-marfil/60 px-4 py-3 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-2 font-medium text-noche">
           <ClipboardCheck size={15} aria-hidden="true" className="text-acento" />
@@ -104,7 +104,7 @@ function FormAprobacion({ ticket, onCreada, onCancelar }) {
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3 rounded-xl border border-linea bg-white p-4">
+    <form onSubmit={enviar} className="space-y-3 lamina rounded-lg border border-linea bg-white p-4">
       <h3 className="text-sm font-semibold text-noche">Solicitar aprobación</h3>
       {error && <Alert variant="danger">{error}</Alert>}
       <div>

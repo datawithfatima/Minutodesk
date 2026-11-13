@@ -15,7 +15,7 @@ function fecha(iso) {
 // Identificador visual de los tickets importados: el prefijo H- los separa de los de la plataforma (#12).
 function IdHistorico({ id }) {
   return (
-    <span className="inline-flex items-center whitespace-nowrap rounded-lg bg-gray-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-gray-600">
+    <span className="inline-flex items-center whitespace-nowrap rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-gray-600">
       H-{id}
     </span>
   );
@@ -69,13 +69,13 @@ function Detalle({ id, onCerrar }) {
           <div>
             <div className="flex items-center gap-2">
               {t && <IdHistorico id={t.id_externo} />}
-              <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800">
                 <Lock size={11} /> Histórico · solo lectura
               </span>
             </div>
             <h2 className="mt-2 text-base font-semibold text-noche">Ticket importado</h2>
           </div>
-          <button onClick={onCerrar} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Cerrar">
+          <button onClick={onCerrar} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Cerrar">
             <X size={18} />
           </button>
         </div>
@@ -96,7 +96,7 @@ function Detalle({ id, onCerrar }) {
               <div>
                 <div className="mb-1 text-xs font-medium text-gray-500">Descripción</div>
                 {t.descripcion ? (
-                  <p className="whitespace-pre-wrap rounded-lg bg-marfil p-3 text-sm leading-relaxed text-gray-800">
+                  <p className="whitespace-pre-wrap rounded-md bg-marfil p-3 text-sm leading-relaxed text-gray-800">
                     {t.descripcion}
                   </p>
                 ) : (
@@ -119,7 +119,7 @@ function Detalle({ id, onCerrar }) {
                 ))}
               </dl>
 
-              <p className="rounded-lg border border-linea p-3 text-xs text-gray-500">
+              <p className="rounded-md border border-linea p-3 text-xs text-gray-500">
                 Viene del CSV de la herramienta anterior. No es un ticket de MinutoDesk: no se puede
                 editar ni asignar, y no cuenta en los indicadores, el ranking ni los puntos.
               </p>
@@ -192,7 +192,7 @@ export default function TicketsImportados() {
 
   return (
     <>
-      <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <Archive size={20} className="mt-0.5 shrink-0 text-amber-700" />
         <div className="text-sm text-amber-900">
           <strong className="font-semibold">Archivo histórico · solo lectura.</strong> Son los tickets del
@@ -208,7 +208,7 @@ export default function TicketsImportados() {
         </Alert>
       )}
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-linea bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-end gap-3 lamina rounded-lg border border-linea bg-white p-4 shadow-sm">
         <div className="w-full min-w-0 lg:w-auto lg:min-w-[220px] lg:flex-1">
           <label className={labelClass}>Buscar</label>
           <div className="relative">
@@ -245,7 +245,7 @@ export default function TicketsImportados() {
         )}
       </div>
 
-      <div className={`overflow-x-auto rounded-xl border border-linea bg-white shadow-sm transition-opacity ${cargando ? "opacity-60" : ""}`}>
+      <div className={`overflow-x-auto lamina rounded-lg border border-linea bg-white shadow-sm transition-opacity ${cargando ? "opacity-60" : ""}`}>
         {/* Móvil y tablet: tarjetas; escritorio: tabla completa. */}
         <ul className="divide-y divide-gray-100 lg:hidden">
           {(datos?.items ?? []).map((t) => (
@@ -345,7 +345,7 @@ export default function TicketsImportados() {
               disabled={pagina <= 1}
               onClick={() => setPagina((p) => p - 1)}
               aria-label="Página anterior"
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft size={14} /> <span className="hidden sm:inline">Anterior</span>
             </button>
@@ -356,7 +356,7 @@ export default function TicketsImportados() {
               disabled={pagina >= paginas}
               onClick={() => setPagina((p) => p + 1)}
               aria-label="Página siguiente"
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-40"
             >
               <span className="hidden sm:inline">Siguiente</span> <ChevronRight size={14} />
             </button>
