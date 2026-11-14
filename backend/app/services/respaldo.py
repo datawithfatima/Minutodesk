@@ -6,11 +6,16 @@ cada hora se revisa si el último respaldo tiene más de RESPALDO_HORAS (24 por 
 si es así, se hace uno nuevo. Se conservan los últimos RESPALDO_CONSERVAR (14). Se apaga
 con RESPALDO_AUTOMATICO=0. El administrador también puede crear uno a mano y
 descargarlo desde «Bitácora y respaldos». La carpeta no se sube a git (*.db).
+
+Con RESPALDO_COPIA_DIR (en .env) cada respaldo se copia además a esa carpeta, p. ej. una
+de OneDrive, para que sobreviva si se daña el disco de este equipo. Allí también se
+conservan solo los últimos RESPALDO_CONSERVAR automáticos.
 """
 import asyncio
 import logging
 import os
 import re
+import shutil
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -28,6 +33,26 @@ REVISAR_CADA_SEGUNDOS = 3600
 
 def _horas() -> float:
     return float(os.getenv("RESPALDO_HORAS", "24"))
+
+
+def carpeta_copia() -> Optional[Path]:
+    valor = os.getenv("RESPALDO_COPIA_DIR", "").strip()
+    return Path(valor) if valor else None
+
+
+def _copiar_fuera(archivo: Path) -> Optional[str]:
+    """Copia el respaldo a la carpeta externa; devuelve el error si no se pudo."""
+    destino = carpeta_copia()
+    if destino is None:
+        return None
+    try:
+        destino.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(archivo, destino / archivo.name)
+        _podar(destino)
+        return None
+    except OSError as error:
+        logger.exception("No se pudo copiar el respaldo a %s", destino)
+        return str(error)
 
 
 def _conservar() -> int:
@@ -87,8 +112,12 @@ def crear(manual: bool = False, origen: Optional[Path] = None, directorio: Optio
         destino.unlink(missing_ok=True)
         raise RuntimeError(f"El respaldo no pasó la verificación de integridad: {resultado}")
     _podar(carpeta)
+    error_copia = _copiar_fuera(destino) if directorio is None else None
     logger.info("Respaldo creado: %s", nombre)
-    return next(r for r in listar(carpeta) if r["nombre"] == nombre)
+    hecho = next(r for r in listar(carpeta) if r["nombre"] == nombre)
+    hecho["copia_externa"] = carpeta_copia() is not None and error_copia is None and directorio is None
+    hecho["error_copia"] = error_copia
+    return hecho
 
 
 def _podar(carpeta: Path) -> None:
@@ -110,6 +139,10 @@ def estado() -> dict:
         "cada_horas": _horas(),
         "conservar": _conservar(),
         "carpeta": str(DIRECTORIO),
+        # Solo se dice si hay copia externa y cuántos respaldos tiene: la ruta completa
+        # puede llevar el nombre de la organización de OneDrive.
+        "copia_externa": carpeta_copia() is not None,
+        "copia_externa_respaldos": len(listar(carpeta_copia())) if carpeta_copia() else 0,
         "ultimo": respaldos[0]["fecha"] if respaldos else None,
         "respaldos": respaldos,
     }

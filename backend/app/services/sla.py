@@ -1,8 +1,9 @@
 """Plazo de atención (SLA) de cada ticket y su temporizador.
 
 El plazo lo fija la tabla del área de sistemas, en días, según el tipo y la prioridad del
-ticket. Por decisión de la mesa (14/11/2026) se cuentan días calendario; con
-SOLO_DIAS_HABILES = True pasarían a contarse solo lunes a viernes (y fuera de FERIADOS). Corre desde
+ticket. Por decisión de la mesa (14/11/2026) se cuentan días calendario, pero sin los
+feriados nacionales de Ecuador (DESCONTAR_FERIADOS, decidido el mismo día); con
+SOLO_DIAS_HABILES = True pasarían a contarse solo lunes a viernes. Corre desde
 que se crea el ticket y se detiene mientras está en pausa (con motivo) o cerrado
 (resuelto o cancelado). Si el ticket se reabre, continúa con el tiempo que le quedaba.
 Si cambian el tipo o la prioridad, el plazo se recalcula con la tabla, pero el tiempo ya
@@ -25,8 +26,48 @@ DIAS_SLA: dict[str, dict[str, int]] = {
     TIPO_ACCESOS: {"Baja": 7, "Normal": 5, "Alta": 3, "Crítica": 1},
 }
 SOLO_DIAS_HABILES = False
-# Con SOLO_DIAS_HABILES, fechas que tampoco cuentan (además de sábados y domingos).
-FERIADOS: set[date] = set()
+# Los feriados no cuentan para el plazo (los sábados y domingos sí, salvo SOLO_DIAS_HABILES).
+DESCONTAR_FERIADOS = True
+
+
+def _pascua(anio: int) -> date:
+    """Domingo de Pascua (algoritmo de Meeus/Jones/Butcher)."""
+    a, b, c = anio % 19, anio // 100, anio % 100
+    d, e = b // 4, b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    mes = (h + l - 7 * m + 114) // 31
+    dia = ((h + l - 7 * m + 114) % 31) + 1
+    return date(anio, mes, dia)
+
+
+def feriados_ecuador(anio: int) -> set[date]:
+    """Feriados nacionales en su fecha de ley: Año Nuevo, Carnaval (lunes y martes),
+    Viernes Santo, Día del Trabajo, Batalla de Pichincha, Primer Grito de Independencia,
+    Independencia de Guayaquil, Difuntos, Independencia de Cuenca y Navidad.
+
+    Ojo: cada año el Gobierno puede trasladar algunos al lunes o viernes más cercano.
+    Esos traslados se corrigen en FERIADOS_TRASLADADOS (fecha de ley → fecha real)."""
+    pascua = _pascua(anio)
+    fijos = [(1, 1), (5, 1), (5, 24), (8, 10), (10, 9), (11, 2), (11, 3), (12, 25)]
+    dias = {date(anio, m, d) for m, d in fijos}
+    dias |= {pascua - timedelta(days=48), pascua - timedelta(days=47), pascua - timedelta(days=2)}
+    for de_ley, real in FERIADOS_TRASLADADOS.items():
+        if de_ley in dias:
+            dias.discard(de_ley)
+            dias.add(real)
+    return dias
+
+
+# Traslados oficiales del año (decreto ejecutivo): {fecha de ley: fecha en que se descansa}.
+FERIADOS_TRASLADADOS: dict[date, date] = {}
+# Días no laborables adicionales que decida la empresa o el Gobierno (p. ej. puentes).
+FERIADOS_EXTRA: set[date] = set()
+FERIADOS: set[date] = {f for anio in range(2025, 2031) for f in feriados_ecuador(anio)} | FERIADOS_EXTRA
 
 MOTIVOS_PAUSA: dict[str, str] = {
     "aprobacion": "Aprobación pendiente",
@@ -47,17 +88,23 @@ Intervalo = tuple[datetime, datetime]
 
 # ---------- tiempo hábil ----------
 
+def _todo_cuenta() -> bool:
+    return not SOLO_DIAS_HABILES and not DESCONTAR_FERIADOS
+
+
 def es_habil(dia: date) -> bool:
-    if not SOLO_DIAS_HABILES:
-        return True
-    return dia.weekday() < 5 and dia not in FERIADOS
+    if SOLO_DIAS_HABILES and dia.weekday() >= 5:
+        return False
+    if (SOLO_DIAS_HABILES or DESCONTAR_FERIADOS) and dia in FERIADOS:
+        return False
+    return True
 
 
 def segundos_habiles(inicio: datetime, fin: datetime) -> float:
     """Segundos que cuentan para el plazo entre dos instantes (un día cuenta entero)."""
     if fin <= inicio:
         return 0.0
-    if not SOLO_DIAS_HABILES:
+    if _todo_cuenta():
         return (fin - inicio).total_seconds()
     total = 0.0
     cursor = inicio
@@ -72,7 +119,7 @@ def segundos_habiles(inicio: datetime, fin: datetime) -> float:
 def sumar_segundos_habiles(desde: datetime, segundos: float) -> datetime:
     """Instante en que, desde `desde`, se habrán consumido `segundos` de tiempo hábil."""
     cursor, restante = desde, max(0.0, segundos)
-    if not SOLO_DIAS_HABILES:
+    if _todo_cuenta():
         return desde + timedelta(seconds=restante)
     while True:
         siguiente = datetime.combine(cursor.date() + timedelta(days=1), time.min)

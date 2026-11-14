@@ -77,11 +77,13 @@ def test_solo_el_administrador_maneja_respaldos(client, crear_cuenta, entrar, tm
     monkeypatch.setattr(respaldo, "DIRECTORIO", tmp_path / "respaldos")
     monkeypatch.setattr(respaldo, "DIRECTORIO_BASE", tmp_path)
     monkeypatch.setattr(respaldo, "sqlite_file_name", "base.db")
+    monkeypatch.setenv("RESPALDO_COPIA_DIR", str(tmp_path / "onedrive"))  # nunca la carpeta real
     tecnico, admin = entrar("t@ejemplo.com"), entrar("adm@ejemplo.com")
 
     assert client.post("/admin/respaldos", headers=tecnico).status_code == 403
     hecho = client.post("/admin/respaldos", headers=admin).json()
-    assert hecho["manual"] is True
+    assert hecho["manual"] is True and hecho["copia_externa"] is True
+    assert (tmp_path / "onedrive" / hecho["nombre"]).is_file()
     assert client.get("/admin/respaldos", headers=admin).json()["respaldos"][0]["nombre"] == hecho["nombre"]
     assert client.get(f"/admin/respaldos/{hecho['nombre']}", headers=admin).status_code == 200
     assert client.get("/admin/respaldos/otra-cosa.db", headers=admin).status_code == 404

@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  CloudUpload,
   DatabaseBackup,
   Download,
   HardDriveDownload,
@@ -49,7 +50,11 @@ function Respaldos() {
     setAviso(null);
     try {
       const hecho = await crearRespaldo();
-      setAviso(`Respaldo creado y verificado: ${hecho.nombre}`);
+      setAviso(
+        hecho.error_copia
+          ? `Respaldo creado, pero no se pudo copiar a OneDrive: ${hecho.error_copia}`
+          : `Respaldo creado y verificado${hecho.copia_externa ? " (también copiado a OneDrive)" : ""}: ${hecho.nombre}`
+      );
       await cargar();
     } catch (e) {
       setError(e.message);
@@ -89,6 +94,12 @@ function Respaldos() {
             </p>
           </div>
         </div>
+        {estado.copia_externa && (
+          <p className="mt-3 flex items-center gap-1.5 text-sm text-green-700">
+            <CloudUpload size={15} aria-hidden="true" />
+            Cada respaldo también se copia a tu OneDrive ({estado.copia_externa_respaldos} guardados allí).
+          </p>
+        )}
         <p className="mt-4 rounded-md border border-dashed border-linea bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
           Cada respaldo es una copia completa de la base, verificada al crearla. Se guardan en{" "}
           <span className="break-all font-mono text-[11px] text-noche">{estado.carpeta}</span>. Para restaurar uno, detén el

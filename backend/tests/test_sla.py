@@ -183,3 +183,15 @@ def test_el_resumen_trae_cumplimiento_del_sla(client, crear_cuenta, entrar, sess
     assert r["resueltos_con_plazo"] == 2 and r["cumplidos"] == 1 and r["pct_cumplimiento"] == 50.0
     assert r["abiertos_en_tiempo"] == 1
     assert next(g for g in r["por_prioridad"] if g["etiqueta"] == "Crítica")["pct"] == 0.0
+
+
+def test_los_feriados_de_ecuador_no_cuentan_pero_los_fines_de_semana_si():
+    from datetime import datetime
+
+    from app.services import sla
+
+    # Carnaval 2026: lunes 16 y martes 17 de febrero. El domingo 15 sí cuenta.
+    assert sla.segundos_habiles(datetime(2026, 2, 15), datetime(2026, 2, 18)) == sla.SEGUNDOS_DIA
+    # Un plazo de 1 día que empieza el viernes santo (3/4/2026) vence el domingo.
+    assert sla.sumar_segundos_habiles(datetime(2026, 4, 3, 9), sla.SEGUNDOS_DIA) == datetime(2026, 4, 5)
+    assert sla._pascua(2027).isoformat() == "2027-03-28"
