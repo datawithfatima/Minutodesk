@@ -22,7 +22,7 @@ from app.schemas import (
     MensajeCreate,
     MensajeRead,
 )
-from app.services import correo
+from app.services import correo, notificaciones
 from app.services.auth import es_personal, obtener_usuario_actual, requerir_personal
 
 router = APIRouter()
@@ -126,6 +126,7 @@ def ver_conversacion(
 def enviar_mensaje(
     ticket_id: int,
     data: MensajeCreate,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
@@ -143,6 +144,7 @@ def enviar_mensaje(
     session.add(mensaje)
     session.commit()
     session.refresh(mensaje)
+    notificaciones.mensaje_nuevo(tareas, session, ticket, usuario, texto)
     return MensajeRead(
         id=mensaje.id,
         ticket_id=mensaje.ticket_id,

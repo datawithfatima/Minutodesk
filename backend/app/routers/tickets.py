@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.database import get_session
@@ -45,6 +45,7 @@ from app.routers.conversacion import hay_aprobacion_pendiente
 from app.routers.minutito import enlazar_ticket
 from app.services.asignacion import asignar_automaticamente, tecnico_sugerido
 from app.services.classifier import categorias_clasificables, clasificar_ticket, sugerir
+from app.services import notificaciones
 from app.services.gamification_rules import evaluar_evento
 
 router = APIRouter()
@@ -123,6 +124,7 @@ def _verificar_acceso(ticket: Ticket, usuario: Cliente) -> None:
 @router.post("", response_model=TicketRead)
 def crear_ticket(
     data: TicketCreate,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
@@ -159,6 +161,7 @@ def crear_ticket(
         enlazar_ticket(session, data.conversacion_id, usuario, ticket)
     session.commit()
     session.refresh(ticket)
+    notificaciones.ticket_creado(tareas, session, ticket)
     return ticket
 
 
@@ -197,6 +200,7 @@ def sugerir_clasificacion(
 @router.post("/alta-colaborador", response_model=TicketRead)
 def crear_alta_de_colaborador(
     data: AltaColaboradorCreate,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
@@ -255,6 +259,7 @@ def crear_alta_de_colaborador(
     registrar_estado(session, ticket.id, None, "abierto", usuario.id)
     session.commit()
     session.refresh(ticket)
+    notificaciones.ticket_creado(tareas, session, ticket)
     return ticket
 
 
@@ -344,6 +349,7 @@ def historial_del_ticket(
 def actualizar_ticket(
     ticket_id: int,
     data: TicketUpdate,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(requerir_personal),
     session: Session = Depends(get_session),
 ):
@@ -386,6 +392,7 @@ def actualizar_ticket(
         ticket.categoria = data.categoria
         ticket.clasificacion_confirmada = True
 
+    tecnico_anterior = ticket.tecnico_id
     # Técnico: elegido a mano, devuelto al sugerido, o (si cambió la categoría y nadie lo
     # eligió a mano) el que corresponde a la nueva categoría.
     if data.tecnico_id is not None:
@@ -433,6 +440,11 @@ def actualizar_ticket(
     if not ya_estaba_resuelto and ticket.estado == "resuelto":
         evaluar_evento(ticket, ticket.cliente_id, session)
 
+    if ticket.estado != estado_anterior:
+        notificaciones.estado_cambiado(tareas, session, ticket, estado_anterior, usuario)
+    if ticket.tecnico_id is not None and ticket.tecnico_id != tecnico_anterior:
+        notificaciones.tecnico_asignado(tareas, session, ticket, usuario)
+
     return ticket
 
 
@@ -440,6 +452,7 @@ def actualizar_ticket(
 def cancelar_ticket(
     ticket_id: int,
     data: CancelarTicket,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(requerir_personal),
     session: Session = Depends(get_session),
 ):
@@ -468,4 +481,5 @@ def cancelar_ticket(
     session.add(ticket)
     session.commit()
     session.refresh(ticket)
+    notificaciones.estado_cambiado(tareas, session, ticket, estado_anterior, usuario)
     return ticket
