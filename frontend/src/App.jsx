@@ -13,6 +13,7 @@ import NuevoTicketPage from "./pages/usuario/NuevoTicketPage";
 import UsuarioTicketDetailPage from "./pages/usuario/TicketDetailPage";
 import MisLogrosPage from "./pages/usuario/GamificacionPage";
 import FaqsPage from "./pages/usuario/FaqsPage";
+import ConocimientoPage from "./pages/usuario/ConocimientoPage";
 
 import TecnicoLayout from "./components/TecnicoLayout";
 import TicketsWorkspace from "./pages/tecnico/TicketsWorkspace";
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="aprobaciones" element={<AprobacionesPage />} />
           <Route path="logros" element={<MisLogrosPage />} />
           <Route path="historico" element={<HistoricoPage />} />
+          <Route path="conocimiento" element={<ConocimientoPage />} />
           <Route path="faqs" element={<FaqsPage />} />
         </Route>
       </Route>

@@ -231,6 +231,9 @@ export const obtenerEncuesta = (ticketId) => get(`/tickets/${ticketId}/encuesta`
 export const responderEncuesta = (ticketId, { estrellas, comentario }) =>
   enviar("POST", `/tickets/${ticketId}/encuesta`, { estrellas, comentario });
 export const encuestasPendientes = () => get("/encuestas/pendientes");
+
+// --- Base de conocimiento (fichas de Minutito, solo lectura) ---
+export const obtenerConocimiento = (q) => get("/conocimiento", { q });
 export const obtenerHistorico = () => get("/reportes/historico");
 export const listarTicketsHistoricos = (filtros) => get("/historico/tickets", filtros);
 export const obtenerTicketHistorico = (id) => get(`/historico/tickets/${id}`);

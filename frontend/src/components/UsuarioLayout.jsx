@@ -1,4 +1,4 @@
-import { Building2, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket } from "lucide-react";
+import { BookOpen, Building2, ClipboardCheck, HelpCircle, History, Home, Plus, Ticket } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cerrarSesion, obtenerUsuario } from "../auth";
 import AppShell from "./AppShell";
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: "/usuario/aprobaciones", label: "Aprobaciones", icon: ClipboardCheck },
   { to: "/usuario/logros", label: "Mi obra", icon: Building2 },
   { to: "/usuario/historico", label: "Mi histórico", icon: History },
+  { to: "/usuario/conocimiento", label: "Base de conocimiento", icon: BookOpen },
   { to: "/usuario/faqs", label: "FAQs", icon: HelpCircle },
 ];
 
