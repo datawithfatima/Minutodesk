@@ -4,7 +4,7 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Identidad de MinutoDesk para Minutocorp (constructora y promotora inmobiliaria).
+   Identidad de MinutoDesk (empresa constructora y promotora inmobiliaria).
    El lenguaje visual sale de la obra y del plano arquitectónico:
    · grafito (asfalto, acero) para las superficies oscuras y el texto;
    · hormigón claro para el fondo, con la cuadrícula del papel de plano;
@@ -672,6 +672,14 @@ a:hover .cota::after {
 }
 :root:not([data-tema="oscuro"]) .chip-claro {
   background: #fff;
+}
+
+/* Tablero y tarjetas de tickets: las columnas se levantan y las tarjetas se «colocan» una tras otra. */
+.anim-columna {
+  animation: levantar 0.5s var(--ease-obra) backwards;
+}
+.anim-tarjeta {
+  animation: colocar 0.4s var(--ease-grua) backwards;
 }
 
 /* Pestañas del ticket: el contenido nuevo sube a su sitio. */

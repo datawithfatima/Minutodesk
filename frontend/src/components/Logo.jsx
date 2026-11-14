@@ -54,7 +54,7 @@ export function Marca({ oscuro = false, subtitulo = false, size = "h-9 w-9" }) {
               oscuro ? "text-noche-300" : "text-gray-500"
             }`}
           >
-            Mesa de ayuda · Minutocorp
+            Mesa de ayuda de TI
           </span>
         )}
       </span>

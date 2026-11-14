@@ -22,6 +22,23 @@ import Spinner from "../../components/ui/Spinner";
 import { inputClass } from "../../components/ui/formStyles";
 import EstadoBadge from "../../components/EstadoBadge";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
+import {
+  CuadriculaTickets,
+  SelectorVista,
+  TableroTickets,
+  VISTAS_TICKETS,
+} from "../../components/tickets/VistasTickets";
+
+// La vista elegida (tabla, tablero o tarjetas) se recuerda en este navegador.
+const CLAVE_VISTA = "minutodesk_vista_tickets";
+function vistaGuardada() {
+  try {
+    const v = localStorage.getItem(CLAVE_VISTA);
+    return VISTAS_TICKETS.some((x) => x.clave === v) ? v : "tabla";
+  } catch {
+    return "tabla";
+  }
+}
 
 const TABS = [
   { key: "todos", label: "Todos", estado: null },
@@ -140,6 +157,16 @@ export default function TicketsWorkspace({
   const [categoria, setCategoria] = useState("");
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const [pagina, setPagina] = useState(1);
+  const [vista, setVista] = useState(vistaGuardada);
+
+  function cambiarVista(v) {
+    setVista(v);
+    try {
+      localStorage.setItem(CLAVE_VISTA, v);
+    } catch {
+      // sin almacenamiento: la vista vale solo para esta visita
+    }
+  }
 
   const qUrl = params.get("q");
   // El buscador de arriba manda ?q=; buscar vacío (sin ?q=) limpia el filtro.
@@ -199,6 +226,8 @@ export default function TicketsWorkspace({
   const paginaSegura = Math.min(pagina, totalPaginas);
   const visibles = filtrados.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
 
+  const nombreDe = (t) => t.solicitante_externo || clientesPorId[t.cliente_id]?.nombre;
+
   function cambiarTab(key) {
     setTab(key);
     setPagina(1);
@@ -231,7 +260,9 @@ export default function TicketsWorkspace({
 
   return (
     <div>
-      <PageHeader icon={soloAsignados ? UserCog : Inbox} title={titulo} />
+      <PageHeader icon={soloAsignados ? UserCog : Inbox} title={titulo}>
+        <SelectorVista vista={vista} onCambiar={cambiarVista} />
+      </PageHeader>
 
       {error && (
         <Alert variant="danger" className="mb-3">
@@ -328,8 +359,25 @@ export default function TicketsWorkspace({
             <Alert variant="secondary">No hay tickets para este filtro.</Alert>
           )}
 
-          {/* Móvil: tarjetas. Tablet y escritorio: tabla. */}
-          {visibles.length > 0 && (
+          {/* Tablero por estado: muestra todos los tickets del filtro, sin páginas. */}
+          {vista === "tablero" && filtrados.length > 0 && (
+            <div key={`tablero-${tab}`} className="mb-3">
+              <TableroTickets
+                base={base}
+                tickets={filtrados}
+                nombreDe={nombreDe}
+                soloEstado={TABS.find((t) => t.key === tab)?.estado}
+              />
+            </div>
+          )}
+
+          {/* Tarjetas: las mismas páginas que la tabla. */}
+          {vista === "tarjetas" && visibles.length > 0 && (
+            <CuadriculaTickets key={`tarjetas-${paginaSegura}-${tab}`} base={base} tickets={visibles} nombreDe={nombreDe} />
+          )}
+
+          {/* Tabla. Móvil: tarjetas compactas. Tablet y escritorio: tabla. */}
+          {vista === "tabla" && visibles.length > 0 && (
             <Card className="mb-3 divide-y divide-gray-100 overflow-hidden md:hidden">
               {visibles.map((t) => (
                 <FilaCompacta key={t.id} base={base} ticket={t} cliente={clientesPorId[t.cliente_id]} />
@@ -337,7 +385,7 @@ export default function TicketsWorkspace({
             </Card>
           )}
 
-          {visibles.length > 0 && (
+          {vista === "tabla" && visibles.length > 0 && (
             <Card className="mb-3 hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
@@ -383,6 +431,9 @@ export default function TicketsWorkspace({
             </Card>
           )}
 
+          {vista === "tablero" ? (
+            <p className="text-sm text-gray-500">Mostrando {filtrados.length} tickets en el tablero</p>
+          ) : (
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
             <span>
               Mostrando {visibles.length} de {filtrados.length} tickets
@@ -409,6 +460,7 @@ export default function TicketsWorkspace({
               </button>
             </div>
           </div>
+          )}
         </>
       )}
     </div>
