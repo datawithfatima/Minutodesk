@@ -20,8 +20,8 @@ export default function Sidebar({
   const location = useLocation();
 
   const tema = dark
-    ? "bg-noche text-white lg:border-r lg:border-black/40"
-    : "border-r border-linea bg-white";
+    ? "bg-grafito text-white lg:border-r lg:border-black/40"
+    : "border-r border-linea bg-superficie";
   const cajon = abierto
     ? "max-lg:translate-x-0"
     : "max-lg:invisible max-lg:-translate-x-full";
@@ -33,7 +33,7 @@ export default function Sidebar({
           type="button"
           aria-label="Cerrar menú"
           onClick={onCerrar}
-          className="fixed inset-0 z-40 bg-noche/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-grafito/50 lg:hidden"
         />
       )}
 

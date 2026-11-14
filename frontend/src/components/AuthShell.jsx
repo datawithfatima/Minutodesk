@@ -1,5 +1,6 @@
 import { Bot, Layers3, Sparkles } from "lucide-react";
 import { Marca } from "./Logo";
+import BotonTema from "./BotonTema";
 import ObraIlustracion from "./ObraIlustracion";
 
 // Lo que el producto hace hoy (sin promesas).
@@ -16,7 +17,7 @@ const PUNTOS = [
 export default function AuthShell({ titulo, descripcion, children, pie }) {
   return (
     <div className="papel-plano flex min-h-screen">
-      <aside className="relative hidden w-[46%] max-w-[640px] shrink-0 flex-col justify-between overflow-hidden bg-noche p-10 text-white lg:flex xl:p-12">
+      <aside className="relative hidden w-[46%] max-w-[640px] shrink-0 flex-col justify-between overflow-hidden bg-grafito p-10 text-white lg:flex xl:p-12">
         {/* Cuadrícula de plano sobre el grafito */}
         <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full">
           <defs>
@@ -63,13 +64,16 @@ export default function AuthShell({ titulo, descripcion, children, pie }) {
       </aside>
 
       <main className="flex flex-1 flex-col px-4 py-6 sm:px-8">
-        <div className="lg:hidden">
-          <Marca size="h-8 w-8" />
+        <div className="flex items-center justify-between gap-3">
+          <span className="lg:invisible">
+            <Marca size="h-8 w-8" />
+          </span>
+          <BotonTema />
         </div>
 
         <div className="flex flex-1 items-center justify-center py-8">
           <div className="anim-levantar w-full max-w-[420px]">
-            <div className="lamina relative rounded-md border border-linea bg-white p-6 shadow-[0_1px_0_rgb(27_30_34/0.04),0_18px_40px_-20px_rgb(27_30_34/0.25)] sm:p-8">
+            <div className="lamina relative rounded-md border border-linea bg-superficie p-6 shadow-[0_1px_0_rgb(27_30_34/0.04),0_18px_40px_-20px_rgb(27_30_34/0.25)] sm:p-8">
               <span aria-hidden="true" className="franja-obra absolute inset-x-0 top-0 h-1 rounded-t-md" />
               {titulo && (
                 <div className="mb-6">

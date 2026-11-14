@@ -62,7 +62,7 @@ function Item({ item, onMarcar }) {
                 </span>
                 <div
                   className={`min-w-0 flex-1 whitespace-pre-line break-words rounded-2xl rounded-tl-md px-3.5 py-2.5 text-sm ${
-                    esMinutito ? "border border-linea bg-white text-gray-700" : "bg-marfil text-gray-800"
+                    esMinutito ? "border border-linea bg-superficie text-gray-700" : "bg-marfil text-gray-800"
                   }`}
                 >
                   {m.texto}

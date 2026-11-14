@@ -17,11 +17,19 @@
   --font-sans: "Archivo Variable", "Archivo", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  /* Grafito */
+  /* Grafito. «noche» es el color del texto principal (se aclara en modo oscuro);
+     «grafito» es para superficies oscuras fijas (menú, cabeceras, franjas), iguales en ambos temas. */
   --color-noche: #1b1e22;
+  --color-grafito: #1b1e22;
+  --color-grafito-700: #262a30;
+  --color-grafito-600: #343941;
   --color-noche-700: #262a30;
   --color-noche-600: #343941;
   --color-noche-300: #a3a7ad;
+
+  /* Superficie de tarjetas y paneles */
+  --color-superficie: #ffffff;
+  --color-pista: #cde2fb;
 
   /* Hormigón y líneas de plano */
   --color-marfil: #f3f1ec;
@@ -51,6 +59,115 @@
 
   --ease-obra: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-grua: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Valores de las texturas (tema claro) */
+:root {
+  --linea-plano-fuerte: rgb(27 30 34 / 0.045);
+  --linea-plano: rgb(27 30 34 / 0.025);
+  --regla-marca: rgb(27 30 34 / 0.22);
+  --regla-marca-fuerte: rgb(27 30 34 / 0.35);
+  --regla-base: rgb(27 30 34 / 0.18);
+  color-scheme: light;
+}
+
+/* ───────────── Modo oscuro: «obra de noche» ─────────────
+   Asfalto mojado de fondo, paneles de acero y las mismas señales naranja y amarilla.
+   Solo se redefinen los colores: las pantallas usan los mismos tokens. */
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+  --color-noche: #ece9e3;
+  --color-noche-700: #d6d3cc;
+  --color-noche-600: #c2bfb8;
+  --color-grafito: #0e1012;
+  --color-grafito-700: #1a1d21;
+  --color-grafito-600: #262a30;
+  --color-superficie: #1a1d21;
+  --color-pista: #1d3350;
+  --color-marfil: #121417;
+  --color-linea: #2b2f35;
+
+  --color-acento: #d9531a;
+  --color-acento-600: #c2410c;
+  --color-acento-50: #2a1a12;
+  --color-acento-100: #4a2712;
+  --color-casco-100: #3a2f0a;
+
+  --color-gray-50: #1f2226;
+  --color-gray-100: #25292e;
+  --color-gray-200: #30343a;
+  --color-gray-300: #43474e;
+  --color-gray-400: #6e727a;
+  --color-gray-500: #9a9ea5;
+  --color-gray-600: #b3b6bc;
+  --color-gray-700: #cdd0d4;
+  --color-gray-800: #e1e3e5;
+  --color-gray-900: #f0f0f1;
+
+  --color-green-50: #10261a;
+  --color-green-100: #143320;
+  --color-green-200: #1e4a2f;
+  --color-green-700: #5fd38d;
+  --color-green-800: #8ae2ac;
+  --color-emerald-700: #4fd1a5;
+  --color-red-50: #2c1515;
+  --color-red-100: #3a1919;
+  --color-red-200: #5c2424;
+  --color-red-600: #f27b7b;
+  --color-red-700: #f59a9a;
+  --color-red-800: #f8b4b4;
+  --color-amber-50: #2a2008;
+  --color-amber-100: #3a2c0a;
+  --color-amber-200: #5a440f;
+  --color-amber-700: #f5c451;
+  --color-amber-800: #f7d27a;
+  --color-amber-900: #fae0a0;
+  --color-sky-50: #0d2230;
+  --color-sky-100: #102a3b;
+  --color-sky-200: #17405a;
+  --color-sky-700: #6cc4f0;
+  --color-sky-800: #8fd3f5;
+
+  --linea-plano-fuerte: rgb(255 255 255 / 0.035);
+  --linea-plano: rgb(255 255 255 / 0.018);
+  --regla-marca: rgb(255 255 255 / 0.18);
+  --regla-marca-fuerte: rgb(255 255 255 / 0.3);
+  --regla-base: rgb(255 255 255 / 0.14);
+}
+
+/* Gráficos SVG: sus tintas están escritas en hexadecimal; en oscuro se aclaran. */
+:root[data-tema="oscuro"] main svg [fill="#0b0b0b"],
+:root[data-tema="oscuro"] main svg [fill="#1b1e22"] { fill: #ece9e3; }
+:root[data-tema="oscuro"] main svg [stroke="#1b1e22"] { stroke: #ece9e3; }
+:root[data-tema="oscuro"] main svg [fill="#52514e"] { fill: #b3b6bc; }
+:root[data-tema="oscuro"] main svg [fill="#898781"],
+:root[data-tema="oscuro"] main svg [fill="#6f6b63"] { fill: #9a9ea5; }
+:root[data-tema="oscuro"] main svg [stroke="#e1e0d9"] { stroke: #2b2f35; }
+:root[data-tema="oscuro"] main svg [stroke="#c3c2b7"],
+:root[data-tema="oscuro"] main svg [stroke="#9b968c"] { stroke: #4a4e55; }
+:root[data-tema="oscuro"] main svg [stroke="#efede8"],
+:root[data-tema="oscuro"] main svg [fill="#f1f1ee"] { stroke: #25292e; }
+:root[data-tema="oscuro"] main svg [stroke="#ffffff"] { stroke: #1a1d21; }
+/* El círculo central del medidor es grafito fijo, con su punto amarillo */
+:root[data-tema="oscuro"] main svg circle[fill="#1b1e22"] { fill: #0e1012; stroke: #43474e; }
+
+/* Las imágenes de Minutito tienen fondo blanco: en oscuro se les da un marco suave. */
+:root[data-tema="oscuro"] img[src*="robot-minutito"] {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+/* Al cambiar de tema, la nueva «iluminación» se abre en círculo desde el botón. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  animation: abrir-tema 0.6s var(--ease-obra);
+}
+@keyframes abrir-tema {
+  from { clip-path: circle(0 at var(--tema-x, 90%) var(--tema-y, 32px)); }
+  to { clip-path: circle(150vmax at var(--tema-x, 90%) var(--tema-y, 32px)); }
 }
 
 html {
@@ -95,7 +212,7 @@ table,
 
 ::selection {
   background: var(--color-casco);
-  color: var(--color-noche);
+  color: var(--color-grafito);
 }
 
 /* Foco siempre visible para quien navega con teclado. */
@@ -116,10 +233,10 @@ table,
 .papel-plano {
   background-color: var(--color-marfil);
   background-image:
-    linear-gradient(to right, rgb(27 30 34 / 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(27 30 34 / 0.045) 1px, transparent 1px),
-    linear-gradient(to right, rgb(27 30 34 / 0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(27 30 34 / 0.025) 1px, transparent 1px);
+    linear-gradient(to right, var(--linea-plano-fuerte) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--linea-plano-fuerte) 1px, transparent 1px),
+    linear-gradient(to right, var(--linea-plano) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--linea-plano) 1px, transparent 1px);
   background-size:
     120px 120px,
     120px 120px,
@@ -133,7 +250,7 @@ table,
   background-image: repeating-linear-gradient(
     -45deg,
     var(--color-casco) 0 8px,
-    var(--color-noche) 8px 16px
+    var(--color-grafito) 8px 16px
   );
 }
 
@@ -443,9 +560,9 @@ a:hover .cota::after {
 .regla {
   height: 8px;
   background:
-    repeating-linear-gradient(to right, rgb(27 30 34 / 0.22) 0 1px, transparent 1px 8px) left bottom / 100% 4px no-repeat,
-    repeating-linear-gradient(to right, rgb(27 30 34 / 0.35) 0 1px, transparent 1px 40px) left bottom / 100% 8px no-repeat,
-    linear-gradient(rgb(27 30 34 / 0.18), rgb(27 30 34 / 0.18)) left bottom / 100% 1px no-repeat;
+    repeating-linear-gradient(to right, var(--regla-marca) 0 1px, transparent 1px 8px) left bottom / 100% 4px no-repeat,
+    repeating-linear-gradient(to right, var(--regla-marca-fuerte) 0 1px, transparent 1px 40px) left bottom / 100% 8px no-repeat,
+    linear-gradient(var(--regla-base), var(--regla-base)) left bottom / 100% 1px no-repeat;
   transform-origin: left;
   animation: vaciar-x 1s var(--ease-obra) 0.1s backwards;
 }
@@ -546,6 +663,33 @@ a:hover .cota::after {
 .anim-aguja {
   transform: rotate(var(--angulo));
   animation: aguja 1.5s var(--ease-obra) 0.2s backwards;
+}
+
+/* Pastillas sobre la cabecera grafito: en claro llevan fondo blanco para leerse. */
+.chip-claro {
+  display: inline-flex;
+  border-radius: 4px;
+}
+:root:not([data-tema="oscuro"]) .chip-claro {
+  background: #fff;
+}
+
+/* Pestañas del ticket: el contenido nuevo sube a su sitio. */
+.anim-pestana {
+  animation: aparecer-suave 0.35s var(--ease-obra) backwards;
+}
+
+/* Etapa en curso del ticket: la franja de obra avanza. */
+.cinta-avanza {
+  background-size: 22.6px 22.6px;
+  animation: cinta-desliza 0.9s linear infinite;
+}
+
+/* Botón de tema: el sol se pone y sale la luna (y al revés). */
+.icono-tema {
+  transition:
+    transform 0.5s var(--ease-grua),
+    opacity 0.3s;
 }
 
 /* Detalles de la ilustración del acceso */

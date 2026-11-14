@@ -759,7 +759,7 @@ export default function CiudadObras({ lotes, alElegir }) {
           <div
             key={e.i}
             className={`pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold shadow ${
-              l.es_yo ? "bg-acento text-white" : "bg-white/90 text-noche"
+              l.es_yo ? "bg-acento text-white" : "bg-white/90 text-grafito"
             }`}
             style={{ left: e.x, top: e.y }}
           >
@@ -770,7 +770,7 @@ export default function CiudadObras({ lotes, alElegir }) {
       })}
       {loteTip && (
         <div
-          className="pointer-events-none absolute z-10 min-w-[170px] rounded-xl border border-linea bg-white p-2.5 text-xs shadow-lg"
+          className="pointer-events-none absolute z-10 min-w-[170px] rounded-xl border border-linea bg-superficie p-2.5 text-xs shadow-lg"
           style={{ left: `min(${tip.x + 12}px, calc(100% - 190px))`, top: tip.y + 12 }}
         >
           <div className="font-semibold text-noche">

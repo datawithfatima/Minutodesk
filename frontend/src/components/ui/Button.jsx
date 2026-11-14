@@ -1,15 +1,15 @@
 const VARIANTES = {
   primary: "bg-acento text-white shadow-[0_1px_0_rgb(0_0_0/0.15)] hover:bg-acento-600 disabled:bg-acento/40",
-  dark: "bg-noche text-white shadow-[0_1px_0_rgb(0_0_0/0.2)] hover:bg-noche-700 disabled:bg-noche/40",
+  dark: "bg-grafito text-white shadow-[0_1px_0_rgb(0_0_0/0.2)] hover:bg-grafito-700 disabled:bg-grafito/40",
   secondary: "bg-gray-600 text-white hover:bg-gray-700 disabled:bg-gray-300",
   outlineSecondary:
-    "border border-linea bg-white text-noche hover:border-noche/40 hover:bg-marfil disabled:opacity-50",
+    "border border-linea bg-superficie text-noche hover:border-noche/40 hover:bg-marfil disabled:opacity-50",
   outlinePrimary:
-    "border border-acento/40 bg-white text-acento hover:border-acento hover:bg-acento-50 disabled:opacity-50",
+    "border border-acento/40 bg-superficie text-acento hover:border-acento hover:bg-acento-50 disabled:opacity-50",
   outlineSuccess:
-    "border border-green-600/50 bg-white text-green-700 hover:bg-green-50 disabled:opacity-50",
+    "border border-green-600/50 bg-superficie text-green-700 hover:bg-green-50 disabled:opacity-50",
   outlineDanger:
-    "border border-red-500/50 bg-white text-red-600 hover:bg-red-50 disabled:opacity-50",
+    "border border-red-500/50 bg-superficie text-red-600 hover:bg-red-50 disabled:opacity-50",
 };
 
 const TAMANOS = {

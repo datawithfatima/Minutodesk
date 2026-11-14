@@ -37,8 +37,8 @@ function Mensaje({ m, propio }) {
         <div
           className={`whitespace-pre-line anim-colocar break-words rounded-2xl px-3.5 py-2.5 text-sm ${
             propio
-              ? "rounded-br-md bg-noche text-white"
-              : "rounded-tl-md border border-linea bg-white text-gray-700"
+              ? "rounded-br-md bg-grafito text-white"
+              : "rounded-tl-md border border-linea bg-superficie text-gray-700"
           }`}
         >
           {m.texto}
@@ -104,7 +104,7 @@ function FormAprobacion({ ticket, onCreada, onCancelar }) {
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3 lamina rounded-lg border border-linea bg-white p-4">
+    <form onSubmit={enviar} className="space-y-3 lamina rounded-lg border border-linea bg-superficie p-4">
       <h3 className="text-sm font-semibold text-noche">Solicitar aprobación</h3>
       {error && <Alert variant="danger">{error}</Alert>}
       <div>

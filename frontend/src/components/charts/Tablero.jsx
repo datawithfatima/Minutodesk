@@ -14,7 +14,7 @@ export function EncabezadoSeccion({ numero, titulo, subtitulo, children }) {
   return (
     <div className="mb-4 mt-10 flex flex-wrap items-end justify-between gap-3 first:mt-0">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="mt-0.5 rounded-[3px] bg-noche px-1.5 py-0.5 font-mono text-[11px] font-medium text-casco">
+        <span className="mt-0.5 rounded-[3px] bg-grafito px-1.5 py-0.5 font-mono text-[11px] font-medium text-casco">
           {String(numero).padStart(2, "0")}
         </span>
         <div className="min-w-0">
@@ -85,7 +85,7 @@ export function FranjaIndicadores({ items, oscuro = true, className = "" }) {
   return (
     <div
       className={`relative overflow-hidden rounded-lg ${
-        oscuro ? "bg-noche text-white shadow-[0_1px_0_rgb(0_0_0/0.2)]" : "lamina border border-linea bg-white"
+        oscuro ? "bg-grafito text-white shadow-[0_1px_0_rgb(0_0_0/0.2)]" : "lamina border border-linea bg-superficie"
       } ${className}`}
     >
       {oscuro && (

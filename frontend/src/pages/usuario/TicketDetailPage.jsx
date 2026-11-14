@@ -1,9 +1,8 @@
+import { Bot, CalendarDays, CheckCircle2, ClipboardList, Flag, Layers, MessageSquare, Paperclip, Tag } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { obtenerTicket } from "../../api";
 import Alert from "../../components/ui/Alert";
-import Badge from "../../components/ui/Badge";
-import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
 import EstadoBadge from "../../components/EstadoBadge";
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
@@ -12,6 +11,7 @@ import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
 import { tituloTipo } from "../../components/tickets/formato";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
+import { CabeceraTicket, CicloEstado, FilaFicha, PanelFicha } from "../../components/tickets/FichaTicket";
 
 export default function TicketDetailPage() {
   const { id } = useParams();
@@ -38,11 +38,6 @@ export default function TicketDetailPage() {
 
   return (
     <>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold sm:text-2xl">Ticket #{ticket.id}</h1>
-        <EstadoBadge estado={ticket.estado} />
-      </div>
-
       {creado && (
         <Alert variant="success" className="mb-3">
           Tu ticket quedó registrado y un técnico lo atenderá. Puedes escribirle por el chat con soporte.
@@ -55,50 +50,79 @@ export default function TicketDetailPage() {
         </Alert>
       )}
 
-      <Card className="mb-4">
-        <Card.Body>
-          <p className="mb-3 whitespace-pre-line break-words">{ticket.texto}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>Tipo: {tituloTipo(ticket.tipo || ticket.tipo_predicho) || "sin determinar"}</Badge>
-            <Badge>Categoría: {ticket.categoria || ticket.categoria_predicha || "sin determinar"}</Badge>
-            <PrioridadPastilla prioridad={ticket.prioridad} />
-            {ticket.resuelto_por && <Badge>Resuelto por: {ticket.resuelto_por}</Badge>}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
+          {/* Ficha del ticket: cabecera en grafito con su avance y la descripción debajo */}
+          <div className="overflow-hidden rounded-lg border border-linea bg-superficie shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)]">
+            <CabeceraTicket
+              ticket={ticket}
+              etiqueta="Tu solicitud"
+              insignias={
+                <>
+                  <EstadoBadge estado={ticket.estado} />
+                  <span className="chip-claro">
+                    <PrioridadPastilla prioridad={ticket.prioridad} />
+                  </span>
+                </>
+              }
+            >
+              <CicloEstado estado={ticket.estado} />
+            </CabeceraTicket>
+            <div className="p-5 sm:p-6">
+              <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Descripción</div>
+              <p className="whitespace-pre-line break-words text-[15px] leading-relaxed text-noche">{ticket.texto}</p>
+            </div>
           </div>
-        </Card.Body>
-      </Card>
 
-      {ticket.datos_alta && (
-        <div className="mb-4">
-          <DatosAlta datosJson={ticket.datos_alta} />
+          {ticket.datos_alta && <DatosAlta datosJson={ticket.datos_alta} />}
+
+          {cancelado && (
+            <Alert variant="secondary">
+              <strong className="font-semibold text-noche">El equipo de soporte canceló este ticket.</strong>
+              {ticket.motivo_cancelacion && <> Motivo: {ticket.motivo_cancelacion}</>}
+              <span className="mt-1 block">Si el problema sigue, crea un ticket nuevo.</span>
+            </Alert>
+          )}
+
+          {resuelto && <Alert variant="success">Este ticket ya está resuelto.</Alert>}
+
+          <PanelFicha icono={MessageSquare} titulo="Chat con soporte" acento>
+            <ConversacionTicket ticket={ticket} />
+          </PanelFicha>
+
+          <PanelFicha icono={Bot} titulo="Conversación con Minutito">
+            <ConversacionMinutito ticketId={id} nombre="Tú" />
+          </PanelFicha>
         </div>
-      )}
 
-      <h2 className="mb-2 text-lg font-semibold">Archivos adjuntos</h2>
-      <div className="mb-5">
-        <ArchivosTicket ticketId={id} resuelto={resuelto || cancelado} avisoInicial={avisosDeSubida} />
+        <div className="min-w-0 space-y-5 lg:sticky lg:top-22">
+          <PanelFicha icono={ClipboardList} titulo="Ficha técnica">
+            <dl className="-my-2.5 divide-y divide-dashed divide-linea">
+              <FilaFicha icono={Tag} etiqueta="Tipo">
+                {tituloTipo(ticket.tipo || ticket.tipo_predicho) || "sin determinar"}
+              </FilaFicha>
+              <FilaFicha icono={Layers} etiqueta="Categoría">
+                {ticket.categoria || ticket.categoria_predicha || "sin determinar"}
+              </FilaFicha>
+              <FilaFicha icono={Flag} etiqueta="Prioridad">
+                <PrioridadPastilla prioridad={ticket.prioridad} />
+              </FilaFicha>
+              {ticket.resuelto_por && (
+                <FilaFicha icono={CheckCircle2} etiqueta="Resuelto por">
+                  {ticket.resuelto_por}
+                </FilaFicha>
+              )}
+              <FilaFicha icono={CalendarDays} etiqueta="Creado">
+                {new Date(ticket.creado_en).toLocaleDateString()}
+              </FilaFicha>
+            </dl>
+          </PanelFicha>
+
+          <PanelFicha icono={Paperclip} titulo="Archivos adjuntos">
+            <ArchivosTicket ticketId={id} resuelto={resuelto || cancelado} avisoInicial={avisosDeSubida} />
+          </PanelFicha>
+        </div>
       </div>
-
-      <h2 className="mb-2 text-lg font-semibold">Chat con soporte</h2>
-      <Card className="mb-5">
-        <Card.Body>
-          <ConversacionTicket ticket={ticket} />
-        </Card.Body>
-      </Card>
-
-      <h2 className="mb-2 text-lg font-semibold">Conversación con Minutito</h2>
-      <div className="mb-5">
-        <ConversacionMinutito ticketId={id} nombre="Tú" />
-      </div>
-
-      {cancelado && (
-        <Alert variant="secondary">
-          <strong className="font-semibold text-noche">El equipo de soporte canceló este ticket.</strong>
-          {ticket.motivo_cancelacion && <> Motivo: {ticket.motivo_cancelacion}</>}
-          <span className="mt-1 block">Si el problema sigue, crea un ticket nuevo.</span>
-        </Alert>
-      )}
-
-      {resuelto && <Alert variant="success">Este ticket ya está resuelto.</Alert>}
     </>
   );
 }

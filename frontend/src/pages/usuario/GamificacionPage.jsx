@@ -48,7 +48,7 @@ export default function GamificacionPage() {
                   {(() => {
                     const IconoEtapa = ICONO_ETAPA[i];
                     return IconoEtapa ? (
-                      <span className="anim-sello flex h-9 w-9 items-center justify-center rounded-md bg-noche text-casco">
+                      <span className="anim-sello flex h-9 w-9 items-center justify-center rounded-md bg-grafito text-casco">
                         <IconoEtapa size={18} aria-hidden="true" />
                       </span>
                     ) : null;
@@ -99,7 +99,7 @@ export default function GamificacionPage() {
                         return IconoInsignia ? (
                           <span
                             className={`mx-auto flex h-10 w-10 items-center justify-center rounded-md ${
-                              ins.obtenida ? "anim-sello bg-noche text-casco" : "bg-gray-100 text-gray-500"
+                              ins.obtenida ? "anim-sello bg-grafito text-casco" : "bg-gray-100 text-gray-500"
                             }`}
                           >
                             <IconoInsignia size={20} aria-hidden="true" />

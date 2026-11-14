@@ -63,8 +63,8 @@ function Detalle({ id, onCerrar }) {
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <button aria-label="Cerrar" className="absolute inset-0 bg-noche/30" onClick={onCerrar} />
-      <aside className="relative flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-2xl">
+      <button aria-label="Cerrar" className="absolute inset-0 bg-grafito/30" onClick={onCerrar} />
+      <aside className="relative flex h-full w-full max-w-lg flex-col overflow-y-auto bg-superficie shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-linea p-5">
           <div>
             <div className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function TicketsImportados() {
         </Alert>
       )}
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 lamina rounded-lg border border-linea bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-end gap-3 lamina rounded-lg border border-linea bg-superficie p-4 shadow-sm">
         <div className="w-full min-w-0 lg:w-auto lg:min-w-[220px] lg:flex-1">
           <label className={labelClass}>Buscar</label>
           <div className="relative">
@@ -245,7 +245,7 @@ export default function TicketsImportados() {
         )}
       </div>
 
-      <div className={`overflow-x-auto lamina rounded-lg border border-linea bg-white shadow-sm transition-opacity ${cargando ? "opacity-60" : ""}`}>
+      <div className={`overflow-x-auto lamina rounded-lg border border-linea bg-superficie shadow-sm transition-opacity ${cargando ? "opacity-60" : ""}`}>
         {/* Móvil y tablet: tarjetas; escritorio: tabla completa. */}
         <ul className="divide-y divide-gray-100 lg:hidden">
           {(datos?.items ?? []).map((t) => (

@@ -50,7 +50,7 @@ export default function AppShell({
     <div className="papel-plano min-h-screen">
       <a
         href="#contenido"
-        className="sr-only z-[60] rounded-md bg-white px-4 py-2 text-sm font-medium text-noche shadow-lg focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
+        className="sr-only z-[60] rounded-md bg-superficie px-4 py-2 text-sm font-medium text-noche shadow-lg focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
       >
         Saltar al contenido
       </a>

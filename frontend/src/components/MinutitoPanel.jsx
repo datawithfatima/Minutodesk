@@ -46,7 +46,7 @@ function BorradorTicket({ conversacionId, onCancelar }) {
 
   if (!catalogos) {
     return (
-      <div className="lamina rounded-lg border border-linea bg-white p-3 text-sm text-gray-500">
+      <div className="lamina rounded-lg border border-linea bg-superficie p-3 text-sm text-gray-500">
         {error ? <span className="text-red-600">{error}</span> : <><Spinner size="sm" /> Preparando tu ticket con lo que conversamos…</>}
       </div>
     );
@@ -131,7 +131,7 @@ function BorradorTicket({ conversacionId, onCancelar }) {
         </div>
       </div>
       {esAlta ? (
-        <p className="rounded-md bg-white p-2 text-gray-700">
+        <p className="rounded-md bg-superficie p-2 text-gray-700">
           Las altas de colaboradores, accesos y permisos van en su propio formulario.{" "}
           <Link to="/usuario/nuevo-ticket" className="font-medium text-acento underline">
             Ir al formulario
@@ -183,14 +183,14 @@ function Burbuja({ rol, texto, escribiendo }) {
   if (rol === "usuario") {
     return (
       <div className="flex justify-end">
-        <div className="anim-colocar max-w-[85%] origin-bottom-right whitespace-pre-wrap break-words rounded-2xl rounded-br-[4px] bg-noche px-3.5 py-2.5 text-sm text-white">
+        <div className="anim-colocar max-w-[85%] origin-bottom-right whitespace-pre-wrap break-words rounded-2xl rounded-br-[4px] bg-grafito px-3.5 py-2.5 text-sm text-white">
           {texto}
         </div>
       </div>
     );
   }
   return (
-    <div className="anim-colocar max-w-[94%] origin-top-left break-words rounded-2xl rounded-tl-[4px] border border-linea bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-700">
+    <div className="anim-colocar max-w-[94%] origin-top-left break-words rounded-2xl rounded-tl-[4px] border border-linea bg-superficie px-3.5 py-2.5 text-sm leading-relaxed text-gray-700">
       {texto ? <Markdown texto={texto} /> : null}
       {escribiendo && (
         <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
@@ -284,7 +284,7 @@ export default function MinutitoPanel() {
   const puedeActuar = conversacion && hayRespuesta && !escribiendo && !resuelta;
 
   return (
-    <div className="relative flex h-full max-h-[calc(100dvh-7rem)] min-h-[28rem] flex-col overflow-hidden rounded-lg border border-linea bg-white shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)]">
+    <div className="relative flex h-full max-h-[calc(100dvh-7rem)] min-h-[28rem] flex-col overflow-hidden rounded-lg border border-linea bg-superficie shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)]">
       <span aria-hidden="true" className="franja-obra absolute inset-x-0 top-0 h-[3px]" />
       <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/70 p-4 pt-[19px]">
         <div className="group flex items-center gap-3">
@@ -298,7 +298,7 @@ export default function MinutitoPanel() {
             />
             <span
               aria-hidden="true"
-              className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-[3px] border-2 border-white bg-green-600"
+              className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-[3px] border-2 border-superficie bg-green-600"
             />
           </span>
           <div>
@@ -333,7 +333,7 @@ export default function MinutitoPanel() {
             <CheckCircle2 size={16} className="anim-sello shrink-0" /> ¡Qué bueno que se resolvió! Ganaste 10 puntos de autoservicio.
             <span
               aria-hidden="true"
-              className="anim-sube-puntos absolute right-3 top-1/2 rounded-[3px] bg-casco px-1.5 py-0.5 font-mono text-[11px] font-semibold text-noche"
+              className="anim-sube-puntos absolute right-3 top-1/2 rounded-[3px] bg-casco px-1.5 py-0.5 font-mono text-[11px] font-semibold text-grafito"
             >
               +10
             </span>
@@ -377,7 +377,7 @@ export default function MinutitoPanel() {
             id="mensaje-minutito"
             rows={1}
             maxLength={2000}
-            className="campo-obra max-h-32 min-h-10 min-w-0 flex-1 resize-none overflow-y-hidden rounded-md border border-linea bg-gray-50 px-4 py-2 text-base leading-6 transition-colors duration-150 focus:border-acento focus:bg-white focus:outline-none focus-visible:outline-none focus:ring-3 focus:ring-acento/25 sm:text-sm"
+            className="campo-obra max-h-32 min-h-10 min-w-0 flex-1 resize-none overflow-y-hidden rounded-md border border-linea bg-gray-50 px-4 py-2 text-base leading-6 transition-colors duration-150 focus:border-acento focus:bg-superficie focus:outline-none focus-visible:outline-none focus:ring-3 focus:ring-acento/25 sm:text-sm"
             value={texto}
             onChange={(e) => {
               setTexto(e.target.value);

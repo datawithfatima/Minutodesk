@@ -48,7 +48,7 @@ export default function SelectorArchivos({ archivos, onCambio, limites }) {
           type="button"
           onClick={() => entrada.current?.click()}
           disabled={archivos.length >= maximo}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-superficie px-3 py-1.5 font-medium text-gray-700 hover:bg-marfil disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Paperclip size={15} /> Adjuntar archivos
         </button>

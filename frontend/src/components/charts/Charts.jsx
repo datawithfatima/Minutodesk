@@ -1,7 +1,6 @@
 import { BarChart3, Table2 } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 import {
-  AZUL_PISTA,
   GRIS_SIN_DATO,
   INK,
   SERIES,
@@ -33,7 +32,7 @@ function useAncho(ref, minimo = 200) {
 export function Panel({ className = "", relleno = "p-4 sm:p-5", children }) {
   return (
     <div
-      className={`lamina min-w-0 rounded-md border border-linea bg-white shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)] ${relleno} ${className}`}
+      className={`lamina min-w-0 rounded-md border border-linea bg-superficie shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)] ${relleno} ${className}`}
     >
       {children}
     </div>
@@ -72,7 +71,7 @@ function TablaDatos({ columnas, filas }) {
   return (
     <div className="max-h-64 overflow-auto">
       <table className="w-full text-left text-sm">
-        <thead className="sticky top-0 bg-white text-xs text-gray-500">
+        <thead className="sticky top-0 bg-superficie text-xs text-gray-500">
           <tr>
             {columnas.map((c, i) => (
               <th key={c} className={`border-b border-linea py-1.5 font-medium ${i ? "text-right" : ""}`}>
@@ -158,7 +157,7 @@ export function StatTile({ icono: Icono, tono = 0, titulo, valor, detalle, tende
 
 /* ───────────── Medidor: relleno con la serie, pista en el paso claro del mismo azul ───────────── */
 
-export function Meter({ valor, meta, color = SERIES[0], pista = AZUL_PISTA, etiquetaMeta }) {
+export function Meter({ valor, meta, color = SERIES[0], pista = "var(--color-pista)", etiquetaMeta }) {
   const pct = Math.max(0, Math.min(100, valor));
   return (
     <div className="relative pt-5">
@@ -171,7 +170,7 @@ export function Meter({ valor, meta, color = SERIES[0], pista = AZUL_PISTA, etiq
         <div className="anim-vaciar-x h-full rounded-[3px]" style={{ width: `${pct}%`, background: color }} />
         {meta != null && (
           <div
-            className="absolute -top-1.5 h-5 w-0.5 rounded bg-noche"
+            className="absolute -top-1.5 h-5 w-0.5 rounded bg-grafito"
             style={{ left: `${meta}%`, transform: "translateX(-50%)" }}
           />
         )}

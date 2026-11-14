@@ -45,7 +45,7 @@ function Paso({ numero, titulo, ayuda, children }) {
   return (
     <section className="border-t border-gray-100 pt-5 first:border-0 first:pt-0">
       <div className="mb-3 flex items-baseline gap-2">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-noche text-xs font-semibold text-white">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-grafito text-xs font-semibold text-white">
           {numero}
         </span>
         <div>
@@ -201,7 +201,7 @@ export default function NuevoTicketPage() {
                         key={t.nombre}
                         onClick={() => setTipo(t.nombre)}
                         className={`relative rounded-md border p-3 text-left transition-colors ${
-                          elegido ? "border-noche bg-noche text-white" : "border-linea bg-white hover:border-gray-400"
+                          elegido ? "border-noche bg-grafito text-white" : "border-linea bg-superficie hover:border-gray-400"
                         }`}
                       >
                         {sugerido && (
@@ -328,7 +328,7 @@ export default function NuevoTicketPage() {
                                 key={a.categoria}
                                 onClick={() => elegirCategoria(a.categoria)}
                                 className={`rounded-full border px-2.5 py-0.5 ${
-                                  categoria === a.categoria ? "border-noche bg-noche text-white" : "border-gray-300 text-gray-700 hover:bg-marfil"
+                                  categoria === a.categoria ? "border-noche bg-grafito text-white" : "border-gray-300 text-gray-700 hover:bg-marfil"
                                 }`}
                               >
                                 {a.categoria} · {Math.round(a.confianza * 100)}%

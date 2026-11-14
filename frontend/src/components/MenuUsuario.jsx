@@ -55,7 +55,7 @@ export default function MenuUsuario({ usuario, onLogout }) {
         aria-label={`Cuenta de ${usuario?.nombre ?? "usuario"}`}
         className="flex min-w-0 items-center gap-2.5 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-marfil sm:pr-2"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-noche text-xs font-semibold text-casco">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-grafito text-xs font-semibold text-casco">
           {iniciales}
         </span>
         <span className="hidden min-w-0 text-left sm:block">
@@ -75,7 +75,7 @@ export default function MenuUsuario({ usuario, onLogout }) {
         <div
           role="menu"
           aria-label="Opciones de la cuenta"
-          className="anim-desplegar absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-md border border-linea bg-white p-1.5 pt-[9px] shadow-[0_16px_32px_-12px_rgb(27_30_34/0.3)]"
+          className="anim-desplegar absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-md border border-linea bg-superficie p-1.5 pt-[9px] shadow-[0_16px_32px_-12px_rgb(27_30_34/0.3)]"
         >
           <span aria-hidden="true" className="franja-obra absolute inset-x-0 top-0 h-[3px]" />
           <div className="border-b border-linea px-3 pb-2.5 pt-2">

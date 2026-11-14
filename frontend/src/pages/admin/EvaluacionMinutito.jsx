@@ -125,7 +125,7 @@ function Item({ item, onMarcar, onGuardarSolucion }) {
           <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-acento-50 text-acento ring-1 ring-acento-100">
             <Bot size={14} aria-hidden="true" />
           </span>
-          <div className="min-w-0 flex-1 whitespace-pre-line break-words rounded-2xl rounded-tl-md border border-linea bg-white px-3.5 py-2.5 text-sm text-gray-700">
+          <div className="min-w-0 flex-1 whitespace-pre-line break-words rounded-2xl rounded-tl-md border border-linea bg-superficie px-3.5 py-2.5 text-sm text-gray-700">
             {item.respuesta}
           </div>
         </div>

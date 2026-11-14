@@ -158,7 +158,7 @@ export default function ArchivosTicket({ ticketId, resuelto, avisoInicial, onCam
           <button
             onClick={() => entrada.current?.click()}
             disabled={subiendo}
-            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-marfil disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-superficie px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-marfil disabled:opacity-50"
           >
             {subiendo ? <Spinner size="sm" /> : <Paperclip size={15} />} Adjuntar archivo
           </button>

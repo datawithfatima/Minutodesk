@@ -76,7 +76,7 @@ function PasoTicket({ ticket, base, etiqueta, Icono, alFinal = false }) {
       to={`${base}/${ticket.id}`}
       aria-label={`${etiqueta}: ticket #${ticket.id}`}
       title={`#${ticket.id} · ${ticket.texto}`}
-      className={`${cls} bg-white text-noche hover:bg-marfil`}
+      className={`${cls} bg-superficie text-noche hover:bg-marfil`}
     >
       {contenido}
     </Link>
@@ -90,7 +90,7 @@ function BarraDetalle({ base, titulo, lista, seleccionadoId, filtro }) {
   return (
     <nav
       aria-label="Navegación entre tickets"
-      className="mb-4 flex items-center justify-between gap-3 lamina rounded-lg border border-linea bg-white px-2 py-2 sm:px-3"
+      className="mb-4 flex items-center justify-between gap-3 lamina rounded-lg border border-linea bg-superficie px-2 py-2 sm:px-3"
     >
       <div className="flex min-w-0 items-center gap-2">
         <Link
@@ -268,7 +268,7 @@ export default function TicketsWorkspace({
                       onClick={() => cambiarTab(t.key)}
                       className={`shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
                         tab === t.key
-                          ? "bg-noche text-white"
+                          ? "bg-grafito text-white"
                           : "text-gray-600 ring-1 ring-inset ring-linea hover:bg-marfil"
                       }`}
                     >
@@ -392,7 +392,7 @@ export default function TicketsWorkspace({
                 disabled={paginaSegura <= 1}
                 onClick={() => setPagina((p) => p - 1)}
                 aria-label="Página anterior"
-                className="rounded-md border border-linea bg-white p-1.5 hover:bg-marfil disabled:opacity-40"
+                className="rounded-md border border-linea bg-superficie p-1.5 hover:bg-marfil disabled:opacity-40"
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
@@ -403,7 +403,7 @@ export default function TicketsWorkspace({
                 disabled={paginaSegura >= totalPaginas}
                 onClick={() => setPagina((p) => p + 1)}
                 aria-label="Página siguiente"
-                className="rounded-md border border-linea bg-white p-1.5 hover:bg-marfil disabled:opacity-40"
+                className="rounded-md border border-linea bg-superficie p-1.5 hover:bg-marfil disabled:opacity-40"
               >
                 <ChevronRight size={16} aria-hidden="true" />
               </button>

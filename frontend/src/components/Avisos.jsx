@@ -60,7 +60,7 @@ export default function Avisos() {
       </button>
 
       {abierto && (
-        <div className="anim-desplegar absolute right-0 z-40 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-md border border-linea bg-white shadow-[0_16px_32px_-12px_rgb(27_30_34/0.3)]">
+        <div className="anim-desplegar absolute right-0 z-40 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-md border border-linea bg-superficie shadow-[0_16px_32px_-12px_rgb(27_30_34/0.3)]">
           <div className="franja-obra h-[3px]" aria-hidden="true" />
           <div className="border-b border-linea px-4 py-2.5 text-sm font-semibold text-noche">Avisos</div>
           {total === 0 ? (

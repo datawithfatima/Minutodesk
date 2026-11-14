@@ -24,7 +24,7 @@ export default function ConfirmarResolucion({ ticketId, onDecision, onError }) {
   }
 
   return (
-    <div className="rounded-md border border-linea bg-white p-3">
+    <div className="rounded-md border border-linea bg-superficie p-3">
       <div className="mb-2 text-sm font-medium text-noche">¿Se resolvió tu problema?</div>
       <div className="flex flex-wrap gap-2">
         <Button variant="dark" size="sm" disabled={enviando !== null} onClick={() => decidir(true)}>

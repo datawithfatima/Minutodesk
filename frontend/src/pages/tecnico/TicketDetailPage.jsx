@@ -1,4 +1,20 @@
-import { Check, Copy } from "lucide-react";
+import {
+  Bot,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  ClipboardList,
+  Copy,
+  Cpu,
+  HardHat,
+  History,
+  Layers,
+  MessageSquare,
+  Paperclip,
+  ShieldCheck,
+  Tag,
+  Wrench,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import {
@@ -25,6 +41,17 @@ import EstadoBadge from "../../components/EstadoBadge";
 import { ETIQUETA_ESTADO } from "../../texto";
 import ConversacionMinutito from "../../components/tickets/ConversacionMinutito";
 import ConversacionTicket from "../../components/tickets/ConversacionTicket";
+import {
+  BarraConfianza,
+  BotonCabecera,
+  CabeceraTicket,
+  CicloEstado,
+  FilaFicha,
+  PanelFicha,
+  PestanasTicket,
+} from "../../components/tickets/FichaTicket";
+
+const ICONO_PESTANA = { Chat: MessageSquare, Minutito: Bot, Historial: History, Archivos: Paperclip };
 
 const TABS = [
   { nombre: "Chat", activa: true },
@@ -32,15 +59,6 @@ const TABS = [
   { nombre: "Historial", activa: true },
   { nombre: "Archivos", activa: true },
 ];
-
-function Dato({ etiqueta, children }) {
-  return (
-    <div className="flex items-start justify-between gap-3 py-2.5">
-      <dt className="shrink-0 text-sm text-gray-500">{etiqueta}</dt>
-      <dd className="min-w-0 text-right text-sm font-medium text-noche">{children}</dd>
-    </div>
-  );
-}
 
 function construirHistorial(cliente, interacciones, cambiosDeEstado) {
   const quien = cliente?.nombre ?? "El usuario";
@@ -256,33 +274,39 @@ export default function TicketDetailPage() {
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[auto_1fr]">
         {/* ───── Contenido del ticket ───── */}
         {/* En móvil el orden es: ticket, gestión y conversación; en escritorio, la gestión va a la derecha. */}
-          <Card className="min-w-0 max-lg:order-1 lg:col-start-1">
-            <Card.Body>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <h1 className="text-xl font-semibold tracking-[-0.015em] text-noche">Ticket #{ticket.id}</h1>
-                <EstadoBadge estado={ticket.estado} />
-                <PrioridadPastilla prioridad={ticket.prioridad} />
-                <button
-                  onClick={copiarLink}
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-gray-500 transition-colors duration-150 hover:bg-marfil hover:text-noche"
-                >
+          <div className="min-w-0 overflow-hidden rounded-lg border border-linea bg-superficie shadow-[0_1px_0_rgb(27_30_34/0.04),0_1px_3px_rgb(27_30_34/0.05)] max-lg:order-1 lg:col-start-1">
+            <CabeceraTicket
+              ticket={ticket}
+              insignias={
+                <>
+                  <EstadoBadge estado={ticket.estado} />
+                  <span className="chip-claro">
+                    <PrioridadPastilla prioridad={ticket.prioridad} />
+                  </span>
+                </>
+              }
+              acciones={
+                <BotonCabecera onClick={copiarLink}>
                   {copiado ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
                   {copiado ? "Enlace copiado" : "Copiar enlace"}
-                </button>
-              </div>
-
-              <div className="mt-4 flex items-center gap-3 border-b border-linea pb-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-noche text-xs font-semibold text-white">
+                </BotonCabecera>
+              }
+            >
+              <CicloEstado estado={ticket.estado} />
+            </CabeceraTicket>
+            <div className="p-5 sm:p-6">
+              <div className="flex items-center gap-3 border-b border-dashed border-linea pb-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-grafito text-xs font-semibold text-casco">
                   {iniciales}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-noche">{cliente?.nombre}</div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Solicitante</div>
+                  <div className="truncate text-sm font-semibold text-noche">{cliente?.nombre}</div>
                   <div className="truncate text-xs text-gray-500">
                     {cliente?.email} · {new Date(ticket.creado_en).toLocaleString()}
                   </div>
                 </div>
               </div>
-
               <p className="mt-4 whitespace-pre-line break-words text-[15px] leading-relaxed text-noche">
                 {ticket.texto}
               </p>
@@ -292,18 +316,24 @@ export default function TicketDetailPage() {
                 </div>
               )}
 
-            </Card.Body>
-          </Card>
-
+            </div>
+          </div>
         {/* ───── Gestión y datos (columna lateral) ───── */}
         {/* En móvil la columna se «disuelve» (contents) para ordenar sus tarjetas entre las demás. */}
         <div className="contents lg:sticky lg:top-22 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block lg:space-y-4 lg:self-start">
-          <Card className="max-lg:order-2">
-            <Card.Body className="space-y-4">
-              <h2 className="text-sm font-semibold text-noche">Gestión</h2>
+          <PanelFicha icono={Wrench} titulo="Gestión" acento className="max-lg:order-2">
+            <div className="space-y-4">
 
               {resuelto ? (
-                <Alert variant="success">Este ticket ya está resuelto.</Alert>
+                <div className="flex items-center gap-3 rounded-md border border-green-200 bg-green-50 p-3">
+                  <span className="anim-sello flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-green-600 text-white">
+                    <CheckCircle2 size={18} aria-hidden="true" />
+                  </span>
+                  <div className="text-sm">
+                    <div className="font-semibold text-green-800">Obra entregada</div>
+                    <div className="text-green-700">Este ticket ya está resuelto.</div>
+                  </div>
+                </div>
               ) : cancelado ? (
                 <div className="space-y-3">
                   <Alert variant="secondary">
@@ -344,7 +374,8 @@ export default function TicketDetailPage() {
               )}
 
               {catalogos && (
-                <div className="space-y-3 border-t border-linea pt-4">
+                <div className="space-y-3 border-t border-dashed border-linea pt-4">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Clasificación</p>
                   <div>
                     <label htmlFor="gestion-categoria" className={labelClass}>
                       Categoría
@@ -410,74 +441,59 @@ export default function TicketDetailPage() {
                   )}
                 </div>
               )}
-            </Card.Body>
-          </Card>
+            </div>
+          </PanelFicha>
 
-          <Card className="max-lg:order-4">
-            <Card.Body>
-              <h2 className="text-sm font-semibold text-noche">Detalles</h2>
-              <dl className="mt-1 divide-y divide-linea">
-                <Dato etiqueta="Tipo">{tituloTipo(ticket.tipo || ticket.tipo_predicho) || "Sin determinar"}</Dato>
-                <Dato etiqueta="Categoría">{ticket.categoria || ticket.categoria_predicha || "Sin determinar"}</Dato>
-                {ticket.categoria_predicha && (
-                  <Dato etiqueta="Sugerencia del SVM">
-                    {ticket.categoria_predicha}
-                    {ticket.confianza_clasificacion != null && (
-                      <span className="block text-xs font-normal text-gray-500">
-                        Confianza {Math.round(ticket.confianza_clasificacion * 100)}%
-                      </span>
-                    )}
-                  </Dato>
-                )}
-                <Dato etiqueta="Clasificación">
-                  {ticket.clasificacion_confirmada ? (
-                    <Badge color="green">Confirmada</Badge>
-                  ) : confianzaBaja ? (
-                    <Badge color="amber">Confianza baja: revisar</Badge>
-                  ) : ticket.categoria_predicha && !ticket.categoria ? (
-                    <Badge color="sky">Automática</Badge>
-                  ) : (
-                    <span className="font-normal text-gray-500">Sin confirmar</span>
+          <PanelFicha icono={ClipboardList} titulo="Ficha técnica" className="max-lg:order-4">
+            <dl className="-my-2.5 divide-y divide-dashed divide-linea">
+              <FilaFicha icono={Tag} etiqueta="Tipo">
+                {tituloTipo(ticket.tipo || ticket.tipo_predicho) || "Sin determinar"}
+              </FilaFicha>
+              <FilaFicha icono={Layers} etiqueta="Categoría">
+                {ticket.categoria || ticket.categoria_predicha || "Sin determinar"}
+              </FilaFicha>
+              {ticket.categoria_predicha && (
+                <FilaFicha icono={Cpu} etiqueta="Sugerencia del SVM">
+                  {ticket.categoria_predicha}
+                  {ticket.confianza_clasificacion != null && (
+                    <BarraConfianza valor={ticket.confianza_clasificacion} umbral={umbralConfianza} />
                   )}
-                </Dato>
-                <Dato etiqueta="Atiende">{tecnico?.nombre ?? <span className="font-normal text-gray-500">Nadie aún</span>}</Dato>
-                {ticket.resuelto_por && (
-                  <Dato etiqueta="Resuelto por">
-                    {ticket.resuelto_por === "minutito" ? "Minutito" : "Equipo de soporte"}
-                  </Dato>
+                </FilaFicha>
+              )}
+              <FilaFicha icono={ShieldCheck} etiqueta="Clasificación">
+                {ticket.clasificacion_confirmada ? (
+                  <Badge color="green">Confirmada</Badge>
+                ) : confianzaBaja ? (
+                  <Badge color="amber">Confianza baja: revisar</Badge>
+                ) : ticket.categoria_predicha && !ticket.categoria ? (
+                  <Badge color="sky">Automática</Badge>
+                ) : (
+                  <span className="font-normal text-gray-500">Sin confirmar</span>
                 )}
-                <Dato etiqueta="Creado">{new Date(ticket.creado_en).toLocaleDateString()}</Dato>
-              </dl>
-            </Card.Body>
-          </Card>
+              </FilaFicha>
+              <FilaFicha icono={HardHat} etiqueta="Atiende">
+                {tecnico?.nombre ?? <span className="font-normal text-gray-500">Nadie aún</span>}
+              </FilaFicha>
+              {ticket.resuelto_por && (
+                <FilaFicha icono={CheckCircle2} etiqueta="Resuelto por">
+                  {ticket.resuelto_por === "minutito" ? "Minutito" : "Equipo de soporte"}
+                </FilaFicha>
+              )}
+              <FilaFicha icono={CalendarDays} etiqueta="Creado">
+                {new Date(ticket.creado_en).toLocaleDateString()}
+              </FilaFicha>
+            </dl>
+          </PanelFicha>
         </div>
 
           <div className="min-w-0 max-lg:order-3 lg:col-start-1">
-            <div role="tablist" className="mb-4 flex flex-wrap gap-1 border-b border-linea">
-              {TABS.map((t) => (
-                <button
-                  key={t.nombre}
-                  role="tab"
-                  aria-selected={tab === t.nombre}
-                  onClick={() => t.activa && setTab(t.nombre)}
-                  disabled={!t.activa}
-                  title={!t.activa ? "Próximamente" : undefined}
-                  className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-                    !t.activa
-                      ? "cursor-not-allowed border-transparent text-gray-300"
-                      : tab === t.nombre
-                        ? "border-acento text-noche"
-                        : "border-transparent text-gray-500 hover:text-noche"
-                  }`}
-                >
-                  {t.nombre}
-                  {!t.activa && <span className="ml-1.5 text-[10px] font-normal">Próx.</span>}
-                </button>
-              ))}
-            </div>
-
+            <PestanasTicket
+              pestanas={TABS.filter((t) => t.activa).map((t) => ({ nombre: t.nombre, Icono: ICONO_PESTANA[t.nombre] }))}
+              activa={tab}
+              onCambiar={setTab}
+            />
             {tab === "Chat" && (
-              <Card>
+              <Card className="anim-pestana">
                 <Card.Body>
                   <ConversacionTicket key={ticket.id} ticket={ticket} esPersonal />
                 </Card.Body>
@@ -485,7 +501,7 @@ export default function TicketDetailPage() {
             )}
 
             {tab === "Minutito" && (
-              <Card>
+              <Card className="anim-pestana">
                 <Card.Body>
                   <ConversacionMinutito ticketId={id} nombre={cliente?.nombre} />
                 </Card.Body>
@@ -493,7 +509,7 @@ export default function TicketDetailPage() {
             )}
 
             {tab === "Archivos" && (
-              <Card>
+              <Card className="anim-pestana">
                 <Card.Body>
                   <ArchivosTicket ticketId={id} resuelto={resuelto || cancelado} />
                 </Card.Body>
@@ -501,12 +517,12 @@ export default function TicketDetailPage() {
             )}
 
             {tab === "Historial" && (
-              <Card>
+              <Card className="anim-pestana">
                 <Card.Body>
                   <ol className="relative ml-2 border-l border-linea">
                     {construirHistorial(cliente, interacciones, cambiosDeEstado).map((e, idx) => (
                       <li key={idx} className="mb-4 ml-4 last:mb-0">
-                        <span className="absolute -left-[6px] mt-1.5 h-3 w-3 rounded-full border-2 border-white bg-acento" />
+                        <span className="absolute -left-[6px] mt-1.5 h-3 w-3 rounded-[3px] border-2 border-superficie bg-acento" />
                         <div className="text-xs text-gray-400">{new Date(e.fecha).toLocaleString()}</div>
                         <div className="text-sm font-medium text-noche">{e.titulo}</div>
                         {e.detalle && <p className="whitespace-pre-line text-sm text-gray-600">{e.detalle}</p>}

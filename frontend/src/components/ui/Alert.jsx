@@ -6,7 +6,7 @@ import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 const VARIANTES = {
   danger: { cls: "bg-red-50 text-red-800 border-red-200 anim-vibrar", Icono: AlertCircle, icono: "" },
   success: { cls: "bg-green-50 text-green-800 border-green-200", Icono: CheckCircle2, icono: "anim-sello" },
-  secondary: { cls: "bg-white text-gray-600 border-linea", Icono: Info, icono: "" },
+  secondary: { cls: "bg-superficie text-gray-600 border-linea", Icono: Info, icono: "" },
   info: { cls: "bg-acento-50 text-noche border-acento-100", Icono: Info, icono: "" },
   warning: { cls: "bg-amber-50 text-amber-900 border-amber-200", Icono: AlertTriangle, icono: "", franja: true },
 };

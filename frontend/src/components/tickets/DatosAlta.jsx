@@ -34,7 +34,7 @@ export default function DatosAlta({ datosJson }) {
   const ingreso = d.fecha_ingreso ? new Date(`${d.fecha_ingreso}T00:00:00`).toLocaleDateString("es-EC") : null;
 
   return (
-    <div className="rounded-md border border-linea bg-white p-4">
+    <div className="rounded-md border border-linea bg-superficie p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-noche">
         <UserPlus size={16} /> Datos del alta de colaborador
       </div>

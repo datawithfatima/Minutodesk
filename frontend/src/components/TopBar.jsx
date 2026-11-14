@@ -2,6 +2,7 @@ import { Menu, Search } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Avisos from "./Avisos";
+import BotonTema from "./BotonTema";
 import { Marca } from "./Logo";
 import MenuUsuario from "./MenuUsuario";
 
@@ -24,7 +25,7 @@ export function BuscadorTickets({ rutaBusqueda, oscuro = false, onBuscar, classN
       className={`flex h-10 items-center gap-2 rounded-md border px-3 text-sm transition-colors duration-150 ${
         oscuro
           ? "border-white/10 bg-white/[0.06] text-white focus-within:border-acento"
-          : "border-linea bg-gray-50 text-noche hover:border-gray-300 focus-within:border-acento focus-within:bg-white focus-within:ring-3 focus-within:ring-acento/15"
+          : "border-linea bg-gray-50 text-noche hover:border-gray-300 focus-within:border-acento focus-within:bg-superficie focus-within:ring-3 focus-within:ring-acento/15"
       } ${className}`}
     >
       <Search size={16} aria-hidden="true" className={`shrink-0 ${oscuro ? "text-noche-300" : "text-gray-400"}`} />
@@ -43,7 +44,7 @@ export function BuscadorTickets({ rutaBusqueda, oscuro = false, onBuscar, classN
 
 export default function TopBar({ usuario, rutaBusqueda, menuAbierto, onAbrirMenu, onLogout }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-linea bg-white/95 px-3 backdrop-blur-sm sm:gap-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-linea bg-superficie/95 px-3 backdrop-blur-sm sm:gap-4 sm:px-6">
       <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-3">
         <button
           type="button"
@@ -66,6 +67,7 @@ export default function TopBar({ usuario, rutaBusqueda, menuAbierto, onAbrirMenu
       <BuscadorTickets rutaBusqueda={rutaBusqueda} className="hidden w-full max-w-md flex-1 md:flex" />
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <BotonTema />
         <Avisos />
         <MenuUsuario usuario={usuario} onLogout={onLogout} />
       </div>

@@ -47,7 +47,7 @@ export default function DashboardPage() {
     <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
       <div className="min-w-0 space-y-4 lg:col-span-2">
         {/* Bienvenida como lámina de plano: grafito con cuadrícula, cota y franja de obra. */}
-        <section className="relative flex items-center justify-between gap-4 overflow-hidden rounded-lg bg-noche p-5 text-white shadow-[0_1px_0_rgb(0_0_0/0.2)] sm:p-6">
+        <section className="relative flex items-center justify-between gap-4 overflow-hidden rounded-lg bg-grafito p-5 text-white shadow-[0_1px_0_rgb(0_0_0/0.2)] sm:p-6">
           <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full">
             <defs>
               <pattern id="trama-bienvenida" width="24" height="24" patternUnits="userSpaceOnUse">
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                       <div className="mt-2 flex items-center gap-1.5">
                         <span
                           className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] ${
-                            actual ? "anim-sello bg-noche text-casco" : hecha ? "bg-acento-50 text-acento" : "bg-gray-100 text-gray-400"
+                            actual ? "anim-sello bg-grafito text-casco" : hecha ? "bg-acento-50 text-acento" : "bg-gray-100 text-gray-400"
                           }`}
                         >
                           {Icono && <Icono size={13} aria-hidden="true" />}

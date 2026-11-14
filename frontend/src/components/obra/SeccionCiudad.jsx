@@ -39,7 +39,7 @@ export default function SeccionCiudad() {
             {periodo === "mes" ? "de este mes" : "de siempre"}; las demás son de compañeros.
           </p>
         </div>
-        <div className="flex gap-1 rounded-lg border border-linea bg-white p-1 text-sm" role="tablist">
+        <div className="flex gap-1 rounded-lg border border-linea bg-superficie p-1 text-sm" role="tablist">
           {[
             ["mes", "Este mes"],
             ["total", "Histórico"],
@@ -49,7 +49,7 @@ export default function SeccionCiudad() {
               role="tab"
               aria-selected={periodo === v}
               onClick={() => setPeriodo(v)}
-              className={`rounded-md px-3 py-1 ${periodo === v ? "bg-noche text-white" : "text-gray-600 hover:bg-marfil"}`}
+              className={`rounded-md px-3 py-1 ${periodo === v ? "bg-grafito text-white" : "text-gray-600 hover:bg-marfil"}`}
             >
               {t}
             </button>
@@ -77,7 +77,7 @@ export default function SeccionCiudad() {
             {lotes.filter((l) => !l.anonimo).map((l) => (
               <div
                 key={`${l.posicion}-${l.nombre}`}
-                className={`rounded-xl border bg-white p-2.5 text-sm ${l.es_yo ? "border-acento ring-2 ring-acento/30" : "border-linea"}`}
+                className={`rounded-xl border bg-superficie p-2.5 text-sm ${l.es_yo ? "border-acento ring-2 ring-acento/30" : "border-linea"}`}
               >
                 <div className="text-xs text-gray-500">#{l.posicion}</div>
                 <div className="truncate font-semibold text-noche">
