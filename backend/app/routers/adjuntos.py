@@ -11,13 +11,14 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlmodel import Session, func, select
 
 from app.database import get_session
 from app.models import Adjunto, Cliente, Ticket
 from app.schemas import AdjuntoRead, MensajeRespuesta
+from app.services import notificaciones
 from app.services.auth import es_personal, obtener_usuario_actual
 from app.services.catalogos import MAX_ADJUNTOS, MAX_BYTES_ADJUNTO, TIPOS_DE_ARCHIVO
 from app.services.cuerpo import leer_cuerpo_limitado
@@ -85,6 +86,7 @@ def listar_adjuntos(
 async def subir_adjunto(
     ticket_id: int,
     request: Request,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
@@ -127,6 +129,7 @@ async def subir_adjunto(
     session.add(adjunto)
     session.commit()
     session.refresh(adjunto)
+    notificaciones.adjunto_subido(tareas, session, ticket, usuario, nombre)
     return _a_lectura(adjunto, {usuario.id: usuario.nombre})
 
 

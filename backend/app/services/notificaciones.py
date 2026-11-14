@@ -311,3 +311,162 @@ def mensaje_nuevo(tareas: BackgroundTasks, session: Session, ticket: Ticket, aut
             cita=_extracto(texto),
             cita_rotulo="Mensaje",
         )
+
+
+# ---------- avisos agregados el 14/11/2026 ----------
+# Cada uno sale por una sola acción de una persona (nunca en lote) y respeta las mismas
+# reglas: no a quien hizo la acción, no a cuentas desactivadas, no por tickets de la carga
+# masiva.
+
+def _a_persona(tareas: BackgroundTasks, session: Session, ticket: Ticket, persona_id: Optional[int],
+               actor_id: Optional[int], **datos) -> None:
+    persona = _destinatario(session, persona_id, actor_id)
+    if persona is None:
+        return
+    if persona.id == ticket.cliente_id and persona.rol == "usuario":
+        if ticket.solicitante_externo:
+            return
+        _al_solicitante(tareas, session, ticket, actor_id, **datos)
+        return
+    tareas.add_task(correo.enviar, persona.email, _correo_tecnico(persona, ticket, **datos))
+
+
+def aprobacion_solicitada(tareas: BackgroundTasks, session: Session, ticket: Ticket, actor: Cliente) -> None:
+    _al_solicitante(
+        tareas, session, ticket, actor.id,
+        asunto="espera una aprobación",
+        titulo="Tu ticket espera una aprobación",
+        etiqueta="En pausa",
+        tono="pausa",
+        parrafos=[
+            "Para continuar, el equipo de soporte pidió la aprobación de otra persona (por ejemplo, "
+            "el jefe del área). Mientras llega la respuesta, el plazo de atención queda en pausa.",
+            "Te avisaremos apenas la respondan.",
+        ],
+    )
+
+
+def aprobacion_respondida(tareas: BackgroundTasks, session: Session, ticket: Ticket, aprobacion, actor: Cliente) -> None:
+    aprobada = aprobacion.estado == "aprobada"
+    resultado = "aprobada" if aprobada else "rechazada"
+    datos = dict(
+        asunto=f"aprobación {resultado}",
+        etiqueta="Aprobada" if aprobada else "Rechazada",
+        tono="ok" if aprobada else "alerta",
+        cita=aprobacion.comentario or aprobacion.descripcion,
+        cita_rotulo="Comentario" if aprobacion.comentario else "Qué se pidió aprobar",
+    )
+    _a_persona(
+        tareas, session, ticket, aprobacion.solicitada_por_id, actor.id,
+        titulo=f"{actor.nombre} respondió la aprobación",
+        parrafos=[f"La aprobación que pediste fue {resultado}. El plazo del ticket vuelve a correr."],
+        **datos,
+    )
+    _al_solicitante(
+        tareas, session, ticket, actor.id,
+        titulo=f"La aprobación de tu ticket fue {resultado}",
+        parrafos=[
+            f"La aprobación que necesitaba tu ticket fue {resultado} y el equipo de soporte continúa "
+            "con la atención. El plazo volvió a correr."
+        ],
+        **datos,
+    )
+
+
+def resuelto_con_minutito(tareas: BackgroundTasks, session: Session, ticket: Ticket) -> None:
+    _al_tecnico(
+        tareas, session, ticket, ticket.cliente_id,
+        asunto="lo resolvió Minutito",
+        titulo="El usuario resolvió el ticket con Minutito",
+        etiqueta="Resuelto",
+        tono="ok",
+        parrafos=["El usuario confirmó que la ayuda de Minutito resolvió su problema: ya no hace falta atenderlo."],
+    )
+
+
+# Si quien abrió el ticket sube archivos justo al crearlo, el correo de «ticket nuevo» ya
+# basta: no se manda uno por archivo.
+MINUTOS_GRACIA_ADJUNTOS = 5
+
+
+def adjunto_subido(tareas: BackgroundTasks, session: Session, ticket: Ticket, autor: Cliente, nombre: str) -> None:
+    from datetime import datetime, timedelta
+
+    if autor.id == ticket.cliente_id:
+        if datetime.now() - ticket.creado_en < timedelta(minutes=MINUTOS_GRACIA_ADJUNTOS):
+            return
+        _al_tecnico(
+            tareas, session, ticket, autor.id,
+            asunto="nuevo archivo del usuario",
+            titulo=f"{autor.nombre} adjuntó un archivo",
+            etiqueta="Archivo",
+            tono="info",
+            parrafos=["El usuario subió un archivo al ticket:"],
+            cita=nombre,
+            cita_rotulo="Archivo",
+        )
+    else:
+        _al_solicitante(
+            tareas, session, ticket, autor.id,
+            asunto="nuevo archivo de soporte",
+            titulo="Soporte adjuntó un archivo a tu ticket",
+            etiqueta="Archivo",
+            tono="info",
+            parrafos=[f"{autor.nombre}, del equipo de soporte, subió un archivo a tu ticket:"],
+            cita=nombre,
+            cita_rotulo="Archivo",
+        )
+
+
+def prioridad_cambiada(tareas: BackgroundTasks, session: Session, ticket: Ticket, anterior: str, actor: Cliente,
+                       dias: Optional[int]) -> None:
+    plazo = f" Con esta prioridad, el plazo de atención es de {dias} {'día' if dias == 1 else 'días'}." if dias else ""
+    _al_solicitante(
+        tareas, session, ticket, actor.id,
+        asunto="cambió la prioridad",
+        titulo="Cambió la prioridad de tu ticket",
+        etiqueta=ticket.prioridad,
+        tono="info",
+        parrafos=[f"El equipo de soporte cambió la prioridad de tu ticket de {anterior} a {ticket.prioridad}.{plazo}"],
+    )
+
+
+def encuesta_recibida(tareas: BackgroundTasks, session: Session, ticket: Ticket, estrellas: int,
+                      comentario: Optional[str], autor: Cliente) -> None:
+    _al_tecnico(
+        tareas, session, ticket, autor.id,
+        asunto=f"calificación {estrellas} de 5",
+        titulo=f"{autor.nombre} calificó tu atención con {estrellas} de 5",
+        etiqueta="★" * estrellas + "☆" * (5 - estrellas),
+        tono="ok" if estrellas >= 4 else ("aviso" if estrellas == 3 else "alerta"),
+        parrafos=["Quien abrió el ticket respondió la encuesta de satisfacción."],
+        cita=comentario or None,
+        cita_rotulo="Comentario" if comentario else None,
+    )
+
+
+def contrasena_cambiada(tareas: BackgroundTasks, persona: Cliente) -> None:
+    """Aviso de seguridad: si no fue la persona, que lo sepa enseguida."""
+    from app.services.plantilla_correo import Correo as _Correo
+
+    if not persona.activo or not persona.email:
+        return
+    tareas.add_task(
+        correo.enviar,
+        persona.email,
+        _Correo(
+            asunto="Tu contraseña de MinutoDesk cambió",
+            rotulo="Tu cuenta",
+            titulo="Se cambió tu contraseña",
+            etiqueta="Seguridad",
+            tono="aviso",
+            saludo=f"Hola {_primer_nombre(persona.nombre)},",
+            parrafos=[
+                "La contraseña de tu cuenta de MinutoDesk acaba de cambiar y se cerraron las demás sesiones abiertas.",
+                "Si fuiste tú, no tienes que hacer nada.",
+            ],
+            boton="Ir a MinutoDesk",
+            enlace=f"{correo.base_frontend()}/login",
+            nota="Si no fuiste tú, usa «¿Olvidaste tu contraseña?» enseguida y avisa al administrador.",
+        ),
+    )

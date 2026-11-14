@@ -70,8 +70,69 @@ def test_no_se_avisa_a_quien_hizo_el_cambio_ni_por_cambios_menores(client, crear
     tid = _crear(client, entrar("usr@ejemplo.com"), "Salesforce")
     _limpiar(correos)
     ht = entrar("tec@ejemplo.com")
-    client.patch(f"/tickets/{tid}", json={"prioridad": "Alta"}, headers=ht)
     client.patch(f"/tickets/{tid}", json={"tecnico_id": tec.id}, headers=ht)  # se lo asigna a sí mismo
     assert _correos(correos) == []
     client.patch(f"/tickets/{tid}", json={"tecnico_id": otro.id}, headers=ht)
     assert _correos(correos) == [("otro@ejemplo.com", f"Ticket #{tid}: te lo asignaron")]
+
+
+def test_avisos_nuevos_aprobacion_archivo_prioridad_encuesta_y_contrasena(
+    client, crear_cuenta, entrar, correos, session, tmp_path, monkeypatch
+):
+    from datetime import datetime, timedelta
+
+    from app.models import Ticket
+    from app.routers import adjuntos
+
+    monkeypatch.setattr(adjuntos, "DIRECTORIO_ARCHIVOS", tmp_path / "uploads")  # nunca la carpeta real
+
+    crear_cuenta("usr@ejemplo.com", nombre="Ana Torres")
+    crear_cuenta("jimmy@ejemplo.com", "tecnico", nombre="Jimmy Lopez")
+    crear_cuenta("jefe@ejemplo.com", "usuario", nombre="Jefe Area")
+    hu, ht, hj = entrar("usr@ejemplo.com"), entrar("jimmy@ejemplo.com"), entrar("jefe@ejemplo.com")
+    tid = _crear(client, hu)
+    jefe_id = client.get("/auth/yo", headers=hj).json()["id"]
+
+    # Archivo subido al crear el ticket: ya basta el aviso de «ticket nuevo».
+    _limpiar(correos)
+    subir = lambda h: client.post(f"/tickets/{tid}/adjuntos", content=b"datos", headers={**h, "X-Nombre-Archivo": "captura.png", "Content-Type": "application/octet-stream"})
+    assert subir(hu).status_code == 200
+    assert _correos(correos) == []
+    ticket = session.get(Ticket, tid)
+    ticket.creado_en = datetime.now() - timedelta(hours=1)
+    session.add(ticket)
+    session.commit()
+    subir(hu)
+    subir(ht)
+    assert _correos(correos) == [
+        ("jimmy@ejemplo.com", f"Ticket #{tid}: nuevo archivo del usuario"),
+        ("usr@ejemplo.com", f"Ticket #{tid}: nuevo archivo de soporte"),
+    ]
+
+    _limpiar(correos)
+    client.patch(f"/tickets/{tid}", json={"prioridad": "Alta"}, headers=ht)
+    assert _correos(correos) == [("usr@ejemplo.com", f"Ticket #{tid}: cambió la prioridad")]
+
+    _limpiar(correos)
+    r = client.post(f"/tickets/{tid}/aprobaciones", json={"aprobador_id": jefe_id, "descripcion": "Aprobar compra de licencia"}, headers=ht)
+    assert r.status_code == 200, r.text
+    assert _correos(correos) == [
+        ("jefe@ejemplo.com", f"Aprobación pendiente del ticket #{tid}"),
+        ("usr@ejemplo.com", f"Ticket #{tid}: espera una aprobación"),
+    ]
+    _limpiar(correos)
+    client.post(f"/aprobaciones/{r.json()['id']}/responder", json={"aprobada": True}, headers=hj)
+    assert _correos(correos) == [
+        ("jimmy@ejemplo.com", f"Ticket #{tid}: aprobación aprobada"),
+        ("usr@ejemplo.com", f"Ticket #{tid}: aprobación aprobada"),
+    ]
+
+    client.patch(f"/tickets/{tid}", json={"estado": "resuelto"}, headers=ht)
+    _limpiar(correos)
+    client.post(f"/tickets/{tid}/encuesta", json={"estrellas": 5, "comentario": "Excelente"}, headers=hu)
+    client.post(f"/tickets/{tid}/encuesta", json={"estrellas": 4}, headers=hu)  # cambiarla no vuelve a avisar
+    assert _correos(correos) == [("jimmy@ejemplo.com", f"Ticket #{tid}: calificación 5 de 5")]
+
+    _limpiar(correos)
+    client.post("/auth/cambiar-password", json={"password_actual": "Clave12345", "password_nueva": "OtraClave99"}, headers=hu)
+    assert _correos(correos) == [("usr@ejemplo.com", "Tu contraseña de MinutoDesk cambió")]

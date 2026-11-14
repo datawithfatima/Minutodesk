@@ -198,6 +198,7 @@ def solicitar_aprobacion(
     tareas.add_task(
         correo.enviar_aviso_aprobacion, aprobador.email, aprobador.nombre, ticket.id, descripcion
     )
+    notificaciones.aprobacion_solicitada(tareas, session, ticket, usuario)
     return _a_aprobacion_read(aprobacion, {usuario.id: usuario, aprobador.id: aprobador})
 
 
@@ -281,6 +282,9 @@ def responder_aprobacion(
     session.refresh(aprobacion)
     if ticket is not None and sla.reanudar_tras_aprobacion(session, ticket, usuario.id) is not None:
         session.commit()
-        notificaciones.sla_reanudado(tareas, session, ticket, usuario)
+    if ticket is not None:
+        # Un solo correo a cada uno (quien pidió la aprobación y quien abrió el ticket) con el
+        # resultado; ya incluye que el plazo vuelve a correr.
+        notificaciones.aprobacion_respondida(tareas, session, ticket, aprobacion, usuario)
     personas = _nombres(session, {aprobacion.solicitada_por_id, usuario.id, ticket.cliente_id})
     return _a_aprobacion_read(aprobacion, personas, ticket)

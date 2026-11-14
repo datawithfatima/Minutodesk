@@ -1,13 +1,13 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models import Cliente, InteraccionMinutito, Ticket
 from app.routers.tickets import registrar_estado
-from app.services import sla
+from app.services import notificaciones, sla
 from app.schemas import (
     ChatMensaje,
     ChatRespuesta,
@@ -89,6 +89,7 @@ def chat_ticket(
 def confirmar_resolucion(
     ticket_id: int,
     data: ConfirmarResolucion,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
@@ -135,4 +136,5 @@ def confirmar_resolucion(
     session.refresh(ticket)
 
     evaluar_evento(ticket, ticket.cliente_id, session)
+    notificaciones.resuelto_con_minutito(tareas, session, ticket)
     return ConfirmacionRespuesta(estado_ticket=ticket.estado, mensaje=MENSAJE_RESUELTO)

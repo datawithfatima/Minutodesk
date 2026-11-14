@@ -14,7 +14,7 @@ from app.schemas import (
     OlvidePasswordRequest,
     TokenResponse,
 )
-from app.services import correo, tokens_acceso
+from app.services import correo, notificaciones, tokens_acceso
 from app.services.auth import (
     HASH_FALSO,
     crear_token,
@@ -101,7 +101,7 @@ def olvide_password(
 
 @router.post("/establecer-password", response_model=MensajeRespuesta)
 def establecer_password(
-    data: EstablecerPasswordRequest, session: Session = Depends(get_session)
+    data: EstablecerPasswordRequest, tareas: BackgroundTasks, session: Session = Depends(get_session)
 ):
     validar_password(data.password)
     registro = tokens_acceso.buscar_valido(session, data.token)
@@ -118,12 +118,15 @@ def establecer_password(
     intentos_fallidos.pop(cliente.email, None)  # con su clave nueva puede entrar ya
     session.add(cliente)
     session.commit()
+    if registro.tipo == "recuperacion":  # al activar la cuenta no hace falta el aviso
+        notificaciones.contrasena_cambiada(tareas, cliente)
     return MensajeRespuesta(mensaje="Tu contraseña quedó establecida. Ya puedes iniciar sesión.")
 
 
 @router.post("/cambiar-password", response_model=TokenResponse)
 def cambiar_password(
     data: CambiarPasswordRequest,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_sesion),
     session: Session = Depends(get_session),
 ):
@@ -138,12 +141,15 @@ def cambiar_password(
         )
     validar_password(data.password_nueva)
 
+    data_era_temporal = usuario.debe_cambiar_password  # primer cambio obligatorio: sin aviso
     usuario.password_hash = hashear_password(data.password_nueva)
     usuario.debe_cambiar_password = False
     usuario.version_token += 1  # cierra las demás sesiones; esta recibe un token nuevo
     session.add(usuario)
     session.commit()
     session.refresh(usuario)
+    if not data_era_temporal:
+        notificaciones.contrasena_cambiada(tareas, usuario)
     return TokenResponse(
         access_token=crear_token(usuario),
         cliente=a_cliente_read(usuario, mapa_areas(session)),

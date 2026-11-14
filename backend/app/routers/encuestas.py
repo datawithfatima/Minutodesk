@@ -9,11 +9,12 @@ from datetime import datetime
 from statistics import mean
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, SQLModel, select
 
 from app.database import get_session
 from app.models import Cliente, EncuestaSatisfaccion, Ticket
+from app.services import notificaciones
 from app.services.auth import es_personal, obtener_usuario_actual, requerir_personal
 
 router = APIRouter()
@@ -68,6 +69,7 @@ def ver_encuesta(
 def responder_encuesta(
     ticket_id: int,
     data: EncuestaCreate,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
@@ -84,6 +86,7 @@ def responder_encuesta(
         raise HTTPException(status_code=400, detail=f"El comentario es demasiado largo (máximo {MAX_COMENTARIO}).")
 
     e = _de_ticket(session, ticket_id)
+    primera_vez = e is None
     if e is None:
         e = EncuestaSatisfaccion(ticket_id=ticket.id, cliente_id=usuario.id, estrellas=data.estrellas)
     else:
@@ -94,6 +97,8 @@ def responder_encuesta(
     session.add(e)
     session.commit()
     session.refresh(e)
+    if primera_vez:  # al cambiar la calificación no se vuelve a avisar
+        notificaciones.encuesta_recibida(tareas, session, ticket, e.estrellas, e.comentario, usuario)
     return EncuestaRead.model_validate(e, from_attributes=True)
 
 

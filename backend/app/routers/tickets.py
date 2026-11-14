@@ -405,6 +405,7 @@ def actualizar_ticket(
             status_code=400, detail="Un ticket de accesos se crea con el formulario de alta de colaborador."
         )
 
+    prioridad_anterior = ticket.prioridad
     if data.prioridad is not None and data.prioridad != ticket.prioridad:
         ticket.prioridad = data.prioridad
         ticket.aviso_sla = None  # el plazo cambia: los avisos se vuelven a evaluar
@@ -471,6 +472,8 @@ def actualizar_ticket(
         notificaciones.estado_cambiado(tareas, session, ticket, estado_anterior, usuario)
     if ticket.tecnico_id is not None and ticket.tecnico_id != tecnico_anterior:
         notificaciones.tecnico_asignado(tareas, session, ticket, usuario)
+    if ticket.prioridad != prioridad_anterior and ticket.estado not in ESTADOS_FINALES:
+        notificaciones.prioridad_cambiada(tareas, session, ticket, prioridad_anterior, usuario, sla.dias_de_plazo(ticket))
 
     return _con_sla(session, [ticket])[0]
 
