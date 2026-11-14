@@ -209,6 +209,22 @@ export const obtenerCiudad = (periodo) => get("/gamificacion/ciudad", { periodo 
 // --- Reportes ---
 export const obtenerResumen = () => get("/reportes/resumen");
 export const obtenerSatisfaccion = () => get("/reportes/satisfaccion"); // técnico o administrador
+// Excel o PDF de Reportes: como los adjuntos, se pide con la sesión y se guarda como archivo.
+export async function exportarReportes(formato) {
+  const res = await fetch(`${API_BASE}/reportes/exportar?formato=${formato}`, { headers: headers(false) }).catch(sinConexion);
+  if (!res.ok) {
+    const detalle = await res.json().catch(() => null);
+    throw new Error(typeof detalle?.detail === "string" ? detalle.detail : `No se pudo exportar (error ${res.status}).`);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = `minutodesk-reportes-${new Date().toISOString().slice(0, 10)}.${formato}`;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 // --- Encuesta de satisfacción ---
 export const obtenerEncuesta = (ticketId) => get(`/tickets/${ticketId}/encuesta`);

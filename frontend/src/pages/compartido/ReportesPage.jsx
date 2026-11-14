@@ -5,6 +5,8 @@ import {
   CircleDot,
   CheckCircle2,
   Clock,
+  FileSpreadsheet,
+  FileText,
   Inbox,
   MessagesSquare,
   Target,
@@ -12,10 +14,11 @@ import {
   TimerReset,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { obtenerClasificador, obtenerResumen, obtenerSatisfaccion } from "../../api";
+import { exportarReportes, obtenerClasificador, obtenerResumen, obtenerSatisfaccion } from "../../api";
 import { Estrellas } from "../../components/tickets/EncuestaSatisfaccion";
 import { obtenerUsuario } from "../../auth";
 import Alert from "../../components/ui/Alert";
+import Button from "../../components/ui/Button";
 import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import {
@@ -596,6 +599,47 @@ function Clasificador() {
   );
 }
 
+/* ───────────── Exportar (Excel con la hoja de tickets, o PDF) ───────────── */
+
+function BotonesExportar({ onError }) {
+  const [exportando, setExportando] = useState(null);
+
+  async function exportar(formato) {
+    setExportando(formato);
+    onError(null);
+    try {
+      await exportarReportes(formato);
+    } catch (e) {
+      onError(e.message);
+    } finally {
+      setExportando(null);
+    }
+  }
+
+  const opciones = [
+    { formato: "xlsx", texto: "Excel", Icono: FileSpreadsheet, titulo: "Indicadores y una hoja con todos los tickets" },
+    { formato: "pdf", texto: "PDF", Icono: FileText, titulo: "Indicadores listos para imprimir o anexar" },
+  ];
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.14em] text-gray-500 sm:inline">Exportar</span>
+      {opciones.map(({ formato, texto, Icono, titulo }) => (
+        <Button
+          key={formato}
+          size="sm"
+          variant="outlineSecondary"
+          title={titulo}
+          disabled={exportando !== null}
+          onClick={() => exportar(formato)}
+        >
+          <Icono size={15} aria-hidden="true" className={formato === "xlsx" ? "text-green-700" : "text-acento"} />
+          {exportando === formato ? "Preparando…" : texto}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 /* ───────────── Página ───────────── */
 
 export default function ReportesPage() {
@@ -613,10 +657,9 @@ export default function ReportesPage() {
 
   return (
     <>
-      <PageHeader
-        icon={BarChart3}
-        title="Reportes"
-      />
+      <PageHeader icon={BarChart3} title="Reportes">
+        {personal && <BotonesExportar onError={setError} />}
+      </PageHeader>
       {error && <Alert variant="danger">{error}</Alert>}
       {!resumen && !error && <Spinner size="sm" />}
 

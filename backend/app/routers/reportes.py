@@ -225,3 +225,39 @@ def resumen(
         ultimos_dias=ultimos_dias,
         sla=_reporte_sla(session, tickets),
     )
+
+
+@router.get("/exportar")
+def exportar(
+    formato: str = "xlsx",
+    usuario: Cliente = Depends(requerir_personal),
+    session: Session = Depends(get_session),
+):
+    """Reportes en Excel (con la hoja de tickets) o PDF, para anexos. Técnico o
+    administrador; la calidad del clasificador solo va en el del administrador."""
+    from fastapi import HTTPException
+    from fastapi.responses import Response
+
+    from app.routers.encuestas import resumen_satisfaccion
+    from app.services import exportar_reportes
+
+    if formato not in ("xlsx", "pdf"):
+        raise HTTPException(status_code=400, detail="Formato no válido: usa xlsx o pdf.")
+    datos_resumen = resumen(usuario=usuario, session=session)
+    categorias = Counter(
+        t.categoria or t.categoria_predicha or "Sin categoría" for t in session.exec(select(Ticket)).all()
+    ).most_common()
+    clasif = clasificador(usuario=usuario, session=session) if usuario.rol == "administrador" else None
+    secciones = exportar_reportes.reunir(datos_resumen, categorias, resumen_satisfaccion(session), clasif)
+    fecha = date.today().isoformat()
+    if formato == "pdf":
+        contenido = exportar_reportes.a_pdf(secciones, usuario.nombre)
+        tipo = "application/pdf"
+    else:
+        contenido = exportar_reportes.a_excel(secciones, exportar_reportes.listado_tickets(session), usuario.nombre)
+        tipo = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return Response(
+        content=contenido,
+        media_type=tipo,
+        headers={"Content-Disposition": f'attachment; filename="minutodesk-reportes-{fecha}.{formato}"'},
+    )
