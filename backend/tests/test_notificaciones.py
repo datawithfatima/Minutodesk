@@ -59,7 +59,7 @@ def test_cancelar_avisa_con_el_motivo(client, crear_cuenta, entrar, correos):
     client.post(f"/tickets/{tid}/cancelar", json={"motivo": "Duplicado del ticket 3"}, headers=entrar("adm@ejemplo.com"))
     (archivo,) = correos.glob("*.txt")
     texto = archivo.read_text(encoding="utf-8")
-    assert "fue cancelado" in texto and "Motivo: Duplicado del ticket 3" in texto
+    assert "fue cancelado" in texto and "Motivo: «Duplicado del ticket 3»" in texto
     assert f"/usuario/tickets/{tid}" in texto
 
 
