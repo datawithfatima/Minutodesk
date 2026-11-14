@@ -2,7 +2,7 @@ import asyncio
 import os
 from contextlib import contextmanager
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
@@ -66,38 +66,60 @@ def _sesion_bitacora():
         generador.close()
 
 
-@app.middleware("http")
-async def bitacora_de_auditoria(request: Request, call_next):
-    """Registra en la bitácora las acciones de auditoria.ACCIONES (ver ese módulo). Solo
-    lee el cuerpo de esas peticiones, y solo si es JSON: el resto pasa sin tocarse."""
-    if request.method == "OPTIONS" or auditoria.buscar(request.method, request.url.path) is None:
-        return await call_next(request)
-    accion, _ = auditoria.buscar(request.method, request.url.path)
-    es_json = request.headers.get("content-type", "").startswith("application/json")
-    cuerpo = await request.body() if es_json else b""
-    respuesta = await call_next(request)
-    contenido = None
-    if accion.leer_respuesta and respuesta.status_code < 400:
-        contenido = b"".join([trozo async for trozo in respuesta.body_iterator])
-        respuesta = Response(
-            content=contenido,
-            status_code=respuesta.status_code,
-            headers={k: v for k, v in respuesta.headers.items() if k.lower() != "content-length"},
-            media_type=respuesta.media_type,
-        )
-    await run_in_threadpool(
-        auditoria.registrar,
-        _sesion_bitacora,
-        metodo=request.method,
-        ruta=request.url.path,
-        consulta=request.url.query,
-        estado_http=respuesta.status_code,
-        autorizacion=request.headers.get("authorization"),
-        cuerpo=cuerpo,
-        respuesta=contenido,
-        ip=request.client.host if request.client else None,
-    )
-    return respuesta
+class BitacoraDeAuditoria:
+    """Middleware ASGI que registra en la bitácora las acciones de auditoria.ACCIONES.
+
+    No retiene ni modifica nada: copia el cuerpo JSON de la petición mientras el endpoint
+    lo lee y, si hace falta, el de la respuesta mientras se envía. La fila se escribe
+    cuando la petición terminó del todo (incluido el cierre de su sesión de base de
+    datos), así no compite con ella y no demora la respuesta."""
+
+    def __init__(self, aplicacion):
+        self.aplicacion = aplicacion
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] == "OPTIONS":
+            return await self.aplicacion(scope, receive, send)
+        encontrada = auditoria.buscar(scope["method"], scope["path"])
+        if encontrada is None:
+            return await self.aplicacion(scope, receive, send)
+        accion, _ = encontrada
+        cabeceras = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
+        es_json = cabeceras.get("content-type", "").startswith("application/json")
+        cuerpo, contenido, estado = bytearray(), bytearray(), {"codigo": 500}
+
+        async def recibir():
+            mensaje = await receive()
+            if es_json and mensaje["type"] == "http.request" and len(cuerpo) < 65536:
+                cuerpo.extend(mensaje.get("body", b""))
+            return mensaje
+
+        async def enviar(mensaje):
+            if mensaje["type"] == "http.response.start":
+                estado["codigo"] = mensaje["status"]
+            elif mensaje["type"] == "http.response.body" and accion.leer_respuesta and len(contenido) < 65536:
+                contenido.extend(mensaje.get("body", b""))
+            await send(mensaje)
+
+        try:
+            await self.aplicacion(scope, recibir, enviar)
+        finally:
+            cliente = scope.get("client")
+            await run_in_threadpool(
+                auditoria.registrar,
+                _sesion_bitacora,
+                metodo=scope["method"],
+                ruta=scope["path"],
+                consulta=scope.get("query_string", b"").decode("latin-1"),
+                estado_http=estado["codigo"],
+                autorizacion=cabeceras.get("authorization"),
+                cuerpo=bytes(cuerpo),
+                respuesta=bytes(contenido) if contenido else None,
+                ip=cliente[0] if cliente else None,
+            )
+
+
+app.add_middleware(BitacoraDeAuditoria)
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])

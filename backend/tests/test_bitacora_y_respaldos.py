@@ -22,7 +22,8 @@ def test_la_bitacora_registra_quien_hizo_que_sin_contrasenas(client, crear_cuent
     assert client.post("/auth/login", json={"email": "u@ejemplo.com", "password": "mala123456"}).status_code == 401
     usuario, tecnico, admin = entrar("u@ejemplo.com"), entrar("t@ejemplo.com"), entrar("adm@ejemplo.com")
     ticket = _crear_ticket(client, usuario)
-    client.patch(f"/tickets/{ticket['id']}", json={"prioridad": "Alta"}, headers=tecnico)
+    r = client.patch(f"/tickets/{ticket['id']}", json={"prioridad": "Alta"}, headers=tecnico)
+    assert r.status_code == 200, r.text
     assert client.get("/admin/bitacora", headers=tecnico).status_code == 403
     client.get("/minutito/conversaciones/actual", headers=usuario)  # consulta: no se registra
 
