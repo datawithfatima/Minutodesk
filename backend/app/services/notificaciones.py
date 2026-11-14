@@ -193,7 +193,11 @@ def estado_cambiado(
             titulo="Tu ticket quedó resuelto",
             etiqueta="Resuelto",
             tono="ok",
-            parrafos=["Obra entregada: tu ticket quedó resuelto. Si el problema sigue, respóndenos en el chat del ticket o crea uno nuevo."],
+            parrafos=[
+                "Obra entregada: tu ticket quedó resuelto. Si el problema sigue, respóndenos en el chat del ticket o crea uno nuevo.",
+                "¿Cómo te atendimos? Entra a tu ticket y califica la atención de 1 a 5 estrellas: "
+                "toma diez segundos y nos ayuda a mejorar.",
+            ],
         )
     elif nuevo == "cancelado":
         datos = dict(

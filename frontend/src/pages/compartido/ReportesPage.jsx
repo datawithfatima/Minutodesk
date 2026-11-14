@@ -12,7 +12,8 @@ import {
   TimerReset,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { obtenerClasificador, obtenerResumen } from "../../api";
+import { obtenerClasificador, obtenerResumen, obtenerSatisfaccion } from "../../api";
+import { Estrellas } from "../../components/tickets/EncuestaSatisfaccion";
 import { obtenerUsuario } from "../../auth";
 import Alert from "../../components/ui/Alert";
 import PageHeader from "../../components/ui/PageHeader";
@@ -308,6 +309,137 @@ function CumplimientoSla({ sla }) {
   );
 }
 
+/* ───────────── Satisfacción del usuario (encuesta al resolver) ───────────── */
+
+function Satisfaccion() {
+  const [s, setS] = useState(null);
+
+  useEffect(() => {
+    obtenerSatisfaccion()
+      .then(setS)
+      .catch(() => setS(null));
+  }, []);
+
+  if (!s) return null;
+  const sinRespuestas = s.respuestas === 0;
+
+  return (
+    <>
+      <Seccion
+        numero={2}
+        titulo="Satisfacción del usuario"
+        subtitulo="Al resolverse un ticket, quien lo abrió califica la atención de 1 a 5 estrellas («acta de recepción»)."
+      />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <Panel className="lg:col-span-5">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+            <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+            Calificación promedio
+          </h3>
+          <div className="mt-4 flex items-end gap-3">
+            <div className="text-5xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112]">
+              {s.promedio == null ? "—" : s.promedio.toFixed(1)}
+            </div>
+            <div className="pb-1.5">
+              <Estrellas valor={Math.round(s.promedio ?? 0)} tamano={18} />
+              <div className="text-sm text-gray-600">
+                {sinRespuestas ? "Aún no hay calificaciones" : `de 5 · ${s.respuestas} ${s.respuestas === 1 ? "respuesta" : "respuestas"}`}
+              </div>
+            </div>
+          </div>
+          {s.satisfechos_pct != null &&
+            (s.satisfechos_pct >= 80 ? (
+              <Estado icono={CheckCircle2} color={ESTADO_OK} texto={`${s.satisfechos_pct}% satisfechos (4 o 5 estrellas)`} />
+            ) : (
+              <Estado icono={AlertTriangle} color={ESTADO_AVISO} texto={`${s.satisfechos_pct}% satisfechos (4 o 5 estrellas)`} />
+            ))}
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-md border border-dashed border-linea bg-gray-50 px-3 py-2">
+              <dt className="text-xs text-gray-500">Tasa de respuesta</dt>
+              <dd className="font-mono text-lg font-semibold tabular-nums text-noche">
+                {s.tasa_respuesta_pct == null ? "—" : `${s.tasa_respuesta_pct}%`}
+              </dd>
+            </div>
+            <div className="rounded-md border border-dashed border-linea bg-gray-50 px-3 py-2">
+              <dt className="text-xs text-gray-500">Resueltos que se pueden calificar</dt>
+              <dd className="font-mono text-lg font-semibold tabular-nums text-noche">{formatoNumero(s.resueltos_calificables)}</dd>
+            </div>
+          </dl>
+          <p className="mt-2 text-xs text-gray-500">
+            No cuentan los tickets de la carga masiva: quien los pidió no tiene cuenta para calificar.
+          </p>
+        </Panel>
+
+        <ChartCard
+          className="lg:col-span-7"
+          titulo="Reparto de calificaciones"
+          subtitulo="Cuántas respuestas dieron cada número de estrellas"
+          tabla={{ columnas: ["Estrellas", "Respuestas"], filas: s.reparto.map((r) => [`${r.estrellas} ★`, r.total]) }}
+        >
+          {sinRespuestas ? (
+            <SinDatos texto="Todavía no hay calificaciones." />
+          ) : (
+            <HBars
+              nombreValor="Respuestas"
+              datos={s.reparto.map((r) => ({
+                etiqueta: `${r.estrellas} ${r.estrellas === 1 ? "estrella" : "estrellas"}`,
+                valor: r.total,
+              }))}
+            />
+          )}
+        </ChartCard>
+      </div>
+
+      {!sinRespuestas && (
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <Panel className="lg:col-span-5">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+              <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+              Promedio por técnico
+            </h3>
+            <ul className="mt-3 divide-y divide-dashed divide-linea">
+              {s.por_tecnico.map((t) => (
+                <li key={t.tecnico} className="flex items-center justify-between gap-3 py-2">
+                  <span className="min-w-0 truncate text-sm text-gray-700">{t.tecnico}</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <Estrellas valor={Math.round(t.promedio)} tamano={13} />
+                    <span className="font-mono text-xs tabular-nums text-gray-600">
+                      {t.promedio.toFixed(1)} · {t.respuestas}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+          <Panel className="lg:col-span-7">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+              <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+              Comentarios recientes
+            </h3>
+            {s.comentarios.length === 0 ? (
+              <p className="mt-3 text-sm text-gray-500">Nadie dejó comentarios todavía, solo estrellas.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {s.comentarios.map((c) => (
+                  <li key={c.ticket_id} className="border-l-2 border-casco pl-3">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <Estrellas valor={c.estrellas} tamano={12} />
+                      <span className="font-mono text-[11px] text-gray-500">
+                        #{c.ticket_id} · {c.autor} · {new Date(c.fecha).toLocaleDateString("es-EC")}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-gray-700">{c.comentario}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ───────────── Calidad del clasificador (solo administrador) ───────────── */
 
 function fechaYHora(iso) {
@@ -333,7 +465,7 @@ function Clasificador() {
   return (
     <>
       <Seccion
-        numero={2}
+        numero={3}
         titulo="Calidad del clasificador"
         subtitulo={`Medida con ${m.metodo} sobre ${formatoNumero(cat.tickets)} tickets: cada ticket se predice sin haberlo visto al entrenar. Entrenado el ${fechaYHora(m.entrenado_en)}.`}
       />
@@ -494,6 +626,8 @@ export default function ReportesPage() {
           <Plataforma resumen={resumen} personal={personal} />
         </>
       )}
+
+      {personal && <Satisfaccion />}
 
       {admin && <Clasificador />}
 

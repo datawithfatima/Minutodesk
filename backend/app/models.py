@@ -322,3 +322,22 @@ class EventoGamificacion(SQLModel, table=True):
     puntos_otorgados: int
     motivo: str
     creado_en: datetime = Field(default_factory=datetime.now)
+
+
+class EncuestaSatisfaccion(SQLModel, table=True):
+    """Calificación que deja quien abrió el ticket cuando se lo resuelven: de 1 a 5
+    estrellas y un comentario opcional. Una por ticket (se puede cambiar). No interviene
+    en el clasificador, en Minutito ni en los plazos: solo se muestra en Reportes."""
+
+    __tablename__ = "encuesta_satisfaccion"
+    __table_args__ = (CheckConstraint("estrellas BETWEEN 1 AND 5", name="ck_encuesta_estrellas"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", unique=True, index=True)
+    cliente_id: int = Field(foreign_key="cliente.id", index=True)
+    # Técnico que atendió el ticket al calificar (para el promedio por técnico).
+    tecnico_id: Optional[int] = Field(default=None, foreign_key="cliente.id", index=True)
+    estrellas: int
+    comentario: Optional[str] = Field(default=None)
+    creado_en: datetime = Field(default_factory=datetime.now)
+    actualizado_en: Optional[datetime] = Field(default=None)

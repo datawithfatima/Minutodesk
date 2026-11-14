@@ -1,4 +1,4 @@
-import { Bot, CalendarDays, CheckCircle2, ClipboardList, Flag, Layers, MessageSquare, Paperclip, Tag, TimerReset } from "lucide-react";
+import { Bot, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Flag, Layers, MessageSquare, Paperclip, Tag, TimerReset } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { obtenerTicket } from "../../api";
@@ -9,6 +9,7 @@ import ArchivosTicket from "../../components/tickets/ArchivosTicket";
 import ConversacionMinutito from "../../components/tickets/ConversacionMinutito";
 import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
+import EncuestaSatisfaccion from "../../components/tickets/EncuestaSatisfaccion";
 import { tituloTipo } from "../../components/tickets/formato";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
 import { CabeceraTicket, CicloEstado, FilaFicha, PanelFicha } from "../../components/tickets/FichaTicket";
@@ -86,7 +87,11 @@ export default function TicketDetailPage() {
             </Alert>
           )}
 
-          {resuelto && <Alert variant="success">Este ticket ya está resuelto.</Alert>}
+          {resuelto && (
+            <PanelFicha icono={ClipboardCheck} titulo="Acta de recepción · califica la atención" acento>
+              <EncuestaSatisfaccion ticketId={id} />
+            </PanelFicha>
+          )}
 
           <PanelFicha icono={MessageSquare} titulo="Chat con soporte" acento>
             <ConversacionTicket ticket={ticket} />

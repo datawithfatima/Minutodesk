@@ -1,7 +1,7 @@
-import { Bot, CheckCircle2, Inbox, Plus, Ticket, Trophy } from "lucide-react";
+import { Bot, CheckCircle2, Inbox, Plus, Star, Ticket, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { listarTickets, obtenerGamificacion, obtenerResumen } from "../../api";
+import { encuestasPendientes, listarTickets, obtenerGamificacion, obtenerResumen } from "../../api";
 import { obtenerUsuario } from "../../auth";
 import { Panel } from "../../components/charts/Charts";
 import { FranjaIndicadores } from "../../components/charts/Tablero";
@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [tickets, setTickets] = useState([]);
   const [resumen, setResumen] = useState(null);
   const [logros, setLogros] = useState(null);
+  const [porCalificar, setPorCalificar] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export default function DashboardPage() {
       listarTickets().then((lista) => setTickets(lista.slice(0, 5))),
       obtenerResumen().then(setResumen),
       obtenerGamificacion(usuario.id).then(setLogros),
+      encuestasPendientes().then(setPorCalificar, () => {}),
     ])
       .catch(() => {})
       .finally(() => setCargando(false));
@@ -136,6 +138,28 @@ export default function DashboardPage() {
             },
           ]}
         />
+
+        {porCalificar.length > 0 && (
+          <Link
+            to={`/usuario/tickets/${porCalificar[0].ticket_id}`}
+            className="lamina group flex items-center gap-3 rounded-lg border border-casco/60 bg-casco-100 px-4 py-3 hover:border-casco"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-grafito text-casco">
+              <Star size={17} className="fill-casco" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-noche">
+                {porCalificar.length === 1
+                  ? "Tienes un ticket resuelto por calificar"
+                  : `Tienes ${porCalificar.length} tickets resueltos por calificar`}
+              </span>
+              <span className="block truncate text-xs text-gray-600">
+                Ticket #{porCalificar[0].ticket_id} · {porCalificar[0].texto}
+              </span>
+            </span>
+            <span className="shrink-0 text-sm font-semibold text-acento group-hover:underline">Calificar →</span>
+          </Link>
+        )}
 
         <Panel relleno="p-0" className="overflow-hidden">
           <div className="flex items-center justify-between px-4 pb-3 pt-4 sm:px-5">

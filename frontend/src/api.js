@@ -208,6 +208,13 @@ export const obtenerCiudad = (periodo) => get("/gamificacion/ciudad", { periodo 
 
 // --- Reportes ---
 export const obtenerResumen = () => get("/reportes/resumen");
+export const obtenerSatisfaccion = () => get("/reportes/satisfaccion"); // técnico o administrador
+
+// --- Encuesta de satisfacción ---
+export const obtenerEncuesta = (ticketId) => get(`/tickets/${ticketId}/encuesta`);
+export const responderEncuesta = (ticketId, { estrellas, comentario }) =>
+  enviar("POST", `/tickets/${ticketId}/encuesta`, { estrellas, comentario });
+export const encuestasPendientes = () => get("/encuestas/pendientes");
 export const obtenerHistorico = () => get("/reportes/historico");
 export const listarTicketsHistoricos = (filtros) => get("/historico/tickets", filtros);
 export const obtenerTicketHistorico = (id) => get(`/historico/tickets/${id}`);

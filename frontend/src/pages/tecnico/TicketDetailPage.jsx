@@ -3,6 +3,7 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
   Copy,
   Cpu,
@@ -34,6 +35,7 @@ import {
 } from "../../api";
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
+import EncuestaSatisfaccion from "../../components/tickets/EncuestaSatisfaccion";
 import { tituloTipo } from "../../components/tickets/formato";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
 import { inputClass, labelClass } from "../../components/ui/formStyles";
@@ -627,6 +629,12 @@ export default function TicketDetailPage() {
               </FilaFicha>
             </dl>
           </PanelFicha>
+
+          {ticket.estado === "resuelto" && !ticket.solicitante_externo && (
+            <PanelFicha icono={ClipboardCheck} titulo="Satisfacción del usuario" className="max-lg:order-5">
+              <EncuestaSatisfaccion key={ticket.id} ticketId={ticket.id} editable={false} />
+            </PanelFicha>
+          )}
         </div>
 
           <div className="min-w-0 max-lg:order-3 lg:col-start-1">
