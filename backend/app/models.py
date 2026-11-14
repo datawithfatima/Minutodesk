@@ -90,6 +90,9 @@ class Ticket(SQLModel, table=True):
     motivo_cancelacion: Optional[str] = Field(default=None)
     creado_en: datetime = Field(default_factory=datetime.now)
     cerrado_en: Optional[datetime] = Field(default=None)
+    # Último aviso de plazo enviado al técnico: «por_vencer» o «vencido» (se limpia si
+    # cambia el tipo o la prioridad, porque el plazo se recalcula).
+    aviso_sla: Optional[str] = Field(default=None)
     # Solo en tickets creados por carga masiva desde el export de la herramienta anterior.
     id_externo: Optional[str] = Field(default=None, index=True)  # ID en esa herramienta
     solicitante_externo: Optional[str] = Field(default=None)  # quien lo pidió (no tiene cuenta)
@@ -119,6 +122,24 @@ class HistorialEstadoTicket(SQLModel, table=True):
     cambiado_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
     motivo: Optional[str] = Field(default=None)  # por ahora, solo al cancelar
     fecha: datetime = Field(default_factory=datetime.now)
+
+
+class PausaSla(SQLModel, table=True):
+    """Tramo en que el plazo de atención (SLA) del ticket no corre. La abre el personal
+    con un motivo, o el sistema al pedir una aprobación (entonces lleva aprobacion_id y
+    se cierra sola al responderla). Sin `fin` la pausa sigue vigente."""
+
+    __tablename__ = "pausa_sla"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", index=True)
+    motivo: str  # clave de sla.MOTIVOS_PAUSA
+    detalle: Optional[str] = Field(default=None)
+    aprobacion_id: Optional[int] = Field(default=None, foreign_key="aprobacion.id")
+    iniciada_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
+    inicio: datetime = Field(default_factory=datetime.now)
+    fin: Optional[datetime] = Field(default=None)
+    reanudada_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
 
 
 class InteraccionMinutito(SQLModel, table=True):

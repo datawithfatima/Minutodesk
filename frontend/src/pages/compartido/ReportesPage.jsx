@@ -9,6 +9,7 @@ import {
   MessagesSquare,
   Target,
   Ticket,
+  TimerReset,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { obtenerClasificador, obtenerResumen } from "../../api";
@@ -200,6 +201,8 @@ function Plataforma({ resumen, personal }) {
         </div>
       </div>
 
+      {resumen.sla && <CumplimientoSla sla={resumen.sla} />}
+
       <ChartCard
         className="mt-4"
         titulo="Tickets por categoría"
@@ -216,6 +219,92 @@ function Plataforma({ resumen, personal }) {
         )}
       </ChartCard>
     </>
+  );
+}
+
+/* ───────────── Plazo de atención (SLA) ───────────── */
+
+function BarraCumplimiento({ etiqueta, grupo }) {
+  const pct = grupo.pct;
+  const color = pct == null ? GRIS_SIN_DATO : pct >= 80 ? ESTADO_OK : pct >= 50 ? ESTADO_AVISO : "#d64545";
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-1.5">
+      <span className="truncate text-sm text-gray-700">{etiqueta}</span>
+      <span className="font-mono text-xs tabular-nums text-gray-600">
+        {pct == null ? "sin datos" : `${pct}% · ${grupo.cumplidos}/${grupo.total}`}
+      </span>
+      <div className="col-span-2 h-1.5 overflow-hidden rounded-[2px] bg-gray-100">
+        <div className="h-full rounded-[2px]" style={{ width: `${pct ?? 0}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function CumplimientoSla({ sla }) {
+  const pct = sla.pct_cumplimiento;
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
+      <Panel className="lg:col-span-5">
+        <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+          <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
+          Cumplimiento del plazo de atención
+        </h3>
+        <p className="mt-0.5 text-xs text-gray-500">Tickets resueltos dentro del plazo según su tipo y prioridad</p>
+        <div className="mt-4 flex items-end gap-3">
+          <div className="text-5xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112]">
+            {pct == null ? "—" : `${pct}%`}
+          </div>
+          <div className="pb-1.5 text-sm text-gray-600">
+            {sla.resueltos_con_plazo === 0
+              ? "Aún no hay tickets resueltos con plazo"
+              : `${sla.cumplidos} de ${sla.resueltos_con_plazo} a tiempo`}
+          </div>
+        </div>
+        {pct != null &&
+          (pct >= 80 ? (
+            <Estado icono={CheckCircle2} color={ESTADO_OK} texto="Buen cumplimiento" />
+          ) : (
+            <Estado icono={AlertTriangle} color={ESTADO_AVISO} texto="Hay plazos que se están pasando" />
+          ))}
+        <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
+          {[
+            ["En tiempo", sla.abiertos_en_tiempo, ESTADO_OK],
+            ["Por vencer", sla.abiertos_por_vencer, ESTADO_AVISO],
+            ["Vencidos", sla.abiertos_vencidos, "#d64545"],
+            ["En pausa", sla.abiertos_pausados, GRIS_SIN_DATO],
+          ].map(([etiqueta, valor, color]) => (
+            <div key={etiqueta} className="rounded-md border border-dashed border-linea bg-gray-50 px-3 py-2">
+              <dt className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="h-1.5 w-1.5 rounded-[1px]" style={{ background: color }} />
+                {etiqueta}
+              </dt>
+              <dd className="font-mono text-lg font-semibold tabular-nums text-noche">{valor}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2 text-xs text-gray-500">Tickets abiertos ahora mismo, según cómo va su plazo.</p>
+      </Panel>
+      <Panel className="lg:col-span-7">
+        <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
+          <TimerReset size={15} aria-hidden="true" className="text-acento" />
+          Cumplimiento por tipo y por prioridad
+        </h3>
+        <div className="mt-3 grid grid-cols-1 gap-x-8 md:grid-cols-2">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Por tipo</p>
+            {sla.por_tipo.map((g) => (
+              <BarraCumplimiento key={g.etiqueta} etiqueta={g.etiqueta} grupo={g} />
+            ))}
+          </div>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Por prioridad</p>
+            {sla.por_prioridad.map((g) => (
+              <BarraCumplimiento key={g.etiqueta} etiqueta={g.etiqueta} grupo={g} />
+            ))}
+          </div>
+        </div>
+      </Panel>
+    </div>
   );
 }
 

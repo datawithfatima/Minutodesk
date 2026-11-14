@@ -28,6 +28,7 @@ COLUMNAS_NUEVAS = {
         ("id_externo", "TEXT"),
         ("solicitante_externo", "TEXT"),
         ("tecnico_manual", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("aviso_sla", "TEXT"),
     ],
     "historial_estado_ticket": [("motivo", "TEXT")],
     "evaluacion_minutito": [("solucion_esperada", "TEXT")],

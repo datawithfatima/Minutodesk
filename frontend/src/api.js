@@ -121,6 +121,9 @@ export async function descargarAdjunto(adjunto) {
 }
 export const actualizarTicket = (id, data) => enviar("PATCH", `/tickets/${id}`, data);
 export const cancelarTicket = (id, motivo) => enviar("POST", `/tickets/${id}/cancelar`, { motivo });
+export const listarMotivosPausa = () => get("/tickets/motivos-pausa");
+export const pausarSla = (id, { motivo, detalle }) => enviar("POST", `/tickets/${id}/sla/pausar`, { motivo, detalle });
+export const reanudarSla = (id) => enviar("POST", `/tickets/${id}/sla/reanudar`, {});
 export const listarInteracciones = (ticketId) => get(`/tickets/${ticketId}/interacciones`);
 export const listarHistorial = (ticketId) => get(`/tickets/${ticketId}/historial`);
 export const confirmarResolucion = (ticketId, resuelto) =>

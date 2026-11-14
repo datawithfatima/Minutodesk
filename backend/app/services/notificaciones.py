@@ -15,7 +15,9 @@ from typing import Optional
 from fastapi import BackgroundTasks
 from sqlmodel import Session
 
-from app.models import Cliente, Ticket
+from sqlmodel import select
+
+from app.models import Cliente, PausaSla, Ticket
 from app.services import correo
 
 MAX_EXTRACTO = 300
@@ -131,6 +133,57 @@ def estado_cambiado(
     else:
         return
     _al_solicitante(tareas, session, ticket, actor_id, asunto, parrafo)
+
+
+def _duracion(segundos: int) -> str:
+    horas = abs(segundos) // 3600
+    if horas < 24:
+        return f"{horas} h"
+    return f"{horas // 24} d {horas % 24} h"
+
+
+def sla_pausado(tareas: BackgroundTasks, session: Session, ticket: Ticket, actor: Cliente, pausa: PausaSla) -> None:
+    from app.services.sla import MOTIVOS_PAUSA  # aquí para evitar un import circular
+
+    motivo = MOTIVOS_PAUSA.get(pausa.motivo, pausa.motivo)
+    detalle = f"\n{pausa.detalle}" if pausa.detalle else ""
+    _al_solicitante(
+        tareas, session, ticket, actor.id, "en pausa",
+        f"El equipo de soporte puso en pausa el plazo de tu ticket. Motivo: {motivo}.{detalle}\n\n"
+        "El tiempo de atención no corre mientras dure la pausa; te avisaremos cuando se reanude.",
+    )
+
+
+def sla_reanudado(tareas: BackgroundTasks, session: Session, ticket: Ticket, actor: Cliente) -> None:
+    _al_solicitante(
+        tareas, session, ticket, actor.id, "se reanudó la atención",
+        "La pausa terminó y el plazo de tu ticket volvió a correr.",
+    )
+
+
+def sla_alerta(session: Session, ticket: Ticket, restante_segundos: int, tipo: str) -> None:
+    """Aviso directo (lo llama el revisor periódico, sin BackgroundTasks) al técnico
+    asignado, o a los administradores si el ticket no tiene técnico."""
+    if ticket.tecnico_id is not None:
+        destinos = [p for p in [session.get(Cliente, ticket.tecnico_id)] if p is not None and p.activo]
+    else:
+        destinos = list(
+            session.exec(select(Cliente).where(Cliente.rol == "administrador", Cliente.activo == True))  # noqa: E712
+        )
+    if tipo == "vencido":
+        asunto = "plazo vencido"
+        parrafo = f"El plazo de atención de este ticket venció hace {_duracion(restante_segundos)}."
+    else:
+        asunto = "plazo por vencer"
+        parrafo = f"Al plazo de atención de este ticket le quedan {_duracion(restante_segundos)}."
+    for persona in destinos:
+        cuerpo = (
+            f"Hola {_primer_nombre(persona.nombre)},\n\n{parrafo}\n\n"
+            f"Ticket #{ticket.id} · {ticket.categoria or ticket.categoria_predicha or 'Sin categoría'} · "
+            f"Prioridad {ticket.prioridad}\n«{_extracto(ticket.texto)}»\n\n"
+            f"Ábrelo aquí: {_enlace(ticket, True, persona.rol)}\n\n— Mesa de ayuda MinutoDesk"
+        )
+        correo.enviar_correo(persona.email, f"Ticket #{ticket.id}: {asunto}", cuerpo)
 
 
 def mensaje_nuevo(tareas: BackgroundTasks, session: Session, ticket: Ticket, autor: Cliente, texto: str) -> None:

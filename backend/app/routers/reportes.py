@@ -8,19 +8,49 @@ from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models import Cliente, ConversacionMinutito, InteraccionMinutito, Ticket
-from app.schemas import CategoriaConteo, ConteoEtiqueta, HistoricoResumen, ReporteResumen
+from app.schemas import CategoriaConteo, ConteoEtiqueta, HistoricoResumen, ReporteResumen, SlaGrupo, SlaReporte
 from app.services.auth import (
     es_personal,
     obtener_usuario_actual,
     requerir_admin,
     requerir_personal,
 )
-from app.services.catalogos import TIPO_INCIDENCIA
+from app.services.catalogos import PRIORIDADES, TIPOS, TIPO_INCIDENCIA
 from app.services.classifier import cargar_metricas
-from app.services import evaluacion_minutito, prueba_controlada, simulacion_tiempos
+from app.services import evaluacion_minutito, prueba_controlada, simulacion_tiempos, sla
 from app.services.historico import resumen_historico
 
 router = APIRouter()
+
+
+def _reporte_sla(session: Session, tickets: list[Ticket]) -> SlaReporte:
+    plazos = sla.calcular_varios(session, tickets)
+    resueltos = [t for t in tickets if t.estado == "resuelto" and plazos.get(t.id) is not None]
+    abiertos = [plazos[t.id] for t in tickets if t.estado in ("abierto", "en_proceso") and plazos.get(t.id) is not None]
+
+    def grupo(etiqueta: str, lista: list[Ticket]) -> SlaGrupo:
+        cumplidos = sum(1 for t in lista if not plazos[t.id].vencido)
+        return SlaGrupo(
+            etiqueta=etiqueta,
+            total=len(lista),
+            cumplidos=cumplidos,
+            pct=round(100 * cumplidos / len(lista), 1) if lista else None,
+        )
+
+    cumplidos = sum(1 for t in resueltos if not plazos[t.id].vencido)
+    return SlaReporte(
+        resueltos_con_plazo=len(resueltos),
+        cumplidos=cumplidos,
+        pct_cumplimiento=round(100 * cumplidos / len(resueltos), 1) if resueltos else None,
+        abiertos_en_tiempo=sum(1 for p in abiertos if p.estado == "en_tiempo"),
+        abiertos_por_vencer=sum(1 for p in abiertos if p.estado == "por_vencer"),
+        abiertos_vencidos=sum(1 for p in abiertos if p.estado == "vencido"),
+        abiertos_pausados=sum(1 for p in abiertos if p.estado == "pausado"),
+        por_tipo=[
+            grupo(t["titulo"], [x for x in resueltos if (x.tipo or x.tipo_predicho) == t["nombre"]]) for t in TIPOS
+        ],
+        por_prioridad=[grupo(p, [x for x in resueltos if x.prioridad == p]) for p in PRIORIDADES],
+    )
 
 
 def _acierto_en_uso(session: Session) -> dict:
@@ -193,4 +223,5 @@ def resumen(
         ],
         con_minutito=con_minutito,
         ultimos_dias=ultimos_dias,
+        sla=_reporte_sla(session, tickets),
     )

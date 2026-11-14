@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from fastapi import FastAPI, Request
@@ -5,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import models  # noqa: F401 (registra las tablas en SQLModel.metadata)
 from app.database import init_db
+from app.services import avisos_sla
 from app.routers import (
     adjuntos,
     admin,
@@ -64,6 +66,14 @@ app.include_router(historico.router, prefix="/historico", tags=["historico"])
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+
+@app.on_event("startup")
+async def iniciar_avisos_de_plazo():
+    # Revisa cada tanto los tickets abiertos y avisa al técnico cuando su plazo está por
+    # vencer o venció. Se apaga con SLA_AVISOS=0 (p. ej. en pruebas).
+    if os.getenv("SLA_AVISOS", "1") != "0":
+        asyncio.create_task(avisos_sla.bucle())
 
 
 @app.get("/health")

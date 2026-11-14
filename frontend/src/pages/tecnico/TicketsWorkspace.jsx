@@ -22,6 +22,7 @@ import Spinner from "../../components/ui/Spinner";
 import { inputClass } from "../../components/ui/formStyles";
 import EstadoBadge from "../../components/EstadoBadge";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
+import { SlaPastilla } from "../../components/tickets/TemporizadorSla";
 import {
   CuadriculaTickets,
   SelectorVista,
@@ -396,6 +397,7 @@ export default function TicketsWorkspace({
                     <th className="px-3 py-2.5">Categoría</th>
                     <th className="px-3 py-2.5">Prioridad</th>
                     <th className="px-3 py-2.5">Estado</th>
+                    <th className="px-3 py-2.5">Plazo</th>
                     <th className="hidden px-4 py-2.5 xl:table-cell">Fecha</th>
                   </tr>
                 </thead>
@@ -420,6 +422,9 @@ export default function TicketsWorkspace({
                       </td>
                       <td className="px-3 py-3">
                         <EstadoBadge estado={t.estado} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <SlaPastilla sla={t.sla} />
                       </td>
                       <td className="hidden whitespace-nowrap px-4 py-3 text-gray-500 xl:table-cell">
                         {new Date(t.creado_en).toLocaleDateString()}

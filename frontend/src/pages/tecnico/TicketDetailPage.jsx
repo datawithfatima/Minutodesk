@@ -13,6 +13,7 @@ import {
   Paperclip,
   ShieldCheck,
   Tag,
+  TimerReset,
   Wrench,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -23,10 +24,13 @@ import {
   listarHistorial,
   listarClientes,
   listarInteracciones,
+  listarMotivosPausa,
   obtenerCatalogos,
   obtenerCliente,
   obtenerTicket,
   obtenerUmbralConfianza,
+  pausarSla,
+  reanudarSla,
 } from "../../api";
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
@@ -42,6 +46,7 @@ import EstadoBadge from "../../components/EstadoBadge";
 import { ETIQUETA_ESTADO } from "../../texto";
 import ConversacionMinutito from "../../components/tickets/ConversacionMinutito";
 import ConversacionTicket from "../../components/tickets/ConversacionTicket";
+import { PanelPausaSla, TemporizadorSla } from "../../components/tickets/TemporizadorSla";
 import {
   BarraConfianza,
   BotonCabecera,
@@ -61,7 +66,7 @@ const TABS = [
   { nombre: "Archivos", activa: true },
 ];
 
-function construirHistorial(cliente, interacciones, cambiosDeEstado) {
+function construirHistorial(cliente, interacciones, cambiosDeEstado, pausas = []) {
   const quien = cliente?.nombre ?? "El usuario";
   const eventos = cambiosDeEstado.map((c) =>
     c.estado_anterior === null
@@ -80,6 +85,20 @@ function construirHistorial(cliente, interacciones, cambiosDeEstado) {
             detalle: `Cambio hecho por ${c.cambiado_por}`,
           }
   );
+  pausas.forEach((p) => {
+    eventos.push({
+      fecha: p.inicio,
+      titulo: `Plazo en pausa: ${p.motivo_titulo}`,
+      detalle: `${p.detalle ? `${p.detalle} · ` : ""}${p.automatica ? "pausa automática por una aprobación" : `por ${p.iniciada_por}`}`,
+    });
+    if (p.fin) {
+      eventos.push({
+        fecha: p.fin,
+        titulo: "Plazo reanudado",
+        detalle: p.reanudada_por ? `por ${p.reanudada_por}` : "al responder la aprobación",
+      });
+    }
+  });
   interacciones.forEach((i) => {
     eventos.push({
       fecha: i.creado_en,
@@ -172,10 +191,14 @@ export default function TicketDetailPage() {
   const [umbralConfianza, setUmbralConfianza] = useState(null);
   const [catalogos, setCatalogos] = useState(null);
   const [tecnicos, setTecnicos] = useState([]);
+  const [motivosPausa, setMotivosPausa] = useState([]);
 
   useEffect(() => {
     obtenerCatalogos()
       .then(setCatalogos)
+      .catch(() => {});
+    listarMotivosPausa()
+      .then(setMotivosPausa)
       .catch(() => {});
     listarClientes()
       .then((lista) => setTecnicos(lista.filter((c) => c.rol === "tecnico" && c.activo)))
@@ -223,6 +246,31 @@ export default function TicketDetailPage() {
       await actualizarTicket(id, cambios);
       await cargar();
       await recargar();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setActualizando(false);
+    }
+  }
+
+  async function pausarPlazo(motivo, detalle) {
+    setError(null);
+    try {
+      await pausarSla(id, { motivo, detalle });
+      await cargar();
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    }
+  }
+
+  async function reanudarPlazo() {
+    setActualizando(true);
+    setError(null);
+    try {
+      await reanudarSla(id);
+      await cargar();
     } catch (e) {
       setError(e.message);
     } finally {
@@ -303,6 +351,7 @@ export default function TicketDetailPage() {
               }
             >
               <CicloEstado estado={ticket.estado} />
+              <TemporizadorSla sla={ticket.sla} className="mt-3" />
             </CabeceraTicket>
             <div className="p-5 sm:p-6">
               <div className="flex items-center gap-3 border-b border-dashed border-linea pb-4">
@@ -380,6 +429,19 @@ export default function TicketDetailPage() {
                     Marcar como resuelto
                   </Button>
                   <CancelarTicket deshabilitado={actualizando} onConfirmar={cancelar} />
+                </div>
+              )}
+
+              {ticket.sla && !resuelto && !cancelado && (
+                <div className="space-y-2 border-t border-dashed border-linea pt-4">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Plazo de atención</p>
+                  <PanelPausaSla
+                    sla={ticket.sla}
+                    motivos={motivosPausa}
+                    deshabilitado={actualizando}
+                    onPausar={pausarPlazo}
+                    onReanudar={reanudarPlazo}
+                  />
                 </div>
               )}
 
@@ -527,6 +589,13 @@ export default function TicketDetailPage() {
                   )}
                 </FilaFicha>
               )}
+              <FilaFicha icono={TimerReset} etiqueta="Plazo">
+                {ticket.sla ? (
+                  `${ticket.sla.dias} ${ticket.sla.dias === 1 ? "día" : "días"}`
+                ) : (
+                  <span className="font-normal text-gray-500">Sin tipo</span>
+                )}
+              </FilaFicha>
               <FilaFicha icono={ShieldCheck} etiqueta="Clasificación">
                 {ticket.clasificacion_confirmada ? (
                   <Badge color="green">Confirmada</Badge>
@@ -594,7 +663,7 @@ export default function TicketDetailPage() {
               <Card className="anim-pestana">
                 <Card.Body>
                   <ol className="relative ml-2 border-l border-linea">
-                    {construirHistorial(cliente, interacciones, cambiosDeEstado).map((e, idx) => (
+                    {construirHistorial(cliente, interacciones, cambiosDeEstado, ticket.sla?.pausas).map((e, idx) => (
                       <li key={idx} className="mb-4 ml-4 last:mb-0">
                         <span className="absolute -left-[6px] mt-1.5 h-3 w-3 rounded-[3px] border-2 border-superficie bg-acento" />
                         <div className="text-xs text-gray-400">{new Date(e.fecha).toLocaleString()}</div>

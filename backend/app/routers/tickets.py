@@ -13,6 +13,9 @@ from app.schemas import (
     CatalogosRead,
     HistorialEstadoRead,
     LimitesAdjuntos,
+    MotivoPausa,
+    PausarSla,
+    SlaRead,
     SugerenciaRead,
     SugerenciaRequest,
     TicketCreate,
@@ -45,7 +48,7 @@ from app.routers.conversacion import hay_aprobacion_pendiente
 from app.routers.minutito import enlazar_ticket
 from app.services.asignacion import asignar_automaticamente, tecnico_sugerido
 from app.services.classifier import categorias_clasificables, clasificar_ticket, sugerir
-from app.services import notificaciones
+from app.services import notificaciones, sla
 from app.services.gamification_rules import evaluar_evento
 
 router = APIRouter()
@@ -162,7 +165,7 @@ def crear_ticket(
     session.commit()
     session.refresh(ticket)
     notificaciones.ticket_creado(tareas, session, ticket)
-    return ticket
+    return _con_sla(session, [ticket])[0]
 
 
 @router.get("/catalogos", response_model=CatalogosRead)
@@ -260,7 +263,7 @@ def crear_alta_de_colaborador(
     session.commit()
     session.refresh(ticket)
     notificaciones.ticket_creado(tareas, session, ticket)
-    return ticket
+    return _con_sla(session, [ticket])[0]
 
 
 @router.get("", response_model=list[TicketRead])
@@ -287,7 +290,23 @@ def listar_tickets(
         # Un usuario final solo ve sus propios tickets, sin importar el filtro pedido.
         query = query.where(Ticket.cliente_id == usuario.id)
 
-    return session.exec(query.order_by(Ticket.creado_en.desc())).all()
+    tickets = session.exec(query.order_by(Ticket.creado_en.desc())).all()
+    return _con_sla(session, tickets)
+
+
+def _con_sla(session: Session, tickets: list[Ticket]) -> list[TicketRead]:
+    plazos = sla.calcular_varios(session, tickets)
+    salida = []
+    for t in tickets:
+        lectura = TicketRead.model_validate(t, from_attributes=True)
+        lectura.sla = plazos.get(t.id)
+        salida.append(lectura)
+    return salida
+
+
+@router.get("/motivos-pausa", response_model=list[MotivoPausa])
+def motivos_de_pausa(usuario: Cliente = Depends(requerir_personal)):
+    return [MotivoPausa(clave=k, titulo=v) for k, v in sla.MOTIVOS_PAUSA.items()]
 
 
 @router.get("/{ticket_id}", response_model=TicketDetalle)
@@ -301,6 +320,7 @@ def obtener_ticket(
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     _verificar_acceso(ticket, usuario)
     detalle = TicketDetalle.model_validate(ticket, from_attributes=True)
+    detalle.sla = sla.calcular(session, ticket)
     if es_personal(usuario):
         sugerido = tecnico_sugerido(session, ticket.categoria or ticket.categoria_predicha)
         detalle.tecnico_sugerido_id = sugerido.id if sugerido else None
@@ -382,8 +402,11 @@ def actualizar_ticket(
             status_code=400, detail="Un ticket de accesos se crea con el formulario de alta de colaborador."
         )
 
-    if data.prioridad is not None:
+    if data.prioridad is not None and data.prioridad != ticket.prioridad:
         ticket.prioridad = data.prioridad
+        ticket.aviso_sla = None  # el plazo cambia: los avisos se vuelven a evaluar
+    if data.tipo is not None and data.tipo != ticket.tipo:
+        ticket.aviso_sla = None
     # Si el personal fija o corrige el tipo o la categoría, queda como clasificación confirmada.
     if data.tipo is not None:
         ticket.tipo = data.tipo
@@ -418,6 +441,7 @@ def actualizar_ticket(
         if data.estado == "resuelto":
             ticket.cerrado_en = datetime.now()
             ticket.resuelto_por = data.resuelto_por or "tecnico"
+            sla.cerrar_pausa_activa(session, ticket.id, usuario.id)
             if ticket.tecnico_id is None:
                 ticket.tecnico_id = usuario.id
                 ticket.tecnico_manual = True
@@ -445,7 +469,7 @@ def actualizar_ticket(
     if ticket.tecnico_id is not None and ticket.tecnico_id != tecnico_anterior:
         notificaciones.tecnico_asignado(tareas, session, ticket, usuario)
 
-    return ticket
+    return _con_sla(session, [ticket])[0]
 
 
 @router.post("/{ticket_id}/cancelar", response_model=TicketRead)
@@ -475,6 +499,7 @@ def cancelar_ticket(
     estado_anterior = ticket.estado
     ticket.estado = "cancelado"
     ticket.motivo_cancelacion = motivo
+    sla.cerrar_pausa_activa(session, ticket.id, usuario.id)
     ticket.cerrado_en = datetime.now()
     ticket.resuelto_por = None
     registrar_estado(session, ticket.id, estado_anterior, "cancelado", usuario.id, motivo)
@@ -482,4 +507,75 @@ def cancelar_ticket(
     session.commit()
     session.refresh(ticket)
     notificaciones.estado_cambiado(tareas, session, ticket, estado_anterior, usuario)
-    return ticket
+    return _con_sla(session, [ticket])[0]
+
+
+# ---------- temporizador del plazo (SLA) ----------
+
+@router.get("/{ticket_id}/sla", response_model=Optional[SlaRead])
+def plazo_del_ticket(
+    ticket_id: int,
+    usuario: Cliente = Depends(obtener_usuario_actual),
+    session: Session = Depends(get_session),
+):
+    ticket = session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    _verificar_acceso(ticket, usuario)
+    return sla.calcular(session, ticket)
+
+
+@router.post("/{ticket_id}/sla/pausar", response_model=SlaRead)
+def pausar_plazo(
+    ticket_id: int,
+    data: PausarSla,
+    tareas: BackgroundTasks,
+    usuario: Cliente = Depends(requerir_personal),
+    session: Session = Depends(get_session),
+):
+    """Detiene el reloj del plazo con un motivo obligatorio. Solo técnico o administrador."""
+    ticket = session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    if ticket.estado in ESTADOS_FINALES:
+        raise HTTPException(status_code=409, detail="El plazo de un ticket cerrado ya no corre.")
+    if data.motivo not in sla.MOTIVOS_PAUSA:
+        raise HTTPException(status_code=400, detail="Motivo de pausa no válido")
+    detalle = " ".join(data.detalle.split())
+    if len(detalle) < sla.MIN_DETALLE:
+        raise HTTPException(status_code=400, detail="Explica por qué se pausa (mínimo 5 caracteres).")
+    if len(detalle) > sla.MAX_DETALLE:
+        raise HTTPException(status_code=400, detail=f"El detalle es demasiado largo (máximo {sla.MAX_DETALLE}).")
+    if sla.dias_de_plazo(ticket) is None:
+        raise HTTPException(status_code=409, detail="Este ticket no tiene plazo definido: fija primero su tipo.")
+    if sla.pausa_activa(session, ticket.id) is not None:
+        raise HTTPException(status_code=409, detail="El plazo ya está en pausa.")
+    pausa = sla.pausar(session, ticket, data.motivo, detalle, usuario.id)
+    session.commit()
+    session.refresh(pausa)
+    notificaciones.sla_pausado(tareas, session, ticket, usuario, pausa)
+    return sla.calcular(session, ticket)
+
+
+@router.post("/{ticket_id}/sla/reanudar", response_model=SlaRead)
+def reanudar_plazo(
+    ticket_id: int,
+    tareas: BackgroundTasks,
+    usuario: Cliente = Depends(requerir_personal),
+    session: Session = Depends(get_session),
+):
+    ticket = session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    pausa = sla.pausa_activa(session, ticket.id)
+    if pausa is None:
+        raise HTTPException(status_code=409, detail="El plazo no está en pausa.")
+    if pausa.aprobacion_id is not None and hay_aprobacion_pendiente(session, ticket.id):
+        raise HTTPException(
+            status_code=409,
+            detail="Hay una aprobación pendiente: el plazo se reanuda solo cuando la respondan.",
+        )
+    sla.reanudar(session, pausa, usuario.id)
+    session.commit()
+    notificaciones.sla_reanudado(tareas, session, ticket, usuario)
+    return sla.calcular(session, ticket)

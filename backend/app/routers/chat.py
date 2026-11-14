@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.models import Cliente, InteraccionMinutito, Ticket
 from app.routers.tickets import registrar_estado
+from app.services import sla
 from app.schemas import (
     ChatMensaje,
     ChatRespuesta,
@@ -128,6 +129,7 @@ def confirmar_resolucion(
     ticket.cerrado_en = datetime.now()
     ultima.marco_resuelto = True
     registrar_estado(session, ticket.id, estado_anterior, ticket.estado, None)
+    sla.cerrar_pausa_activa(session, ticket.id, None)
     session.add_all([ticket, ultima])
     session.commit()
     session.refresh(ticket)

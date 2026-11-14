@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { COLOR_PRIORIDAD, GRIS_SIN_DATO, SERIES } from "../charts/tokens";
 import EstadoBadge from "../EstadoBadge";
 import { PrioridadPastilla } from "./Pastillas";
+import { SlaPastilla } from "./TemporizadorSla";
 
 /*
  * Otras formas de ver la bandeja de tickets: un tablero por estado (como el tablero de
@@ -101,7 +102,10 @@ export function TarjetaTicket({ base, ticket, nombre, indice = 0, conEstado = fa
             </span>
           </span>
         </span>
-        <span className="shrink-0 font-mono text-[10.5px] text-gray-500">{haceCuanto(ticket.creado_en)}</span>
+        <span className="flex shrink-0 items-center gap-2">
+          <SlaPastilla sla={ticket.sla} />
+          <span className="font-mono text-[10.5px] text-gray-500">{haceCuanto(ticket.creado_en)}</span>
+        </span>
       </div>
       {conEstado && (
         <div className="mt-2">

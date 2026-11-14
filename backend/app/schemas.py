@@ -144,6 +144,44 @@ class InteraccionRead(SQLModel):
     creado_en: datetime
 
 
+class PausaSlaRead(SQLModel):
+    id: int
+    motivo: str
+    motivo_titulo: str
+    detalle: Optional[str] = None
+    automatica: bool  # la abrió el sistema por una aprobación pendiente
+    inicio: datetime
+    fin: Optional[datetime] = None
+    iniciada_por: str
+    reanudada_por: Optional[str] = None
+
+
+class SlaRead(SQLModel):
+    """Temporizador del plazo de atención (días calendario)."""
+
+    dias: int
+    plazo_segundos: int
+    consumido_segundos: int
+    restante_segundos: int  # negativo si ya venció
+    porcentaje: int  # consumido sobre el plazo; puede pasar de 100
+    # en_tiempo · por_vencer · vencido · pausado (abiertos) · cumplido · incumplido (cerrados)
+    estado: str
+    vencido: bool
+    vence_en: Optional[datetime] = None  # solo mientras corre y queda tiempo
+    pausa_actual: Optional[PausaSlaRead] = None
+    pausas: list[PausaSlaRead] = []
+
+
+class PausarSla(SQLModel):
+    motivo: str
+    detalle: str
+
+
+class MotivoPausa(SQLModel):
+    clave: str
+    titulo: str
+
+
 class TicketRead(SQLModel):
     id: int
     cliente_id: int
@@ -163,6 +201,7 @@ class TicketRead(SQLModel):
     creado_en: datetime
     cerrado_en: Optional[datetime] = None
     solicitante_externo: Optional[str] = None  # tickets de la carga masiva: quien lo pidió
+    sla: Optional[SlaRead] = None  # None si el ticket no tiene tipo (sin plazo definido)
 
 
 class CancelarTicket(SQLModel):
@@ -457,6 +496,28 @@ class ImportacionReporte(SQLModel):
     total_en_base: int
 
 
+class SlaGrupo(SQLModel):
+    etiqueta: str
+    total: int  # resueltos con plazo
+    cumplidos: int
+    pct: Optional[float] = None
+
+
+class SlaReporte(SQLModel):
+    """Cumplimiento del plazo de atención: resueltos dentro del plazo sobre los resueltos
+    con plazo (los cancelados no cuentan), y cómo van los abiertos."""
+
+    resueltos_con_plazo: int
+    cumplidos: int
+    pct_cumplimiento: Optional[float] = None
+    abiertos_en_tiempo: int
+    abiertos_por_vencer: int
+    abiertos_vencidos: int
+    abiertos_pausados: int
+    por_tipo: list[SlaGrupo] = []
+    por_prioridad: list[SlaGrupo] = []
+
+
 class ReporteResumen(SQLModel):
     total: int
     abiertos: int
@@ -479,3 +540,4 @@ class ReporteResumen(SQLModel):
     # ticket de incidencia); las solicitudes las atiende sistemas y no cuentan.
     conversaciones_primer_nivel: int = 0
     pct_primer_nivel: Optional[float] = None
+    sla: Optional[SlaReporte] = None

@@ -22,7 +22,7 @@ from app.schemas import (
     MensajeCreate,
     MensajeRead,
 )
-from app.services import correo, notificaciones
+from app.services import correo, notificaciones, sla
 from app.services.auth import es_personal, obtener_usuario_actual, requerir_personal
 
 router = APIRouter()
@@ -192,6 +192,9 @@ def solicitar_aprobacion(
     session.add(aprobacion)
     session.commit()
     session.refresh(aprobacion)
+    # Mientras se espera la aprobación, el plazo del ticket no corre.
+    if sla.pausar_por_aprobacion(session, ticket, aprobacion, usuario.id) is not None:
+        session.commit()
     tareas.add_task(
         correo.enviar_aviso_aprobacion, aprobador.email, aprobador.nombre, ticket.id, descripcion
     )
@@ -249,6 +252,7 @@ def mis_avisos(usuario: Cliente = Depends(obtener_usuario_actual), session: Sess
 def responder_aprobacion(
     aprobacion_id: int,
     data: AprobacionResponder,
+    tareas: BackgroundTasks,
     usuario: Cliente = Depends(obtener_usuario_actual),
     session: Session = Depends(get_session),
 ):
@@ -275,5 +279,8 @@ def responder_aprobacion(
     session.add(aprobacion)
     session.commit()
     session.refresh(aprobacion)
+    if ticket is not None and sla.reanudar_tras_aprobacion(session, ticket, usuario.id) is not None:
+        session.commit()
+        notificaciones.sla_reanudado(tareas, session, ticket, usuario)
     personas = _nombres(session, {aprobacion.solicitada_por_id, usuario.id, ticket.cliente_id})
     return _a_aprobacion_read(aprobacion, personas, ticket)
