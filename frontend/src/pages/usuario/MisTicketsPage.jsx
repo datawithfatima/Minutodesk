@@ -9,6 +9,24 @@ import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import { inputClass } from "../../components/ui/formStyles";
 import EstadoBadge from "../../components/EstadoBadge";
+import { obtenerUsuario } from "../../auth";
+import {
+  CuadriculaTickets,
+  SelectorVista,
+  TableroTickets,
+  VISTAS_TICKETS,
+} from "../../components/tickets/VistasTickets";
+
+// Misma preferencia de vista que la bandeja del equipo (tabla, tablero o tarjetas).
+const CLAVE_VISTA = "minutodesk_vista_tickets";
+function vistaGuardada() {
+  try {
+    const v = localStorage.getItem(CLAVE_VISTA);
+    return VISTAS_TICKETS.some((x) => x.clave === v) ? v : "tabla";
+  } catch {
+    return "tabla";
+  }
+}
 
 export default function MisTicketsPage() {
   const [params] = useSearchParams();
@@ -16,6 +34,17 @@ export default function MisTicketsPage() {
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const [vista, setVista] = useState(vistaGuardada);
+  const miNombre = obtenerUsuario()?.nombre;
+
+  function cambiarVista(v) {
+    setVista(v);
+    try {
+      localStorage.setItem(CLAVE_VISTA, v);
+    } catch {
+      // sin almacenamiento: la vista vale solo para esta visita
+    }
+  }
 
   useEffect(() => {
     setBusqueda(params.get("q") ?? "");
@@ -36,10 +65,9 @@ export default function MisTicketsPage() {
 
   return (
     <>
-      <PageHeader
-        icon={Ticket}
-        title="Mis tickets"
-      />
+      <PageHeader icon={Ticket} title="Mis tickets">
+        <SelectorVista vista={vista} onCambiar={cambiarVista} />
+      </PageHeader>
 
       {error && (
         <Alert variant="danger" className="mb-3">
@@ -78,7 +106,15 @@ export default function MisTicketsPage() {
         <Alert variant="secondary">Ningún ticket coincide con la búsqueda.</Alert>
       )}
 
-      {!cargando && visibles.length > 0 && (
+      {!cargando && visibles.length > 0 && vista === "tablero" && (
+        <TableroTickets base="/usuario/tickets" tickets={visibles} nombreDe={() => miNombre} />
+      )}
+
+      {!cargando && visibles.length > 0 && vista === "tarjetas" && (
+        <CuadriculaTickets base="/usuario/tickets" tickets={visibles} nombreDe={() => miNombre} />
+      )}
+
+      {!cargando && visibles.length > 0 && vista === "tabla" && (
         <Card className="divide-y divide-gray-100 overflow-hidden md:hidden">
           {visibles.map((t) => (
             <Link key={t.id} to={`/usuario/tickets/${t.id}`} className="block px-4 py-3 hover:bg-marfil">
@@ -95,7 +131,7 @@ export default function MisTicketsPage() {
         </Card>
       )}
 
-      {!cargando && visibles.length > 0 && (
+      {!cargando && visibles.length > 0 && vista === "tabla" && (
         <Card className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-sm">
             <thead className="bg-marfil text-xs uppercase tracking-wide text-gray-500 [&_th]:font-medium">
