@@ -393,8 +393,15 @@ export default function MinutitoPanel() {
                 e.currentTarget.form.requestSubmit();
               }
             }}
-            placeholder={mensajes.length ? "Tu respuesta…" : "¿En qué te ayudo?"}
-            disabled={escribiendo}
+            // Se puede ir escribiendo el siguiente mensaje mientras Minutito responde; se envía
+            // cuando termina (el servidor atiende una respuesta a la vez por persona).
+            placeholder={
+              escribiendo
+                ? "Puedes ir escribiendo mientras Minutito responde…"
+                : mensajes.length
+                  ? "Tu respuesta…"
+                  : "¿En qué te ayudo?"
+            }
           />
           <button
             type="submit"
