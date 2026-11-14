@@ -20,6 +20,9 @@ TIMEOUT_SEGUNDOS = 240  # en un equipo sin GPU una respuesta larga puede tardar
 OPCIONES = {"temperature": 0.4, "top_p": 0.9, "repeat_penalty": 1.05, "num_predict": 450}
 HISTORIAL_MAXIMO = 20  # mensajes previos que se le pasan al modelo
 MARCA_TICKET = "[OFRECER_TICKET]"
+# Ollama descarga el modelo tras 5 minutos sin uso y volver a cargarlo cuesta ~40 s antes de
+# la primera palabra (medido el 14/11/2026). Así queda en memoria (~5 GB) durante el día.
+MANTENER_CARGADO = "24h"
 
 _cliente = ollama.Client(timeout=TIMEOUT_SEGUNDOS)
 
@@ -99,7 +102,9 @@ def separar_marca(texto: str) -> tuple[str, bool]:
 
 def _llamar(mensajes: list[dict], stream: bool):
     try:
-        return _cliente.chat(model=MODELO_CHAT, messages=mensajes, options=OPCIONES, stream=stream)
+        return _cliente.chat(
+            model=MODELO_CHAT, messages=mensajes, options=OPCIONES, stream=stream, keep_alive=MANTENER_CARGADO
+        )
     except ollama.ResponseError as e:
         raise MinutitoNoDisponible(f"Ollama respondió con error (¿está instalado '{MODELO_CHAT}'?): {e}") from e
     except (ollama.RequestError, httpx.HTTPError, ConnectionError, TimeoutError) as e:
@@ -156,3 +161,16 @@ def resumir_para_ticket(historial: Iterable[tuple[str, str]]) -> str:
     except MinutitoNoDisponible:
         pass
     return " ".join(t for r, t in historial if r == "usuario")
+
+
+def precalentar() -> None:
+    """Carga el modelo y deja procesado el prompt de sistema, para que la primera pregunta
+    no espere la carga. No cambia las respuestas: solo adelanta trabajo que Ollama reutiliza
+    (toda conversación empieza con este mismo prompt)."""
+    try:
+        _llamar(
+            [{"role": "system", "content": PROMPT}, {"role": "user", "content": "Hola"}],
+            stream=False,
+        )
+    except MinutitoNoDisponible:
+        pass  # sin Ollama la app funciona igual; Minutito avisará cuando se le hable

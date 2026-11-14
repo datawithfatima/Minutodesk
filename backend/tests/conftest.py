@@ -1,3 +1,4 @@
+import os
 import re
 
 import pytest
@@ -5,6 +6,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import event
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
+
+os.environ.setdefault("MINUTITO_PRECALENTAR", "0")  # las pruebas no cargan el modelo
 
 from app.database import get_session
 from app.main import app

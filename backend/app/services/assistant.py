@@ -35,6 +35,8 @@ OPCIONES_OLLAMA = {
 }
 MAX_PALABRAS = 150
 
+MANTENER_CARGADO = "24h"  # igual que minutito_chat: sin esto, cada llamada lo devuelve a 5 min
+
 _cliente = ollama.Client(timeout=TIMEOUT_SEGUNDOS)
 
 
@@ -244,7 +246,9 @@ def generar_respuesta(
 
     mensajes = _armar_mensajes(historial, mensaje_cliente, texto_del_ticket)
     try:
-        respuesta_ollama = _cliente.chat(model=MODELO_OLLAMA, messages=mensajes, options=OPCIONES_OLLAMA)
+        respuesta_ollama = _cliente.chat(
+            model=MODELO_OLLAMA, messages=mensajes, options=OPCIONES_OLLAMA, keep_alive=MANTENER_CARGADO
+        )
     except ollama.ResponseError as e:
         raise AsistenteNoDisponible(
             f"Ollama respondió con error (¿está instalado el modelo '{MODELO_OLLAMA}'?): {e}"

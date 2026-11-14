@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import models  # noqa: F401 (registra las tablas en SQLModel.metadata)
 from app.database import init_db
-from app.services import avisos_sla
+from app.services import avisos_sla, minutito_chat
 from app.routers import (
     adjuntos,
     admin,
@@ -74,6 +74,14 @@ async def iniciar_avisos_de_plazo():
     # vencer o venció. Se apaga con SLA_AVISOS=0 (p. ej. en pruebas).
     if os.getenv("SLA_AVISOS", "1") != "0":
         asyncio.create_task(avisos_sla.bucle())
+
+
+@app.on_event("startup")
+async def precalentar_minutito():
+    # Carga el modelo de Minutito en segundo plano al arrancar, para que la primera pregunta
+    # no espere ~40 s. Se apaga con MINUTITO_PRECALENTAR=0 (p. ej. en pruebas).
+    if os.getenv("MINUTITO_PRECALENTAR", "1") != "0":
+        asyncio.get_running_loop().run_in_executor(None, minutito_chat.precalentar)
 
 
 @app.get("/health")
