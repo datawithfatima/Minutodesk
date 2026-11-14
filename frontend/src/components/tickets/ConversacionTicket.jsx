@@ -12,6 +12,7 @@ import Badge from "../ui/Badge";
 import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { inputClass, labelClass } from "../ui/formStyles";
+import RespuestasPredefinidas from "./RespuestasPredefinidas";
 
 // Cada cuánto se buscan mensajes nuevos mientras la pantalla está abierta.
 const INTERVALO_MS = 15000;
@@ -263,8 +264,23 @@ export default function ConversacionTicket({ ticket, esPersonal = false }) {
               {enviando ? <Spinner size="sm" /> : <Send size={16} />}
             </Button>
           </form>
+          {esPersonal && !pidiendo && (
+            <div className="flex flex-wrap items-center gap-2">
+              <RespuestasPredefinidas
+                ticketId={ticket.id}
+                textoActual={texto}
+                onInsertar={(t) => {
+                  setTexto((actual) => (actual.trim() ? `${actual.trimEnd()}\n\n${t}` : t));
+                  document.getElementById(`mensaje-${ticket.id}`)?.focus();
+                }}
+              />
+              <Button variant="outlinePrimary" size="sm" onClick={() => setPidiendo(true)}>
+                <ClipboardCheck size={15} /> Solicitar aprobación
+              </Button>
+            </div>
+          )}
           {esPersonal &&
-            (pidiendo ? (
+            pidiendo && (
               <FormAprobacion
                 ticket={ticket}
                 onCancelar={() => setPidiendo(false)}
@@ -273,11 +289,7 @@ export default function ConversacionTicket({ ticket, esPersonal = false }) {
                   cargar().catch((e) => setError(e.message));
                 }}
               />
-            ) : (
-              <Button variant="outlinePrimary" size="sm" onClick={() => setPidiendo(true)}>
-                <ClipboardCheck size={15} /> Solicitar aprobación
-              </Button>
-            ))}
+            )}
         </>
       )}
     </div>

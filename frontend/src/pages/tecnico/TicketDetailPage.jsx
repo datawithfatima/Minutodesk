@@ -10,6 +10,7 @@ import {
   HardHat,
   History,
   Layers,
+  Link2,
   MessageSquare,
   Paperclip,
   ShieldCheck,
@@ -36,6 +37,7 @@ import {
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
 import EncuestaSatisfaccion from "../../components/tickets/EncuestaSatisfaccion";
+import PanelDuplicados from "../../components/tickets/PanelDuplicados";
 import { tituloTipo } from "../../components/tickets/formato";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
 import { inputClass, labelClass } from "../../components/ui/formStyles";
@@ -628,6 +630,16 @@ export default function TicketDetailPage() {
                 {new Date(ticket.creado_en).toLocaleDateString()}
               </FilaFicha>
             </dl>
+          </PanelFicha>
+
+          <PanelFicha icono={Link2} titulo="Tickets duplicados" className="max-lg:order-5">
+            <PanelDuplicados
+              ticket={ticket}
+              onCambio={async () => {
+                await cargar();
+                await recargar();
+              }}
+            />
           </PanelFicha>
 
           {ticket.estado === "resuelto" && !ticket.solicitante_externo && (

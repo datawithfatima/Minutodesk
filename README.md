@@ -77,6 +77,28 @@ un error. Un ticket cancelado no cuenta como resuelto, no entra en el tiempo med
 resolución ni en el % de resolución autónoma, y no da puntos. Cada cambio de estado queda
 en el historial del ticket con quién lo hizo.
 
+## Otras funciones del portal
+
+- **Encuesta de satisfacción:** al resolverse un ticket, quien lo abrió lo califica de 1 a 5
+  estrellas con un comentario opcional (el correo de «resuelto» lo invita). El resultado
+  está en Reportes → Satisfacción del usuario.
+- **Exportar reportes:** Reportes → Excel o PDF (técnico y administrador). El Excel trae una
+  hoja con todos los tickets, sin descripciones. La calidad del clasificador solo va en el
+  del administrador.
+- **Base de conocimiento:** el usuario ve los procedimientos de `services/conocimiento.py`
+  (los mismos de Minutito) y los busca describiendo su problema. Es solo lectura.
+- **Respuestas predefinidas:** en el chat del ticket, el personal inserta textos listos con
+  `{nombre}`, `{ticket}` y `{tecnico}`, y los ajusta antes de enviar.
+- **Tickets duplicados:** en el detalle, el personal busca tickets abiertos parecidos y
+  marca el actual como duplicado de otro; queda cancelado con el motivo «Duplicado del
+  ticket #X» y la atención sigue en el principal.
+- **Respaldos:** cada 24 h se copia la base a `backend/respaldos/` (se guardan los últimos
+  14; `RESPALDO_AUTOMATICO=0` lo apaga). Para restaurar: detener el backend y reemplazar
+  `minutodesk.db` por la copia.
+- **Bitácora de auditoría:** el administrador ve en «Bitácora y respaldos» quién hizo qué y
+  cuándo (inicios de sesión, usuarios, tickets, descargas, exportaciones, intentos sin
+  permiso). No guarda contraseñas ni el texto de los mensajes (`services/auditoria.py`).
+
 ## Estructura del proyecto
 
 ```

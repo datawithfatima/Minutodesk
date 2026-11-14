@@ -235,6 +235,17 @@ export const encuestasPendientes = () => get("/encuestas/pendientes");
 // --- Base de conocimiento (fichas de Minutito, solo lectura) ---
 export const obtenerConocimiento = (q) => get("/conocimiento", { q });
 
+// --- Respuestas predefinidas y tickets duplicados (personal) ---
+export const listarPredefinidas = () => get("/respuestas-predefinidas");
+export const crearPredefinida = ({ titulo, texto }) => enviar("POST", "/respuestas-predefinidas", { titulo, texto });
+export const eliminarPredefinida = (id) => enviar("DELETE", `/respuestas-predefinidas/${id}`);
+export const usarPredefinida = (ticketId, predefinidaId) =>
+  enviar("POST", `/tickets/${ticketId}/respuesta-predefinida`, { predefinida_id: predefinidaId });
+export const posiblesDuplicados = (ticketId) => get(`/tickets/${ticketId}/posibles-duplicados`);
+export const vincularDuplicado = (ticketId, principalId, cancelar = true) =>
+  enviar("POST", `/tickets/${ticketId}/vincular`, { principal_id: principalId, cancelar });
+export const quitarVinculo = (ticketId) => enviar("DELETE", `/tickets/${ticketId}/vincular`);
+
 // --- Bitácora de auditoría y respaldos (solo administrador) ---
 export const obtenerBitacora = (filtros = {}) => get("/admin/bitacora", filtros);
 export const obtenerRespaldos = () => get("/admin/respaldos");
