@@ -96,6 +96,8 @@ class Ticket(SQLModel, table=True):
     # Solo en tickets creados por carga masiva desde el export de la herramienta anterior.
     id_externo: Optional[str] = Field(default=None, index=True)  # ID en esa herramienta
     solicitante_externo: Optional[str] = Field(default=None)  # quien lo pidió (no tiene cuenta)
+    # Si el personal lo marcó como duplicado: el ticket principal, donde sigue la atención.
+    duplicado_de_id: Optional[int] = Field(default=None, foreign_key="ticket.id", index=True)
 
 
 class Adjunto(SQLModel, table=True):
@@ -324,6 +326,26 @@ class EventoGamificacion(SQLModel, table=True):
     creado_en: datetime = Field(default_factory=datetime.now)
 
 
+class Auditoria(SQLModel, table=True):
+    """Bitácora de auditoría: quién hizo qué y cuándo (inicios de sesión, cambios de
+    usuarios y áreas, acciones sobre tickets, descargas, exportaciones y respaldos). La
+    llena services/auditoria.py desde un middleware; solo la consulta el administrador.
+    Nunca guarda contraseñas ni tokens."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    fecha: datetime = Field(default_factory=datetime.now, index=True)
+    actor_id: Optional[int] = Field(default=None, foreign_key="cliente.id", index=True)
+    # Nombre de quien actuó, o el correo escrito en un inicio de sesión fallido.
+    actor: Optional[str] = Field(default=None)
+    accion: str = Field(index=True)  # clave estable, p. ej. «ticket_actualizado»
+    descripcion: str  # texto legible: «Actualizó el ticket #12»
+    entidad: Optional[str] = Field(default=None)  # ticket, usuario, area, adjunto...
+    entidad_id: Optional[int] = Field(default=None)
+    detalle: Optional[str] = Field(default=None)  # campos enviados (sin contraseñas)
+    exito: bool = Field(default=True)
+    ip: Optional[str] = Field(default=None)
+
+
 class EncuestaSatisfaccion(SQLModel, table=True):
     """Calificación que deja quien abrió el ticket cuando se lo resuelven: de 1 a 5
     estrellas y un comentario opcional. Una por ticket (se puede cambiar). No interviene
@@ -341,3 +363,18 @@ class EncuestaSatisfaccion(SQLModel, table=True):
     comentario: Optional[str] = Field(default=None)
     creado_en: datetime = Field(default_factory=datetime.now)
     actualizado_en: Optional[datetime] = Field(default=None)
+
+
+class RespuestaPredefinida(SQLModel, table=True):
+    """Respuesta lista («macro») que el personal inserta en el chat del ticket y ajusta
+    antes de enviar. Admite {nombre} (primer nombre del usuario), {ticket} y {tecnico}."""
+
+    __tablename__ = "respuesta_predefinida"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    titulo: str
+    texto: str
+    creada_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
+    usos: int = Field(default=0)
+    activo: bool = Field(default=True)
+    creado_en: datetime = Field(default_factory=datetime.now)

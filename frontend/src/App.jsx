@@ -25,6 +25,7 @@ import AdminLayout from "./components/AdminLayout";
 import UsuariosPage from "./pages/admin/UsuariosPage";
 import AreasPage from "./pages/admin/AreasPage";
 import DatosHistoricosPage from "./pages/admin/DatosHistoricosPage";
+import BitacoraPage from "./pages/admin/BitacoraPage";
 
 import HistoricoPage from "./pages/compartido/HistoricoPage";
 import ReportesPage from "./pages/compartido/ReportesPage";
@@ -113,6 +114,7 @@ export default function App() {
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="areas" element={<AreasPage />} />
           <Route path="datos" element={<DatosHistoricosPage />} />
+          <Route path="bitacora" element={<BitacoraPage />} />
           <Route path="ranking" element={<RankingPage />} />
         </Route>
       </Route>

@@ -38,3 +38,6 @@ dist/
 
 # Contraseña de las cuentas de demostración
 backend/cuentas_demo.txt
+
+# Respaldos automáticos de la base (datos sensibles)
+backend/respaldos/

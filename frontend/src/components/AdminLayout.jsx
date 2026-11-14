@@ -6,6 +6,7 @@ import {
   History,
   Inbox,
   Medal,
+  NotebookPen,
   UserCog,
   Users,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { to: "/admin/areas", label: "Áreas", icon: Building2 },
   { to: "/admin/ranking", label: "Ranking", icon: Medal },
   { to: "/admin/datos", label: "Datos históricos", icon: Database },
+  { to: "/admin/bitacora", label: "Bitácora y respaldos", icon: NotebookPen },
 ];
 
 export default function AdminLayout() {

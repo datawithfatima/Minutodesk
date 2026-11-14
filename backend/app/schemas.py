@@ -201,6 +201,7 @@ class TicketRead(SQLModel):
     creado_en: datetime
     cerrado_en: Optional[datetime] = None
     solicitante_externo: Optional[str] = None  # tickets de la carga masiva: quien lo pidió
+    duplicado_de_id: Optional[int] = None  # marcado como duplicado de este ticket
     sla: Optional[SlaRead] = None  # None si el ticket no tiene tipo (sin plazo definido)
 
 
@@ -215,6 +216,8 @@ class TicketDetalle(TicketRead):
     # Quién atendería según el sistema del ticket (None si ningún técnico de ese sistema
     # tiene cuenta). Sirve para ofrecer «Asignar el sugerido» en tickets sin técnico.
     tecnico_sugerido_id: Optional[int] = None
+    # Tickets que el personal marcó como duplicados de este.
+    duplicados: list[int] = []
 
 
 class HistorialEstadoRead(SQLModel):

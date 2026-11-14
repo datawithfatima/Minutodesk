@@ -321,6 +321,9 @@ def obtener_ticket(
     _verificar_acceso(ticket, usuario)
     detalle = TicketDetalle.model_validate(ticket, from_attributes=True)
     detalle.sla = sla.calcular(session, ticket)
+    detalle.duplicados = list(
+        session.exec(select(Ticket.id).where(Ticket.duplicado_de_id == ticket.id).order_by(Ticket.id)).all()
+    )
     if es_personal(usuario):
         sugerido = tecnico_sugerido(session, ticket.categoria or ticket.categoria_predicha)
         detalle.tecnico_sugerido_id = sugerido.id if sugerido else None

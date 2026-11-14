@@ -234,6 +234,26 @@ export const encuestasPendientes = () => get("/encuestas/pendientes");
 
 // --- Base de conocimiento (fichas de Minutito, solo lectura) ---
 export const obtenerConocimiento = (q) => get("/conocimiento", { q });
+
+// --- Bitácora de auditoría y respaldos (solo administrador) ---
+export const obtenerBitacora = (filtros = {}) => get("/admin/bitacora", filtros);
+export const obtenerRespaldos = () => get("/admin/respaldos");
+export const crearRespaldo = () => enviar("POST", "/admin/respaldos");
+export async function descargarRespaldo(nombre) {
+  const res = await fetch(`${API_BASE}/admin/respaldos/${encodeURIComponent(nombre)}`, { headers: headers(false) }).catch(sinConexion);
+  if (!res.ok) {
+    const detalle = await res.json().catch(() => null);
+    throw new Error(typeof detalle?.detail === "string" ? detalle.detail : `No se pudo descargar (error ${res.status}).`);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombre;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 export const obtenerHistorico = () => get("/reportes/historico");
 export const listarTicketsHistoricos = (filtros) => get("/historico/tickets", filtros);
 export const obtenerTicketHistorico = (id) => get(`/historico/tickets/${id}`);
