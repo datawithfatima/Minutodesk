@@ -27,9 +27,9 @@ function MinutitoAcceso() {
     >
       <div className="flex items-center gap-2.5">
         <img
-          src="/img/robot-minutito.jpg"
+          src="/img/minutito.svg"
           alt=""
-          className="h-9 w-9 rounded-md bg-white object-contain p-0.5 transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-rotate-6 group-hover:scale-110"
+          className="h-9 w-9 rounded-full transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-rotate-6 group-hover:scale-110"
         />
         <div className="min-w-0">
           <div className="text-xs font-semibold text-white">Minutito</div>

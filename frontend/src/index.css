@@ -152,11 +152,6 @@
 /* El círculo central del medidor es grafito fijo, con su punto amarillo */
 :root[data-tema="oscuro"] main svg circle[fill="#1b1e22"] { fill: #0e1012; stroke: #43474e; }
 
-/* Las imágenes de Minutito tienen fondo blanco: en oscuro se les da un marco suave. */
-:root[data-tema="oscuro"] img[src*="robot-minutito"] {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
-}
-
 /* Al cambiar de tema, la nueva «iluminación» se abre en círculo desde el botón. */
 ::view-transition-old(root),
 ::view-transition-new(root) {

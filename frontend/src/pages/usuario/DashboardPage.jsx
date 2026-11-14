@@ -92,9 +92,9 @@ export default function DashboardPage() {
             {/* Minutito sobre su «lote»: un pedestal con cota, como una maqueta. */}
             <div className="relative h-36 w-36 rounded-full bg-white/[0.06] p-2 ring-1 ring-white/10">
               <img
-                src="/img/robot-minutito.jpg"
+                src="/img/minutito.svg"
                 alt="Minutito"
-                className="anim-saludo h-full w-full rounded-full bg-white object-contain p-1.5 transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-translate-y-1 group-hover:-rotate-3"
+                className="anim-saludo h-full w-full rounded-full transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-translate-y-1 group-hover:-rotate-3"
               />
             </div>
           </div>

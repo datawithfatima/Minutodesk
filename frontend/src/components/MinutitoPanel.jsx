@@ -386,9 +386,9 @@ export default function MinutitoPanel() {
         <div className="group flex items-center gap-3">
           <span className="relative">
             <img
-              src="/img/robot-minutito.jpg"
+              src="/img/minutito.svg"
               alt=""
-              className={`h-10 w-10 rounded-md border border-linea bg-white object-contain p-0.5 transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-rotate-6 ${
+              className={`h-10 w-10 rounded-full transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)] group-hover:-rotate-6 ${
                 escribiendo ? "anim-asentir" : ""
               }`}
             />

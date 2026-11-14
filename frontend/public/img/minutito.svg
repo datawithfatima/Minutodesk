@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Minutito">
+<defs>
+ <clipPath id="r-c"><circle cx="64" cy="64" r="64"/></clipPath>
+ <clipPath id="r-in"><circle cx="64" cy="64" r="58"/></clipPath>
+ <pattern id="r-f" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#1b1e22"/><rect width="6" height="12" fill="#f5b800"/></pattern>
+ <pattern id="r-fc" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#1b1e22"/><rect width="4" height="8" fill="#f5b800"/></pattern>
+ <radialGradient id="r-luz" cx="50%" cy="30%" r="70%"><stop offset="0" stop-color="#343941"/><stop offset="1" stop-color="#1b1e22" stop-opacity="0"/></radialGradient>
+ <linearGradient id="r-casco" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd23f"/><stop offset=".55" stop-color="#f5b800"/><stop offset="1" stop-color="#d99e00"/></linearGradient>
+ <linearGradient id="r-cab" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b525b"/><stop offset="1" stop-color="#2f343b"/></linearGradient>
+ <radialGradient id="r-pant" cx="40%" cy="30%" r="80%"><stop offset="0" stop-color="#2a3038"/><stop offset="1" stop-color="#101214"/></radialGradient>
+ <linearGradient id="r-chal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2581b"/><stop offset="1" stop-color="#b23a0a"/></linearGradient>
+</defs>
+<g clip-path="url(#r-c)"><circle cx="64" cy="64" r="64" fill="url(#r-f)"/><circle cx="64" cy="64" r="58" fill="#e1ddd3"/></g>
+<g clip-path="url(#r-in)">
+ <!-- chaleco -->
+ <path d="M8 130 C10 108 27 99 46 98 H82 C101 99 118 108 120 130 Z" fill="url(#r-chal)"/>
+ <path d="M50 98 L64 116 L78 98 Z" fill="#262a30"/>
+ <path d="M50 98 L64 116 L60 128 L44 128 Z" fill="#c2410c"/><path d="M78 98 L64 116 L68 128 L84 128 Z" fill="#a8380a"/>
+ <rect x="33" y="103" width="7" height="26" rx="1" fill="#e9e6df"/><rect x="88" y="103" width="7" height="26" rx="1" fill="#d6d2c9"/>
+ <rect x="14" y="119" width="100" height="5" fill="#e9e6df"/>
+ <rect x="73" y="105" width="11" height="8" rx="1.5" fill="#f5b800"/><rect x="75" y="107.5" width="7" height="1.6" fill="#1b1e22"/><rect x="75" y="110" width="4.5" height="1.4" fill="#1b1e22"/>
+ <rect x="56" y="90" width="16" height="10" fill="#22262b"/>
+</g>
+<!-- cabeza -->
+<rect x="26" y="44" width="76" height="52" rx="14" fill="url(#r-cab)"/>
+<rect x="26" y="86" width="76" height="10" rx="5" fill="#000" opacity=".12"/>
+<!-- auriculares de soporte -->
+<path d="M26 64 C22 44 32 34 40 34" fill="none" stroke="#1b1e22" stroke-width="0"/>
+<circle cx="25" cy="70" r="9" fill="#1b1e22"/><circle cx="25" cy="70" r="4.5" fill="#d9531a"/>
+<circle cx="103" cy="70" r="9" fill="#1b1e22"/><circle cx="103" cy="70" r="4.5" fill="#d9531a"/>
+<path d="M24 78 C25 92 36 94 46 91" fill="none" stroke="#1b1e22" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="44" y="87.5" width="9" height="6.5" rx="3.2" fill="#1b1e22"/>
+<!-- pantalla -->
+<rect x="35" y="54" width="58" height="33" rx="9" fill="url(#r-pant)"/>
+<path d="M40 58 h20 l-6 6 h-14 z" fill="#fff" opacity=".06"/>
+<!-- ojos y sonrisa -->
+<g fill="none" stroke-linecap="round">
+ <path d="M45 72 q6.5 -8.5 13 0" stroke="#f5b800" stroke-width="9" opacity=".18"/>
+ <path d="M70 72 q6.5 -8.5 13 0" stroke="#f5b800" stroke-width="9" opacity=".18"/>
+ <path d="M45 72 q6.5 -8.5 13 0" stroke="#ffc928" stroke-width="4.5"/>
+ <path d="M70 72 q6.5 -8.5 13 0" stroke="#ffc928" stroke-width="4.5"/>
+ <path d="M58.5 78.5 q5.5 4.5 11 0" stroke="#e8662a" stroke-width="3"/>
+</g>
+<!-- casco -->
+<path d="M28 50 C28 25 44 14 64 14 C84 14 100 25 100 50 Z" fill="url(#r-casco)"/>
+<path d="M44 49 C44 32 50 22 58 18" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3" stroke-linecap="round"/>
+<rect x="58.5" y="12" width="11" height="38" rx="4.5" fill="#e3a600"/>
+<rect x="60.5" y="14" width="2.5" height="33" rx="1.2" fill="#fff" opacity=".3"/>
+<path d="M30 43 H98 L99 48 H29 Z" fill="url(#r-fc)"/>
+<rect x="17" y="46" width="94" height="9" rx="4.5" fill="#f5b800"/>
+<rect x="19" y="51.5" width="90" height="3.5" rx="1.75" fill="#c58f00"/>
+</svg>
