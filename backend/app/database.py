@@ -16,6 +16,7 @@ def _activar_claves_foraneas(dbapi_connection, _registro):
 
 # Columnas agregadas después de la primera versión: tabla -> [(columna, tipo SQL)].
 COLUMNAS_NUEVAS = {
+    "imagen_minutito": [("texto_leido", "TEXT")],
     "cliente": [("debe_cambiar_password", "BOOLEAN NOT NULL DEFAULT 0")],
     "ticket_historico": [("descripcion", "TEXT"), ("solicitante", "TEXT"), ("asignado_a", "TEXT")],
     "ticket": [

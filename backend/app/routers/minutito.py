@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, func, select
 
@@ -34,7 +35,7 @@ from app.schemas import (
     MensajeMinutitoRead,
     ResumenConversacion,
 )
-from app.services import minutito_chat
+from app.services import minutito_chat, ocr
 from app.services.casos_resueltos import casos_parecidos
 from app.services.auth import es_personal, obtener_usuario_actual
 from app.services.catalogos import MAX_ADJUNTOS, MAX_BYTES_ADJUNTO
@@ -98,30 +99,38 @@ def _imagenes(session: Session, conversacion_id: int) -> list[ImagenMinutito]:
     ).all()
 
 
-def _imagenes_por_mensaje(session: Session, conversacion_id: int) -> dict[int, list[str]]:
-    por_mensaje: dict[int, list[str]] = {}
+def _imagenes_por_mensaje(session: Session, conversacion_id: int) -> dict[int, list[ImagenMinutito]]:
+    por_mensaje: dict[int, list[ImagenMinutito]] = {}
     for imagen in _imagenes(session, conversacion_id):
         if imagen.mensaje_id is not None:
-            por_mensaje.setdefault(imagen.mensaje_id, []).append(imagen.nombre_original)
+            por_mensaje.setdefault(imagen.mensaje_id, []).append(imagen)
     return por_mensaje
+
+
+def _nota_de_imagen(imagen: ImagenMinutito) -> str:
+    """Lo que el modelo recibe de una imagen: el texto que el OCR leyó en ella, o el aviso
+    de que no se leyó ninguno. Nunca ve la imagen en sí."""
+    if imagen.texto_leido:
+        return (
+            f"[Adjunté una captura ({imagen.nombre_original}). Este es el texto que se lee en ella:\n"
+            f"{imagen.texto_leido}\n"
+            "Nota para el asistente: solo tienes el texto de la imagen, no la ves; úsalo para entender el problema.]"
+        )
+    return (
+        f"[Adjunté una captura ({imagen.nombre_original}), pero no se pudo leer texto en ella. "
+        "Nota para el asistente: no puedes ver la imagen. Si necesitas lo que muestra, pide que te lo "
+        "describa; el equipo de sistemas la verá si se crea el ticket.]"
+    )
 
 
 def _historial(session: Session, conversacion_id: int) -> list[tuple[str, str]]:
     """Pares (rol, texto) para el modelo. El modelo solo lee texto: a un mensaje con
-    imágenes se le agrega una nota para que no responda como si las hubiera visto."""
+    imágenes se le agrega el texto leído en ellas (o el aviso de que no lo tiene)."""
     imagenes = _imagenes_por_mensaje(session, conversacion_id)
     historial = []
     for m in _mensajes(session, conversacion_id):
-        texto = m.texto
-        if m.id in imagenes:
-            nombres = ", ".join(imagenes[m.id])
-            texto = (
-                f"{texto}\n\n[Adjunté {'una captura' if len(imagenes[m.id]) == 1 else 'capturas'}: {nombres}. "
-                "Nota para el asistente: no puedes ver archivos adjuntos. Si necesitas lo que muestran, "
-                "pide que te lo describa o copie el mensaje que aparece; el equipo de sistemas las verá "
-                "si se crea el ticket.]"
-            ).strip()
-        historial.append((m.rol, texto))
+        partes = [m.texto] + [_nota_de_imagen(i) for i in imagenes.get(m.id, [])]
+        historial.append((m.rol, "\n\n".join(p for p in partes if p)))
     return historial
 
 
@@ -135,7 +144,11 @@ def _a_lectura(session: Session, c: ConversacionMinutito) -> ConversacionMinutit
         cerrado_en=c.cerrado_en,
         mensajes=[
             MensajeMinutitoRead(
-                id=m.id, rol=m.rol, texto=m.texto, creado_en=m.creado_en, imagenes=imagenes.get(m.id, [])
+                id=m.id,
+                rol=m.rol,
+                texto=m.texto,
+                creado_en=m.creado_en,
+                imagenes=[i.nombre_original for i in imagenes.get(m.id, [])],
             )
             for m in _mensajes(session, c.id)
         ],
@@ -225,9 +238,15 @@ def enviar_mensaje(
         session.add(imagen)
     session.commit()
     historial = _historial(session, conversacion.id)
-    # Los casos parecidos se buscan con lo que escribió la persona, sin la nota de imágenes.
-    escritos = [m.texto for m in _mensajes(session, conversacion.id) if m.rol == "usuario" and m.texto]
-    casos = casos_parecidos(session, escritos[-3:])
+    # Los casos parecidos se buscan con lo que escribió la persona y el texto de sus capturas,
+    # sin las notas para el modelo.
+    leidos = _imagenes_por_mensaje(session, conversacion.id)
+    escritos = [
+        " ".join([m.texto] + [i.texto_leido or "" for i in leidos.get(m.id, [])]).strip()
+        for m in _mensajes(session, conversacion.id)
+        if m.rol == "usuario"
+    ]
+    casos = casos_parecidos(session, [e for e in escritos if e][-3:])
     motor = session.get_bind()  # la sesión de la petición se cierra antes de terminar de transmitir
 
     def transmitir():
@@ -261,7 +280,8 @@ async def subir_imagen(
     session: Session = Depends(get_session),
 ):
     """Imagen para el próximo mensaje (cuerpo crudo, nombre en X-Nombre-Archivo, igual que
-    los adjuntos de tickets). Minutito no la ve; si se crea el ticket, pasa a ser adjunto."""
+    los adjuntos de tickets). Minutito recibe el texto que se lee en ella; si se crea el
+    ticket, la imagen pasa a ser adjunto."""
     conversacion = _propia_y_abierta(session, conversacion_id, usuario)
     nombre = adjuntos._limpiar_nombre(request.headers.get("x-nombre-archivo"))
     if os.path.splitext(nombre)[1].lower() not in EXTENSIONES_IMAGEN:
@@ -278,8 +298,14 @@ async def subir_imagen(
     adjuntos.DIRECTORIO_ARCHIVOS.mkdir(parents=True, exist_ok=True)
     guardado = uuid.uuid4().hex
     (adjuntos.DIRECTORIO_ARCHIVOS / guardado).write_bytes(contenido)
+    # Se lee el texto al subirla (menos de un segundo), así está listo al enviar el mensaje.
+    texto_leido = await run_in_threadpool(ocr.leer_texto, adjuntos.DIRECTORIO_ARCHIVOS / guardado)
     imagen = ImagenMinutito(
-        conversacion_id=conversacion.id, nombre_original=nombre, archivo=guardado, tamano=len(contenido)
+        conversacion_id=conversacion.id,
+        nombre_original=nombre,
+        archivo=guardado,
+        tamano=len(contenido),
+        texto_leido=texto_leido or None,
     )
     session.add(imagen)
     session.commit()

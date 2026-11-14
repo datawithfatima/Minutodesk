@@ -226,6 +226,7 @@ class ImagenMinutito(SQLModel, table=True):
     nombre_original: str
     archivo: str = Field(unique=True)
     tamano: int
+    texto_leido: Optional[str] = None  # texto de la imagen según el OCR de Windows (ocr.py)
     creado_en: datetime = Field(default_factory=datetime.now)
 
 

@@ -151,7 +151,10 @@ def test_mis_conversaciones_resueltas_para_el_historico(client, crear_cuenta, en
 def test_imagenes_en_la_conversacion_avisan_al_modelo_y_pasan_al_ticket(client, crear_cuenta, entrar, monkeypatch, tmp_path):
     from app.routers import adjuntos
 
+    from app.services import ocr
+
     monkeypatch.setattr(adjuntos, "DIRECTORIO_ARCHIVOS", tmp_path / "uploads")
+    monkeypatch.setattr(ocr, "leer_texto", lambda ruta: "Error 0x800CCC0E")
     crear_cuenta("ana@ejemplo.com")
     crear_cuenta("tec@ejemplo.com", "tecnico")
     h, h_tec = entrar("ana@ejemplo.com"), entrar("tec@ejemplo.com")
@@ -182,7 +185,8 @@ def test_imagenes_en_la_conversacion_avisan_al_modelo_y_pasan_al_ticket(client, 
     eventos = _enviar(client, h, conv["id"], "")  # solo la imagen, sin texto
     assert eventos[-1]["fin"]
     rol, texto = vistos["historial"][-1]
-    assert rol == "usuario" and "error.png" in texto and "no puedes ver" in texto
+    # el modelo recibe el texto que el OCR leyó en la captura
+    assert rol == "usuario" and "error.png" in texto and "Error 0x800CCC0E" in texto
 
     actual = client.get("/minutito/conversaciones/actual", headers=h).json()
     assert actual["mensajes"][0]["imagenes"] == ["error.png"] and actual["mensajes"][0]["texto"] == ""
@@ -199,3 +203,17 @@ def test_imagenes_en_la_conversacion_avisan_al_modelo_y_pasan_al_ticket(client, 
     assert [a["nombre_original"] for a in archivos] == ["error.png"]  # solo las que se enviaron
     descarga = client.get(f"/adjuntos/{archivos[0]['id']}", headers=h_tec)
     assert descarga.status_code == 200 and descarga.content == b"png"
+
+
+def test_ocr_lee_el_texto_de_una_captura(tmp_path):
+    import os
+
+    import pytest
+
+    from app.services import ocr
+
+    if os.name != "nt":
+        pytest.skip("el OCR usa el de Windows")
+    imagen = tmp_path / "vacia.png"
+    imagen.write_bytes(b"no es una imagen")
+    assert ocr.leer_texto(imagen) == ""  # un archivo que no se puede leer no rompe nada

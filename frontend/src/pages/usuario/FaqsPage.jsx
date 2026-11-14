@@ -9,7 +9,7 @@ const PREGUNTAS = [
   },
   {
     p: "¿Puedo enviarle una captura de pantalla a Minutito?",
-    r: "Sí, con el botón de imagen o pegándola en el chat (hasta 3 por conversación). Minutito solo lee texto, así que no puede ver lo que muestra: si te pide detalles, cuéntale o copia el mensaje que aparece. Si se crea el ticket, las capturas van adjuntas para que el equipo de sistemas las vea.",
+    r: "Sí, con el botón de imagen o pegándola en el chat (hasta 3 por conversación). Minutito lee el texto que aparece en la captura, como el mensaje de un error, y lo usa para ayudarte. No ve el resto de la imagen (por ejemplo, una foto de un equipo): en ese caso cuéntale qué muestra. Si se crea el ticket, las capturas van adjuntas para que el equipo de sistemas las vea.",
   },
   {
     p: "¿Cómo creo un ticket?",
