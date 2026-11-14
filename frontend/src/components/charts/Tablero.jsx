@@ -115,71 +115,118 @@ export function FranjaIndicadores({ items, oscuro = true, className = "" }) {
   );
 }
 
-/* ───────────── Medidor semicircular, como el manómetro de una máquina de obra ───────────── */
+/* ───────────── Medidor de obra: un edificio que se levanta piso a piso hasta el valor ─────────────
+   10 pisos = 100 %. La meta es una cota de nivel (el símbolo ▽ de los planos de corte) y el
+   valor alcanzado es la losa donde llegó la obra. Mantiene la misma interfaz que el medidor anterior. */
 
 export function Medidor({ valor, meta, etiqueta, color = "#c2410c", tamano = 260 }) {
   const v = Math.max(0, Math.min(100, Number(valor) || 0));
-  const R = 100;
-  const cx = 120;
-  const cy = 118;
-  const punto = (pct, r = R) => {
-    const a = Math.PI * (1 - pct / 100);
-    return [cx + r * Math.cos(a), cy - r * Math.sin(a)];
-  };
-  const arco = `M${cx - R} ${cy} A${R} ${R} 0 0 1 ${cx + R} ${cy}`;
-  const marcas = Array.from({ length: 21 }, (_, i) => i * 5);
-  const anguloAguja = -90 + (v / 100) * 180;
+  const PISOS = 10;
+  const base = 158; // nivel del terreno
+  const alto = 140; // altura total del edificio (100 %)
+  const x0 = 70;
+  const ancho = 116;
+  const y = (pct) => base - (pct / 100) * alto;
+  const hPiso = alto / PISOS;
+  const yValor = y(v);
+  const pisosLlenos = Math.floor((v / 100) * PISOS + 1e-9);
   return (
     <svg
-      viewBox="0 0 240 142"
+      viewBox="0 0 270 172"
       width={tamano}
       className="block h-auto max-w-full overflow-visible"
       role="img"
       aria-label={`${etiqueta ?? "Valor"}: ${valor}%${meta != null ? `, meta ${meta}%` : ""}`}
     >
-      <path d={arco} fill="none" stroke="#efede8" strokeWidth="16" />
-      <path
-        d={arco}
-        fill="none"
-        stroke={color}
-        strokeWidth="16"
-        pathLength={100}
-        strokeDasharray={`${v} 100`}
-        className="anim-medidor"
-        style={{ "--valor": v }}
-      />
-      {marcas.map((m) => {
-        const [x1, y1] = punto(m, R - 13);
-        const [x2, y2] = punto(m, m % 25 === 0 ? R - 22 : R - 17);
-        return <line key={m} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#9b968c" strokeWidth={m % 25 === 0 ? 1.4 : 0.8} />;
-      })}
-      {[0, 100].map((m) => {
-        const [x] = punto(m, R);
-        return (
-          <text key={m} x={x} y={cy + 16} textAnchor="middle" fontSize="9" fill="#6f6b63" fontFamily="IBM Plex Mono, monospace">
-            {m}%
-          </text>
-        );
-      })}
-      {meta != null &&
-        (() => {
-          const [x1, y1] = punto(meta, R + 12);
-          const [x2, y2] = punto(meta, R - 10);
-          const [tx, ty] = punto(meta, R + 22);
+      {/* Terreno */}
+      <path d={`M58 ${base}H254`} stroke="#9b968c" strokeWidth="1.5" />
+      <path d={`M58 ${base + 5}H254`} stroke="#c3c2b7" strokeDasharray="2 5" />
+
+      {/* Estructura completa (pisos por construir, en gris) */}
+      {Array.from({ length: PISOS }, (_, i) => (
+        <rect
+          key={i}
+          x={x0}
+          y={base - (i + 1) * hPiso + 1}
+          width={ancho}
+          height={hPiso - 2}
+          rx="1"
+          fill="#efede8"
+          stroke="#c3c2b7"
+          strokeDasharray={i >= pisosLlenos ? "3 3" : undefined}
+          strokeWidth="0.8"
+        />
+      ))}
+
+      {/* Lo construido: se «vacía» desde la base hasta el valor */}
+      <g className="anim-vaciar-y">
+        <rect x={x0} y={yValor} width={ancho} height={base - yValor} rx="1" fill={color} />
+        {/* losas y ventanas sobre lo construido */}
+        {Array.from({ length: Math.ceil((v / 100) * PISOS) }, (_, i) => {
+          const yp = base - (i + 1) * hPiso;
           return (
-            <g>
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#1b1e22" strokeWidth="2.5" />
-              <text x={tx} y={ty} textAnchor="middle" fontSize="9" fontWeight="600" fill="#1b1e22" fontFamily="IBM Plex Mono, monospace">
-                META {meta}%
-              </text>
+            <g key={i}>
+              {i > 0 && <path d={`M${x0} ${base - i * hPiso}H${x0 + ancho}`} stroke="#ffffff" strokeOpacity=".55" />}
+              {[0, 1, 2, 3].map((k) => {
+                const vy = yp + 4;
+                return vy >= yValor ? (
+                  <rect key={k} x={x0 + 10 + k * 27} y={vy} width="15" height="6" rx=".5" fill="#ffffff" fillOpacity=".35" />
+                ) : null;
+              })}
             </g>
           );
-        })()}
-      <g className="anim-aguja" style={{ "--angulo": `${anguloAguja}deg`, transformOrigin: `${cx}px ${cy}px` }}>
-        <path d={`M${cx - 3.5} ${cy} L${cx} ${cy - R + 26} L${cx + 3.5} ${cy} Z`} fill="#1b1e22" />
+        })}
       </g>
-      <circle cx={cx} cy={cy} r="8" fill="#1b1e22" />
-      <circle cx={cx} cy={cy} r="3" fill="#f5b800" />
+
+      {/* Cota lateral 0–100 % */}
+      <g stroke="#9b968c">
+        <path d={`M58 ${base}V${y(100)}M54 ${base}H62M54 ${y(100)}H62M56 ${y(50)}H60`} />
+      </g>
+      {[0, 50, 100].map((m) => (
+        <text key={m} x="50" y={y(m) + 3} textAnchor="end" fontSize="9" fill="#6f6b63" fontFamily="IBM Plex Mono, monospace">
+          {m}%
+        </text>
+      ))}
+
+      {/* Nivel alcanzado: triángulo naranja junto a la última losa */}
+      <path className="anim-grua-sube" style={{ "--subida": `${base - yValor}px` }} d={`M${x0 - 12} ${yValor - 5}l6 5l-6 5z`} fill={color} />
+
+      {/* Cota de la meta: línea de nivel y símbolo ▽ */}
+      {meta != null && (
+        <g>
+          <path d={`M${x0 - 8} ${y(meta)}H${x0 + ancho + 12}`} stroke="#1b1e22" strokeWidth="1.5" strokeDasharray="5 3" />
+          <path
+            d={`M${x0 + ancho + 14} ${y(meta) - 8}h10l-5 8z`}
+            fill="#f5b800"
+            stroke="#1b1e22"
+            strokeWidth="1"
+          />
+          <text
+            x={x0 + ancho + 28}
+            y={y(meta) + 3}
+            fontSize="9.5"
+            fontWeight="600"
+            fill="#1b1e22"
+            fontFamily="IBM Plex Mono, monospace"
+          >
+            META {meta}%
+          </text>
+        </g>
+      )}
+
+      {/* Grúa torre sobre la última losa: su gancho marca hasta dónde va la obra */}
+      <g className="anim-grua-sube" style={{ "--subida": `${base - yValor}px` }}>
+        <g transform={`translate(0 ${yValor - base})`}>
+          {/* mástil con celosía, punta, pluma y contrapluma con contrapeso */}
+          <path d={`M${x0 + ancho - 19} ${base}V${base - 22}M${x0 + ancho - 13} ${base}V${base - 22}`} stroke="#f5b800" strokeWidth="1.4" />
+          <path d={`M${x0 + ancho - 19} ${base}L${x0 + ancho - 13} ${base - 7}L${x0 + ancho - 19} ${base - 14}L${x0 + ancho - 13} ${base - 21}`} stroke="#f5b800" strokeWidth=".8" fill="none" />
+          <path d={`M${x0 + ancho - 16} ${base - 30}L${x0 + 18} ${base - 22}M${x0 + ancho - 16} ${base - 30}L${x0 + ancho + 6} ${base - 22}M${x0 + ancho - 16} ${base - 30}V${base - 22}`} stroke="#f5b800" strokeWidth=".8" fill="none" />
+          <path d={`M${x0 + 18} ${base - 22}H${x0 + ancho + 6}`} stroke="#f5b800" strokeWidth="2" />
+          <rect x={x0 + ancho} y={base - 22} width="7" height="5" fill="#9b968c" />
+          <path d={`M${x0 + 42} ${base - 22}V${base - 11}`} stroke="#9b968c" strokeWidth=".8" />
+          <rect x={x0 + 37} y={base - 11} width="10" height="7" rx="1" fill="#f5b800" />
+        </g>
+      </g>
     </svg>
   );
 }

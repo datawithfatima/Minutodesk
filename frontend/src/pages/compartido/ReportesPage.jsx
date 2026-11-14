@@ -112,6 +112,7 @@ function Plataforma({ resumen, personal }) {
               valor={pct}
               meta={personal ? META_AUTONOMIA : undefined}
               etiqueta="Resolución autónoma de Minutito"
+              tamano={300}
             />
             <div className="-mt-1 text-5xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112]">
               {pct}%
@@ -302,7 +303,7 @@ function Clasificador() {
             >
               <div className="font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-gray-500">{c.titulo}</div>
               <div className="mt-3">
-                <Medidor valor={c.valor} meta={meta} etiqueta={c.titulo} tamano={210} color={SERIES[0]} />
+                <Medidor valor={c.valor} meta={meta} etiqueta={c.titulo} tamano={240} color={SERIES[0]} />
               </div>
               <div className="-mt-1 text-4xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112]">
                 {c.texto}

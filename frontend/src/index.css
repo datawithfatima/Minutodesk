@@ -147,6 +147,7 @@
 :root[data-tema="oscuro"] main svg [stroke="#9b968c"] { stroke: #4a4e55; }
 :root[data-tema="oscuro"] main svg [stroke="#efede8"],
 :root[data-tema="oscuro"] main svg [fill="#f1f1ee"] { stroke: #25292e; }
+:root[data-tema="oscuro"] main svg [fill="#efede8"] { fill: #25292e; }
 :root[data-tema="oscuro"] main svg [stroke="#ffffff"] { stroke: #1a1d21; }
 /* El círculo central del medidor es grafito fijo, con su punto amarillo */
 :root[data-tema="oscuro"] main svg circle[fill="#1b1e22"] { fill: #0e1012; stroke: #43474e; }
@@ -680,6 +681,14 @@ a:hover .cota::after {
 }
 .anim-tarjeta {
   animation: colocar 0.4s var(--ease-grua) backwards;
+}
+
+/* Medidor de obra: la grúa sube junto con el edificio. */
+@keyframes grua-sube {
+  from { transform: translateY(var(--subida)); }
+}
+.anim-grua-sube {
+  animation: grua-sube 0.8s var(--ease-obra) backwards;
 }
 
 /* Pestañas del ticket: el contenido nuevo sube a su sitio. */
