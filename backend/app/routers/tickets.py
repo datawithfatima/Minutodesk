@@ -43,6 +43,7 @@ from app.services.catalogos import (
 )
 from app.routers.conversacion import hay_aprobacion_pendiente
 from app.routers.minutito import enlazar_ticket
+from app.services.asignacion import asignar_automaticamente, tecnico_sugerido
 from app.services.classifier import categorias_clasificables, clasificar_ticket, sugerir
 from app.services.gamification_rules import evaluar_evento
 
@@ -150,6 +151,7 @@ def crear_ticket(
         clasificacion_confirmada=data.tipo is not None and data.categoria is not None,
         prioridad=prioridad,
     )
+    asignar_automaticamente(session, ticket)
     session.add(ticket)
     session.flush()
     registrar_estado(session, ticket.id, None, "abierto", usuario.id)
@@ -293,7 +295,11 @@ def obtener_ticket(
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     _verificar_acceso(ticket, usuario)
-    return ticket
+    detalle = TicketDetalle.model_validate(ticket, from_attributes=True)
+    if es_personal(usuario):
+        sugerido = tecnico_sugerido(session, ticket.categoria or ticket.categoria_predicha)
+        detalle.tecnico_sugerido_id = sugerido.id if sugerido else None
+    return detalle
 
 
 @router.get("/{ticket_id}/historial", response_model=list[HistorialEstadoRead])
@@ -361,6 +367,10 @@ def actualizar_ticket(
         raise HTTPException(
             status_code=400, detail="El tipo y la categoría de un alta de colaborador no se cambian."
         )
+    if data.tecnico_id is not None:
+        tecnico = session.get(Cliente, data.tecnico_id)
+        if tecnico is None or tecnico.rol not in ("tecnico", "administrador") or not tecnico.activo:
+            raise HTTPException(status_code=400, detail="Técnico no válido")
     if data.tipo == TIPO_ACCESOS and ticket.datos_alta is None:
         raise HTTPException(
             status_code=400, detail="Un ticket de accesos se crea con el formulario de alta de colaborador."
@@ -375,6 +385,18 @@ def actualizar_ticket(
     if data.categoria is not None:
         ticket.categoria = data.categoria
         ticket.clasificacion_confirmada = True
+
+    # Técnico: elegido a mano, devuelto al sugerido, o (si cambió la categoría y nadie lo
+    # eligió a mano) el que corresponde a la nueva categoría.
+    if data.tecnico_id is not None:
+        ticket.tecnico_id = data.tecnico_id
+        ticket.tecnico_manual = True
+    elif data.tecnico_auto:
+        ticket.tecnico_manual = False
+        ticket.tecnico_id = None
+        asignar_automaticamente(session, ticket)
+    elif data.categoria is not None:
+        asignar_automaticamente(session, ticket)
 
     estado_anterior = ticket.estado
     ya_estaba_resuelto = estado_anterior == "resuelto"
@@ -391,12 +413,15 @@ def actualizar_ticket(
             ticket.resuelto_por = data.resuelto_por or "tecnico"
             if ticket.tecnico_id is None:
                 ticket.tecnico_id = usuario.id
+                ticket.tecnico_manual = True
         else:
             ticket.cerrado_en = None
             ticket.resuelto_por = None
             ticket.motivo_cancelacion = None  # reabrir un cancelado borra el motivo vigente
             if data.estado == "en_proceso":
+                # Quien toma el ticket pasa a atenderlo (aunque el sugerido fuera otro).
                 ticket.tecnico_id = usuario.id
+                ticket.tecnico_manual = True
         registrar_estado(session, ticket.id, estado_anterior, data.estado, usuario.id)
     elif data.resuelto_por is not None and ticket.estado == "resuelto":
         ticket.resuelto_por = data.resuelto_por

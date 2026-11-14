@@ -23,6 +23,9 @@ class TicketUpdate(SQLModel):
     tipo: Optional[str] = None
     categoria: Optional[str] = None
     prioridad: Optional[str] = None
+    # Técnico elegido a mano. `tecnico_auto` vuelve al sugerido según la categoría.
+    tecnico_id: Optional[int] = None
+    tecnico_auto: bool = False
 
 
 class SugerenciaRequest(SQLModel):
@@ -145,6 +148,7 @@ class TicketRead(SQLModel):
     id: int
     cliente_id: int
     tecnico_id: Optional[int] = None
+    tecnico_manual: bool = False
     texto: str
     tipo_predicho: Optional[str] = None
     categoria_predicha: Optional[str] = None
@@ -169,6 +173,9 @@ class TicketDetalle(TicketRead):
     """Solo el detalle trae los datos del alta (llevan la cédula): las listas no."""
 
     datos_alta: Optional[str] = None  # JSON
+    # Quién atendería según el sistema del ticket (None si ningún técnico de ese sistema
+    # tiene cuenta). Sirve para ofrecer «Asignar el sugerido» en tickets sin técnico.
+    tecnico_sugerido_id: Optional[int] = None
 
 
 class HistorialEstadoRead(SQLModel):

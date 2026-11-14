@@ -69,6 +69,9 @@ class Ticket(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     cliente_id: int = Field(foreign_key="cliente.id", index=True)
     tecnico_id: Optional[int] = Field(default=None, foreign_key="cliente.id", index=True)
+    # Falso mientras el técnico es el que sugirió el sistema según la categoría; verdadero
+    # cuando alguien lo eligió o tomó el ticket a mano (entonces no se reasigna solo).
+    tecnico_manual: bool = Field(default=False)
     texto: str
     tipo_predicho: Optional[str] = Field(default=None)
     categoria_predicha: Optional[str] = Field(default=None, index=True)

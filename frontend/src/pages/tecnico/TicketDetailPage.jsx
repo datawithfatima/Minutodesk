@@ -21,6 +21,7 @@ import {
   actualizarTicket,
   cancelarTicket,
   listarHistorial,
+  listarClientes,
   listarInteracciones,
   obtenerCatalogos,
   obtenerCliente,
@@ -170,10 +171,14 @@ export default function TicketDetailPage() {
   const [copiado, setCopiado] = useState(false);
   const [umbralConfianza, setUmbralConfianza] = useState(null);
   const [catalogos, setCatalogos] = useState(null);
+  const [tecnicos, setTecnicos] = useState([]);
 
   useEffect(() => {
     obtenerCatalogos()
       .then(setCatalogos)
+      .catch(() => {});
+    listarClientes()
+      .then((lista) => setTecnicos(lista.filter((c) => c.rol === "tecnico" && c.activo)))
       .catch(() => {});
   }, []);
 
@@ -257,6 +262,11 @@ export default function TicketDetailPage() {
     .map((p) => p[0])
     .join("")
     .toUpperCase();
+
+  const categoriaVigente = ticket.categoria || ticket.categoria_predicha;
+  // Si atiende alguien que no está en la lista (p. ej. un administrador que lo tomó), se agrega.
+  const opcionesTecnico =
+    tecnico && !tecnicos.some((t) => t.id === tecnico.id) ? [...tecnicos, tecnico] : tecnicos;
 
   const confianzaBaja =
     umbralConfianza != null &&
@@ -375,7 +385,7 @@ export default function TicketDetailPage() {
 
               {catalogos && (
                 <div className="space-y-3 border-t border-dashed border-linea pt-4">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Clasificación</p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Clasificación y asignación</p>
                   <div>
                     <label htmlFor="gestion-categoria" className={labelClass}>
                       Categoría
@@ -415,6 +425,63 @@ export default function TicketDetailPage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label htmlFor="gestion-tecnico" className={labelClass}>
+                      Técnico asignado
+                    </label>
+                    <select
+                      id="gestion-tecnico"
+                      className={inputClass}
+                      value={ticket.tecnico_id ?? ""}
+                      disabled={actualizando || resuelto || cancelado}
+                      onChange={(e) => e.target.value && aplicarCambio({ tecnico_id: Number(e.target.value) })}
+                    >
+                      <option value="">Sin asignar</option>
+                      {opcionesTecnico.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    {!resuelto && !cancelado && (
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        {ticket.tecnico_manual ? (
+                          <>
+                            Elegido a mano.{" "}
+                            <button
+                              type="button"
+                              disabled={actualizando}
+                              onClick={() => aplicarCambio({ tecnico_auto: true })}
+                              className="font-medium text-acento underline-offset-2 hover:underline disabled:opacity-50"
+                            >
+                              Volver al sugerido por sistema
+                            </button>
+                          </>
+                        ) : ticket.tecnico_id ? (
+                          <>Sugerido según el sistema «{categoriaVigente}». Si no es correcto, elige otro.</>
+                        ) : ticket.tecnico_sugerido_id ? (
+                          <>
+                            Aún sin técnico.{" "}
+                            <button
+                              type="button"
+                              disabled={actualizando}
+                              onClick={() => aplicarCambio({ tecnico_auto: true })}
+                              className="font-medium text-acento underline-offset-2 hover:underline disabled:opacity-50"
+                            >
+                              Asignar a{" "}
+                              {opcionesTecnico.find((t) => t.id === ticket.tecnico_sugerido_id)?.nombre ??
+                                "el sugerido"}
+                            </button>{" "}
+                            según el sistema «{categoriaVigente}».
+                          </>
+                        ) : categoriaVigente ? (
+                          <>Ningún técnico de «{categoriaVigente}» tiene cuenta todavía. Elige uno a mano.</>
+                        ) : (
+                          <>Elige quién atiende este ticket.</>
+                        )}
+                      </p>
+                    )}
                   </div>
                   {!ticket.clasificacion_confirmada && ticket.categoria_predicha && (
                     <div>
@@ -472,7 +539,14 @@ export default function TicketDetailPage() {
                 )}
               </FilaFicha>
               <FilaFicha icono={HardHat} etiqueta="Atiende">
-                {tecnico?.nombre ?? <span className="font-normal text-gray-500">Nadie aún</span>}
+                {tecnico ? (
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    {tecnico.nombre}
+                    {!ticket.tecnico_manual && ticket.estado === "abierto" && <Badge color="sky">Sugerido</Badge>}
+                  </span>
+                ) : (
+                  <span className="font-normal text-gray-500">Nadie aún</span>
+                )}
               </FilaFicha>
               {ticket.resuelto_por && (
                 <FilaFicha icono={CheckCircle2} etiqueta="Resuelto por">
