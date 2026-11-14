@@ -99,6 +99,10 @@ def init_db() -> None:
     SQLModel.metadata.create_all(engine)
     _permitir_estado_cancelado()
     _agregar_columnas_nuevas()
+    with engine.begin() as conexion:  # índice de la columna agregada después (create_all no lo crea)
+        conexion.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_ticket_duplicado_de_id ON ticket (duplicado_de_id)"
+        )
 
 
 def get_session():

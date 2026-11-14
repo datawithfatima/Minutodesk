@@ -212,7 +212,7 @@ export default function ConocimientoPage() {
                 type="search"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Describe tu problema: «no puedo imprimir», «Outlook no abre»…"
+                placeholder="Describe tu problema, p. ej. «no puedo imprimir»"
                 className="campo-obra h-11 w-full rounded-md border border-linea bg-superficie pl-10 pr-3 text-sm text-noche placeholder:text-gray-400"
               />
             </label>

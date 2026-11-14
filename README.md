@@ -130,10 +130,11 @@ uvicorn app.main:app --reload
   el administrador crea las demás cuentas en la página (Usuarios). Con `--demo`
   agrega además cuentas de prueba (contraseña `minutodesk123`), solo para
   desarrollo.
-- **Correo (solo recuperación de contraseña):** sin `SMTP_HOST` en `backend/.env`
-  los correos no se envían, se guardan como `.txt` en `backend/correos_enviados/`
-  (ahí está el enlace de recuperación). Para correos reales configura las
-  variables `SMTP_*` (ver `.env.example`).
+- **Correo:** el portal avisa por correo de cada movimiento del ticket a la otra persona
+  (`services/notificaciones.py`), además de la activación y la recuperación de la cuenta.
+  Sin `SMTP_HOST` en `backend/.env` los correos no se envían: se guardan como `.txt` en
+  `backend/correos_enviados/`. Para correos reales configura las variables `SMTP_*`
+  (ver `.env.example`).
 - Las bases creadas con una versión anterior se actualizan solas al arrancar
   (columnas nuevas y el estado «cancelado»), sin perder datos.
 - **Pruebas:** `python -m pytest` desde `backend/`.
@@ -147,7 +148,7 @@ npm run dev
 ```
 
 Abre <http://localhost:5173>. La URL del backend se deduce del host actual
-(puerto 8000) o de `VITE_API_URL`. La tipografía (Inter) se instala con npm, así
+(puerto 8000) o de `VITE_API_URL`. Las tipografías (Archivo e IBM Plex Mono) se instalan con npm, así
 que la interfaz funciona sin conexión a internet.
 
 ## Minutito (Ollama)
