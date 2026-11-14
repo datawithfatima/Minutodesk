@@ -381,6 +381,12 @@ class MensajeMinutitoRead(SQLModel):
     rol: str  # «usuario» o «minutito»
     texto: str
     creado_en: datetime
+    imagenes: list[str] = []  # nombres de las imágenes adjuntas al mensaje
+
+
+class ImagenMinutitoRead(SQLModel):
+    id: int
+    nombre: str
 
 
 class ConversacionMinutitoRead(SQLModel):

@@ -146,3 +146,56 @@ def test_mis_conversaciones_resueltas_para_el_historico(client, crear_cuenta, en
     resueltas = client.get("/minutito/conversaciones", params={"estado": "resuelta"}, headers=h).json()
     assert [(c["id"], c["primera_pregunta"]) for c in resueltas] == [(conv["id"], "no tengo internet en la oficina")]
     assert client.get("/minutito/conversaciones", headers=entrar("beto@ejemplo.com")).json() == []
+
+
+def test_imagenes_en_la_conversacion_avisan_al_modelo_y_pasan_al_ticket(client, crear_cuenta, entrar, monkeypatch, tmp_path):
+    from app.routers import adjuntos
+
+    monkeypatch.setattr(adjuntos, "DIRECTORIO_ARCHIVOS", tmp_path / "uploads")
+    crear_cuenta("ana@ejemplo.com")
+    crear_cuenta("tec@ejemplo.com", "tecnico")
+    h, h_tec = entrar("ana@ejemplo.com"), entrar("tec@ejemplo.com")
+    conv = client.post("/minutito/conversaciones", headers=h).json()
+
+    def subir(nombre, contenido=b"png"):
+        return client.post(
+            f"/minutito/conversaciones/{conv['id']}/imagenes",
+            content=contenido,
+            headers={**h, "X-Nombre-Archivo": nombre, "Content-Type": "application/octet-stream"},
+        )
+
+    assert subir("informe.pdf").status_code == 400  # solo imágenes
+    assert subir("vacia.png", b"").status_code == 400
+    assert client.post(f"/minutito/conversaciones/{conv['id']}/mensajes", json={"texto": " "}, headers=h).status_code == 400
+
+    quitada = subir("otra.png").json()
+    assert client.delete(f"/minutito/conversaciones/{conv['id']}/imagenes/{quitada['id']}", headers=h).status_code == 204
+    assert subir("error.png").status_code == 200
+
+    vistos = {}
+
+    def falso(historial, casos=None):
+        vistos["historial"] = list(historial)
+        return iter(["¿Qué mensaje te aparece?"])
+
+    monkeypatch.setattr(minutito_chat, "responder_en_vivo", falso)
+    eventos = _enviar(client, h, conv["id"], "")  # solo la imagen, sin texto
+    assert eventos[-1]["fin"]
+    rol, texto = vistos["historial"][-1]
+    assert rol == "usuario" and "error.png" in texto and "no puedes ver" in texto
+
+    actual = client.get("/minutito/conversaciones/actual", headers=h).json()
+    assert actual["mensajes"][0]["imagenes"] == ["error.png"] and actual["mensajes"][0]["texto"] == ""
+    # ya enviada, no se puede quitar
+    assert client.delete(f"/minutito/conversaciones/{conv['id']}/imagenes/1", headers=h).status_code == 404
+
+    assert subir("dos.png").status_code == 200
+    assert subir("tres.png").status_code == 200
+    assert subir("cuatro.png").status_code == 409  # mismo límite que los adjuntos de un ticket
+
+    r = client.post("/tickets", json={"texto": "El sistema muestra un error al abrir", "conversacion_id": conv["id"]}, headers=h)
+    assert r.status_code == 200, r.text
+    archivos = client.get(f"/tickets/{r.json()['id']}/adjuntos", headers=h_tec).json()
+    assert [a["nombre_original"] for a in archivos] == ["error.png"]  # solo las que se enviaron
+    descarga = client.get(f"/adjuntos/{archivos[0]['id']}", headers=h_tec)
+    assert descarga.status_code == 200 and descarga.content == b"png"

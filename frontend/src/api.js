@@ -140,6 +140,17 @@ export const misConversacionesMinutito = (estado) =>
 export const resolverConversacionMinutito = (id) => enviar("POST", `/minutito/conversaciones/${id}/resolver`);
 export const borradorTicketMinutito = (id) => enviar("POST", `/minutito/conversaciones/${id}/borrador`);
 export const conversacionMinutitoDeTicket = (ticketId) => get(`/minutito/tickets/${ticketId}`);
+// Imagen para el próximo mensaje: viaja igual que los adjuntos de tickets (cuerpo crudo).
+export const subirImagenMinutito = (id, archivo) => {
+  const h = headers(false);
+  h["Content-Type"] = "application/octet-stream";
+  h["X-Nombre-Archivo"] = encodeURIComponent(archivo.name);
+  return fetch(`${API_BASE}/minutito/conversaciones/${id}/imagenes`, {
+    method: "POST",
+    headers: h,
+    body: archivo,
+  }).then(manejarRespuesta, sinConexion);
+};
 /**
  * Envía un mensaje y va entregando la respuesta mientras Minutito la escribe:
  * `alEscribir(textoHastaAhora)` en cada fragmento. Devuelve { texto, ofreceTicket }.

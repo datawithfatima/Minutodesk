@@ -1,4 +1,4 @@
-import { CheckCircle2, Plus, Send, Ticket } from "lucide-react";
+import { CheckCircle2, ImagePlus, Plus, Send, Ticket, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -10,6 +10,7 @@ import {
   obtenerCatalogos,
   resolverConversacionMinutito,
   subirAdjunto,
+  subirImagenMinutito,
 } from "../api";
 import { obtenerUsuario } from "../auth";
 import Markdown from "./Markdown";
@@ -19,8 +20,11 @@ import Button from "./ui/Button";
 import Spinner from "./ui/Spinner";
 import { inputClass, labelClass } from "./ui/formStyles";
 
+const MAX_IMAGENES = 3; // igual que MAX_ADJUNTOS del backend: las imágenes pasan al ticket
+const MAX_BYTES_IMAGEN = 10 * 1024 * 1024;
+
 /** Borrador del ticket armado con la conversación: la persona lo revisa y lo envía. */
-function BorradorTicket({ conversacionId, onCancelar }) {
+function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
   const navegar = useNavigate();
   const [catalogos, setCatalogos] = useState(null);
   const [texto, setTexto] = useState("");
@@ -161,10 +165,21 @@ function BorradorTicket({ conversacionId, onCancelar }) {
           </select>
         </div>
       )}
-      {!esAlta && (
+      {!esAlta && imagenesEnviadas > 0 && (
+        <p className="text-xs text-gray-600">
+          {imagenesEnviadas === 1
+            ? "La imagen que enviaste en la conversación va adjunta al ticket."
+            : `Las ${imagenesEnviadas} imágenes que enviaste en la conversación van adjuntas al ticket.`}
+        </p>
+      )}
+      {!esAlta && (catalogos.adjuntos?.maximo ?? 3) > imagenesEnviadas && (
         <div>
           <span className={labelClass}>Adjuntar captura (opcional)</span>
-          <SelectorArchivos archivos={archivos} onCambio={setArchivos} limites={catalogos.adjuntos} />
+          <SelectorArchivos
+            archivos={archivos}
+            onCambio={setArchivos}
+            limites={{ ...catalogos.adjuntos, maximo: (catalogos.adjuntos?.maximo ?? 3) - imagenesEnviadas }}
+          />
         </div>
       )}
       <div className="flex flex-wrap gap-2">
@@ -179,13 +194,36 @@ function BorradorTicket({ conversacionId, onCancelar }) {
   );
 }
 
-function Burbuja({ rol, texto, escribiendo }) {
+function Burbuja({ rol, texto, imagenes = [], escribiendo }) {
   if (rol === "usuario") {
     return (
-      <div className="flex justify-end">
-        <div className="anim-colocar max-w-[85%] origin-bottom-right whitespace-pre-wrap break-words rounded-2xl rounded-br-[4px] bg-grafito px-3.5 py-2.5 text-sm text-white">
-          {texto}
-        </div>
+      <div className="flex flex-col items-end gap-1.5">
+        {imagenes.length > 0 && (
+          <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+            {imagenes.map((img, i) =>
+              img.url ? (
+                <img
+                  key={i}
+                  src={img.url}
+                  alt={img.nombre}
+                  className="anim-colocar h-24 max-w-[10rem] rounded-lg border border-linea object-cover"
+                />
+              ) : (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 rounded-md border border-linea bg-marfil px-2 py-1 text-xs text-gray-600"
+                >
+                  <ImagePlus size={12} aria-hidden="true" /> {img.nombre}
+                </span>
+              )
+            )}
+          </div>
+        )}
+        {texto && (
+          <div className="anim-colocar max-w-[85%] origin-bottom-right whitespace-pre-wrap break-words rounded-2xl rounded-br-[4px] bg-grafito px-3.5 py-2.5 text-sm text-white">
+            {texto}
+          </div>
+        )}
       </div>
     );
   }
@@ -215,7 +253,9 @@ export default function MinutitoPanel() {
   const [creandoTicket, setCreandoTicket] = useState(false);
   const [resuelta, setResuelta] = useState(false);
   const [error, setError] = useState(null);
+  const [adjuntas, setAdjuntas] = useState([]); // imágenes elegidas para el próximo mensaje: [{ archivo, url }]
   const final = useRef(null);
+  const selectorImagen = useRef(null);
 
   // Retoma la conversación abierta, si la hay (p. ej. al volver a la página).
   useEffect(() => {
@@ -223,7 +263,13 @@ export default function MinutitoPanel() {
       .then((c) => {
         if (c) {
           setConversacion(c);
-          setMensajes(c.mensajes.map(({ rol, texto }) => ({ rol, texto })));
+          setMensajes(
+            c.mensajes.map(({ rol, texto, imagenes }) => ({
+              rol,
+              texto,
+              imagenes: (imagenes ?? []).map((nombre) => ({ nombre })),
+            }))
+          );
         }
       })
       .catch(() => {});
@@ -233,22 +279,70 @@ export default function MinutitoPanel() {
     final.current?.scrollIntoView({ block: "nearest" });
   }, [mensajes, creandoTicket]);
 
+  // Una conversación admite tantas imágenes como adjuntos admite un ticket (pasan a él).
+  const imagenesEnviadas = mensajes.reduce((n, m) => n + (m.imagenes?.length ?? 0), 0);
+  const cupoImagenes = MAX_IMAGENES - imagenesEnviadas - adjuntas.length;
+
+  function agregarImagenes(archivos) {
+    const imagenes = [...archivos].filter((f) => f.type.startsWith("image/") && f.type !== "image/svg+xml");
+    if (!imagenes.length) return;
+    setError(null);
+    const aceptadas = [];
+    for (const f of imagenes) {
+      if (aceptadas.length >= cupoImagenes) {
+        setError(`Puedes enviar hasta ${MAX_IMAGENES} imágenes por conversación.`);
+        break;
+      }
+      if (f.size > MAX_BYTES_IMAGEN) {
+        setError(`«${f.name}» pesa más de 10 MB.`);
+        continue;
+      }
+      // Las capturas pegadas llegan como «image.png»: se les da un nombre más claro.
+      const archivo = f.name && f.name !== "image.png" ? f : new File([f], `captura-${Date.now()}.png`, { type: f.type });
+      aceptadas.push({ archivo, url: URL.createObjectURL(archivo) });
+    }
+    setAdjuntas((a) => [...a, ...aceptadas]);
+  }
+
+  function quitarAdjunta(i) {
+    setAdjuntas((a) => {
+      URL.revokeObjectURL(a[i].url);
+      return a.filter((_, j) => j !== i);
+    });
+  }
+
   async function enviar(e) {
     e.preventDefault();
     const mensaje = texto.trim();
-    if (!mensaje || escribiendo) return;
+    if ((!mensaje && !adjuntas.length) || escribiendo) return;
+    const imagenes = adjuntas;
     setError(null);
     setTexto("");
+    setAdjuntas([]);
     const caja = document.getElementById("mensaje-minutito");
     if (caja) caja.style.height = "";
     setOfreceTicket(false);
     setEscribiendo(true);
-    setMensajes((m) => [...m, { rol: "usuario", texto: mensaje }, { rol: "minutito", texto: "" }]);
+    setMensajes((m) => [
+      ...m,
+      { rol: "usuario", texto: mensaje, imagenes: imagenes.map((a) => ({ nombre: a.archivo.name, url: a.url })) },
+      { rol: "minutito", texto: "" },
+    ]);
     const actualizar = (t) =>
       setMensajes((m) => [...m.slice(0, -1), { rol: "minutito", texto: t }]);
     try {
       const c = conversacion ?? (await nuevaConversacionMinutito());
       setConversacion(c);
+      try {
+        for (const a of imagenes) await subirImagenMinutito(c.id, a.archivo);
+      } catch (err) {
+        // No se envía el mensaje a medias: vuelve a la caja para reintentar.
+        setMensajes((m) => m.slice(0, -2));
+        setTexto(mensaje);
+        setAdjuntas(imagenes);
+        setError(err.message);
+        return;
+      }
       const r = await hablarConMinutito(c.id, mensaje, actualizar);
       actualizar(r.texto);
       setOfreceTicket(r.ofreceTicket);
@@ -272,6 +366,8 @@ export default function MinutitoPanel() {
   }
 
   function empezarDeNuevo() {
+    adjuntas.forEach((a) => URL.revokeObjectURL(a.url));
+    setAdjuntas([]);
     setConversacion(null);
     setMensajes([]);
     setResuelta(false);
@@ -324,7 +420,13 @@ export default function MinutitoPanel() {
           no lo logramos, te ayudo a crear el ticket para el equipo de sistemas.
         </div>
         {mensajes.map((m, i) => (
-          <Burbuja key={i} rol={m.rol} texto={m.texto} escribiendo={escribiendo && i === mensajes.length - 1} />
+          <Burbuja
+            key={i}
+            rol={m.rol}
+            texto={m.texto}
+            imagenes={m.imagenes}
+            escribiendo={escribiendo && i === mensajes.length - 1}
+          />
         ))}
 
         {resuelta && (
@@ -341,7 +443,11 @@ export default function MinutitoPanel() {
         )}
 
         {creandoTicket && conversacion && (
-          <BorradorTicket conversacionId={conversacion.id} onCancelar={() => setCreandoTicket(false)} />
+          <BorradorTicket
+            conversacionId={conversacion.id}
+            imagenesEnviadas={imagenesEnviadas}
+            onCancelar={() => setCreandoTicket(false)}
+          />
         )}
 
         {puedeActuar && !creandoTicket && (
@@ -369,7 +475,45 @@ export default function MinutitoPanel() {
       </div>
 
       {!resuelta && !creandoTicket && (
-        <form onSubmit={enviar} className="flex items-end gap-2 border-t border-gray-100 p-3">
+        <form onSubmit={enviar} className="flex flex-wrap items-end gap-2 border-t border-gray-100 p-3">
+          {adjuntas.length > 0 && (
+            <div className="flex w-full flex-wrap gap-2">
+              {adjuntas.map((a, i) => (
+                <span key={a.url} className="relative">
+                  <img src={a.url} alt={a.archivo.name} className="h-14 w-14 rounded-md border border-linea object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => quitarAdjunta(i)}
+                    aria-label={`Quitar ${a.archivo.name}`}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-grafito text-white hover:bg-noche"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input
+            ref={selectorImagen}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              agregarImagenes(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => selectorImagen.current?.click()}
+            disabled={cupoImagenes <= 0}
+            aria-label="Adjuntar imagen"
+            title={cupoImagenes <= 0 ? `Máximo ${MAX_IMAGENES} imágenes por conversación` : "Adjuntar imagen (también puedes pegar una captura)"}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-linea text-gray-500 hover:bg-marfil hover:text-noche disabled:opacity-40"
+          >
+            <ImagePlus size={16} />
+          </button>
           <label htmlFor="mensaje-minutito" className="sr-only">
             Mensaje para Minutito
           </label>
@@ -386,6 +530,13 @@ export default function MinutitoPanel() {
               caja.style.height = "auto";
               caja.style.height = `${Math.min(caja.scrollHeight, 128)}px`;
               caja.style.overflowY = caja.scrollHeight > 128 ? "auto" : "hidden";
+            }}
+            onPaste={(e) => {
+              const imagenes = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
+              if (imagenes.length) {
+                e.preventDefault();
+                agregarImagenes(imagenes);
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -405,7 +556,7 @@ export default function MinutitoPanel() {
           />
           <button
             type="submit"
-            disabled={escribiendo || !texto.trim()}
+            disabled={escribiendo || (!texto.trim() && !adjuntas.length)}
             aria-label="Enviar mensaje"
             className="btn-obra group flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-acento text-white hover:bg-acento-600 disabled:bg-acento/40"
           >

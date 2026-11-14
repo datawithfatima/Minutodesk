@@ -5,18 +5,31 @@ se crea ticket). Si no, pide un borrador del ticket armado con la conversación 
 con POST /tickets indicando `conversacion_id`.
 """
 import json
+import os
+import shutil
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.database import get_session
-from app.models import Cliente, ConversacionMinutito, EventoGamificacion, MensajeMinutito, Ticket
+from app.models import (
+    Adjunto,
+    Cliente,
+    ConversacionMinutito,
+    EventoGamificacion,
+    ImagenMinutito,
+    MensajeMinutito,
+    Ticket,
+)
+from app.routers import adjuntos
 from app.schemas import (
     BorradorTicket,
     ConversacionMinutitoRead,
+    ImagenMinutitoRead,
     MensajeCreate,
     MensajeMinutitoRead,
     ResumenConversacion,
@@ -24,12 +37,16 @@ from app.schemas import (
 from app.services import minutito_chat
 from app.services.casos_resueltos import casos_parecidos
 from app.services.auth import es_personal, obtener_usuario_actual
+from app.services.catalogos import MAX_ADJUNTOS, MAX_BYTES_ADJUNTO
 from app.services.classifier import sugerir
+from app.services.cuerpo import leer_cuerpo_limitado
 
 router = APIRouter()
 
 MAX_MENSAJE = 2000
 PUNTOS_AUTOSERVICIO = 10
+# Las imágenes viajan al ticket como adjuntos, así que comparten su límite por ticket.
+EXTENSIONES_IMAGEN = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 NO_DISPONIBLE = "Minutito no está disponible en este momento. Puedes crear el ticket y lo atenderá el equipo."
 
 # Cada respuesta ocupa el procesador varios segundos: se limita cuánto puede pedir cada
@@ -73,14 +90,55 @@ def _mensajes(session: Session, conversacion_id: int) -> list[MensajeMinutito]:
     ).all()
 
 
+def _imagenes(session: Session, conversacion_id: int) -> list[ImagenMinutito]:
+    return session.exec(
+        select(ImagenMinutito)
+        .where(ImagenMinutito.conversacion_id == conversacion_id)
+        .order_by(ImagenMinutito.creado_en, ImagenMinutito.id)
+    ).all()
+
+
+def _imagenes_por_mensaje(session: Session, conversacion_id: int) -> dict[int, list[str]]:
+    por_mensaje: dict[int, list[str]] = {}
+    for imagen in _imagenes(session, conversacion_id):
+        if imagen.mensaje_id is not None:
+            por_mensaje.setdefault(imagen.mensaje_id, []).append(imagen.nombre_original)
+    return por_mensaje
+
+
+def _historial(session: Session, conversacion_id: int) -> list[tuple[str, str]]:
+    """Pares (rol, texto) para el modelo. El modelo solo lee texto: a un mensaje con
+    imágenes se le agrega una nota para que no responda como si las hubiera visto."""
+    imagenes = _imagenes_por_mensaje(session, conversacion_id)
+    historial = []
+    for m in _mensajes(session, conversacion_id):
+        texto = m.texto
+        if m.id in imagenes:
+            nombres = ", ".join(imagenes[m.id])
+            texto = (
+                f"{texto}\n\n[Adjunté {'una captura' if len(imagenes[m.id]) == 1 else 'capturas'}: {nombres}. "
+                "Nota para el asistente: no puedes ver archivos adjuntos. Si necesitas lo que muestran, "
+                "pide que te lo describa o copie el mensaje que aparece; el equipo de sistemas las verá "
+                "si se crea el ticket.]"
+            ).strip()
+        historial.append((m.rol, texto))
+    return historial
+
+
 def _a_lectura(session: Session, c: ConversacionMinutito) -> ConversacionMinutitoRead:
+    imagenes = _imagenes_por_mensaje(session, c.id)
     return ConversacionMinutitoRead(
         id=c.id,
         estado=c.estado,
         ticket_id=c.ticket_id,
         creado_en=c.creado_en,
         cerrado_en=c.cerrado_en,
-        mensajes=[MensajeMinutitoRead.model_validate(m, from_attributes=True) for m in _mensajes(session, c.id)],
+        mensajes=[
+            MensajeMinutitoRead(
+                id=m.id, rol=m.rol, texto=m.texto, creado_en=m.creado_en, imagenes=imagenes.get(m.id, [])
+            )
+            for m in _mensajes(session, c.id)
+        ],
     )
 
 
@@ -150,7 +208,8 @@ def enviar_mensaje(
     {"fin": true, "ofrece_ticket": ...}, o {"error": ...} si Minutito no está disponible."""
     conversacion = _propia_y_abierta(session, conversacion_id, usuario)
     texto = data.texto.strip()
-    if not texto:
+    pendientes = [i for i in _imagenes(session, conversacion.id) if i.mensaje_id is None]
+    if not texto and not pendientes:
         raise HTTPException(status_code=400, detail="Escribe un mensaje.")
     if len(texto) > MAX_MENSAJE:
         raise HTTPException(status_code=400, detail=f"El mensaje es demasiado largo (máximo {MAX_MENSAJE} caracteres).")
@@ -158,10 +217,17 @@ def enviar_mensaje(
     usuario_id = usuario.id
     respondiendo.add(usuario_id)
 
-    session.add(MensajeMinutito(conversacion_id=conversacion.id, rol="usuario", texto=texto))
+    nuevo = MensajeMinutito(conversacion_id=conversacion.id, rol="usuario", texto=texto)
+    session.add(nuevo)
+    session.flush()
+    for imagen in pendientes:  # las imágenes subidas para este mensaje quedan unidas a él
+        imagen.mensaje_id = nuevo.id
+        session.add(imagen)
     session.commit()
-    historial = [(m.rol, m.texto) for m in _mensajes(session, conversacion.id)]
-    casos = casos_parecidos(session, [t for r, t in historial if r == "usuario"][-3:])
+    historial = _historial(session, conversacion.id)
+    # Los casos parecidos se buscan con lo que escribió la persona, sin la nota de imágenes.
+    escritos = [m.texto for m in _mensajes(session, conversacion.id) if m.rol == "usuario" and m.texto]
+    casos = casos_parecidos(session, escritos[-3:])
     motor = session.get_bind()  # la sesión de la petición se cierra antes de terminar de transmitir
 
     def transmitir():
@@ -185,6 +251,57 @@ def enviar_mensaje(
             respondiendo.discard(usuario_id)  # también si la persona cerró la página a mitad
 
     return StreamingResponse(transmitir(), media_type="application/x-ndjson")
+
+
+@router.post("/conversaciones/{conversacion_id}/imagenes", response_model=ImagenMinutitoRead)
+async def subir_imagen(
+    conversacion_id: int,
+    request: Request,
+    usuario: Cliente = Depends(obtener_usuario_actual),
+    session: Session = Depends(get_session),
+):
+    """Imagen para el próximo mensaje (cuerpo crudo, nombre en X-Nombre-Archivo, igual que
+    los adjuntos de tickets). Minutito no la ve; si se crea el ticket, pasa a ser adjunto."""
+    conversacion = _propia_y_abierta(session, conversacion_id, usuario)
+    nombre = adjuntos._limpiar_nombre(request.headers.get("x-nombre-archivo"))
+    if os.path.splitext(nombre)[1].lower() not in EXTENSIONES_IMAGEN:
+        raise HTTPException(status_code=400, detail="Solo se pueden adjuntar imágenes (PNG, JPG, GIF, WEBP o BMP).")
+    cantidad = session.exec(
+        select(func.count()).select_from(ImagenMinutito).where(ImagenMinutito.conversacion_id == conversacion.id)
+    ).one()
+    if cantidad >= MAX_ADJUNTOS:
+        raise HTTPException(status_code=409, detail=f"Una conversación admite hasta {MAX_ADJUNTOS} imágenes.")
+    contenido = await leer_cuerpo_limitado(request, MAX_BYTES_ADJUNTO, "La imagen supera el límite de 10 MB.")
+    if not contenido:
+        raise HTTPException(status_code=400, detail="La imagen está vacía.")
+
+    adjuntos.DIRECTORIO_ARCHIVOS.mkdir(parents=True, exist_ok=True)
+    guardado = uuid.uuid4().hex
+    (adjuntos.DIRECTORIO_ARCHIVOS / guardado).write_bytes(contenido)
+    imagen = ImagenMinutito(
+        conversacion_id=conversacion.id, nombre_original=nombre, archivo=guardado, tamano=len(contenido)
+    )
+    session.add(imagen)
+    session.commit()
+    session.refresh(imagen)
+    return ImagenMinutitoRead(id=imagen.id, nombre=imagen.nombre_original)
+
+
+@router.delete("/conversaciones/{conversacion_id}/imagenes/{imagen_id}", status_code=204)
+def quitar_imagen(
+    conversacion_id: int,
+    imagen_id: int,
+    usuario: Cliente = Depends(obtener_usuario_actual),
+    session: Session = Depends(get_session),
+):
+    """Quita una imagen que todavía no se envió con un mensaje."""
+    conversacion = _propia_y_abierta(session, conversacion_id, usuario)
+    imagen = session.get(ImagenMinutito, imagen_id)
+    if imagen is None or imagen.conversacion_id != conversacion.id or imagen.mensaje_id is not None:
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    (adjuntos.DIRECTORIO_ARCHIVOS / imagen.archivo).unlink(missing_ok=True)
+    session.delete(imagen)
+    session.commit()
 
 
 @router.post("/conversaciones/{conversacion_id}/resolver", response_model=ConversacionMinutitoRead)
@@ -219,7 +336,7 @@ def borrador_de_ticket(
 ):
     """Descripción del ticket redactada con la conversación y la clasificación que propone el SVM."""
     conversacion = _propia_y_abierta(session, conversacion_id, usuario)
-    historial = [(m.rol, m.texto) for m in _mensajes(session, conversacion.id)]
+    historial = _historial(session, conversacion.id)
     if not any(r == "usuario" for r, _ in historial):
         raise HTTPException(status_code=400, detail="Cuéntale primero a Minutito qué necesitas.")
     texto = minutito_chat.resumir_para_ticket(historial)[:5000]
@@ -233,6 +350,24 @@ def enlazar_ticket(session: Session, conversacion_id: int, usuario: Cliente, tic
     conversacion.ticket_id = ticket.id
     conversacion.cerrado_en = datetime.now()
     session.add(conversacion)
+    # Las imágenes enviadas en la conversación pasan al ticket para que el técnico las vea.
+    # Se copia el archivo: así quitar el adjunto del ticket no borra el de la conversación.
+    enviadas = [i for i in _imagenes(session, conversacion.id) if i.mensaje_id is not None]
+    for imagen in enviadas[:MAX_ADJUNTOS]:
+        origen = adjuntos.DIRECTORIO_ARCHIVOS / imagen.archivo
+        if not origen.is_file():
+            continue
+        copia = uuid.uuid4().hex
+        shutil.copyfile(origen, adjuntos.DIRECTORIO_ARCHIVOS / copia)
+        session.add(
+            Adjunto(
+                ticket_id=ticket.id,
+                nombre_original=imagen.nombre_original,
+                archivo=copia,
+                tamano=imagen.tamano,
+                subido_por_id=usuario.id,
+            )
+        )
 
 
 @router.get("/tickets/{ticket_id}", response_model=Optional[ConversacionMinutitoRead])

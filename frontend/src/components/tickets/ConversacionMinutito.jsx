@@ -37,9 +37,14 @@ export default function ConversacionMinutito({ ticketId, nombre = "El usuario" }
           <div key={m.id} className="flex justify-end">
             <div className="max-w-[90%] sm:max-w-[75%]">
               <div className="mb-0.5 text-right text-[11px] text-gray-400">{nombre}</div>
-              <div className="whitespace-pre-line anim-colocar break-words rounded-2xl rounded-br-md bg-grafito px-3.5 py-2.5 text-sm text-white">
+              {m.imagenes?.length > 0 && (
+                <div className="mb-1 text-right text-xs text-gray-500">
+                  Adjuntó: {m.imagenes.join(", ")} (está en los archivos del ticket)
+                </div>
+              )}
+              {m.texto && <div className="whitespace-pre-line anim-colocar break-words rounded-2xl rounded-br-md bg-grafito px-3.5 py-2.5 text-sm text-white">
                 {m.texto}
-              </div>
+              </div>}
             </div>
           </div>
         ) : (

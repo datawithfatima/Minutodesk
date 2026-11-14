@@ -213,6 +213,22 @@ class MensajeMinutito(SQLModel, table=True):
     creado_en: datetime = Field(default_factory=datetime.now)
 
 
+class ImagenMinutito(SQLModel, table=True):
+    """Imagen que la persona adjunta en la conversación con Minutito. Se sube antes de
+    enviar el mensaje (`mensaje_id` vacío) y queda unida a él al enviarlo. Si se crea el
+    ticket, se copia como adjunto del ticket. El contenido vive en backend/uploads/."""
+
+    __tablename__ = "imagen_minutito"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    conversacion_id: int = Field(foreign_key="conversacion_minutito.id", index=True)
+    mensaje_id: Optional[int] = Field(default=None, foreign_key="mensaje_minutito.id", index=True)
+    nombre_original: str
+    archivo: str = Field(unique=True)
+    tamano: int
+    creado_en: datetime = Field(default_factory=datetime.now)
+
+
 class Seudonimo(SQLModel, table=True):
     """Alias estable para una persona de los datos de la empresa ("Solicitante 007").
     Solo se guarda el hash de su nombre: el nombre real no queda en la base."""

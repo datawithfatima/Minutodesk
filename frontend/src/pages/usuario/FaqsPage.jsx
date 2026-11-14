@@ -8,6 +8,10 @@ const PREGUNTAS = [
     r: "Minutito es el asistente virtual de MinutoDesk. Conversas con él como con un chat: te hace preguntas, te da pasos y recuerda lo que ya probaste. Atiende consultas de primer nivel (contraseñas, internet, VPN, impresoras, Office, Teams…). Si no logra resolverlo, o es algo que solo puede hacer el equipo de sistemas, te ayuda a crear el ticket con lo que conversaron.",
   },
   {
+    p: "¿Puedo enviarle una captura de pantalla a Minutito?",
+    r: "Sí, con el botón de imagen o pegándola en el chat (hasta 3 por conversación). Minutito solo lee texto, así que no puede ver lo que muestra: si te pide detalles, cuéntale o copia el mensaje que aparece. Si se crea el ticket, las capturas van adjuntas para que el equipo de sistemas las vea.",
+  },
+  {
     p: "¿Cómo creo un ticket?",
     r: "Hay dos formas: desde «Crear ticket», con el formulario, o desde el chat con Minutito en Inicio, pulsando «Crear ticket con esta conversación». En ese caso Minutito redacta la descripción con lo que hablaron y el sistema propone el tipo y la categoría; tú revisas y envías. Conversar con Minutito no crea tickets por sí solo.",
   },
