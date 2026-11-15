@@ -41,3 +41,6 @@ backend/cuentas_demo.txt
 
 # Respaldos automáticos de la base (datos sensibles)
 backend/respaldos/
+
+# Corridas de Minutito en pausa (estado local)
+backend/corridas_pausadas.json

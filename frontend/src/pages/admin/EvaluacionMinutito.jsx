@@ -2,6 +2,7 @@ import { Bot, ClipboardList, Pencil } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   generarEvaluacionMinutito,
+  pausarEvaluacionMinutito,
   guardarSolucionEsperada,
   marcarEvaluacionMinutito,
   obtenerEvaluacionMinutito,
@@ -11,6 +12,7 @@ import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
+import ControlPausa from "./ControlPausa";
 import { inputClass } from "../../components/ui/formStyles";
 
 const OPCIONES = [
@@ -212,6 +214,25 @@ export default function EvaluacionMinutito() {
     }
   }
 
+  async function pausar() {
+    try {
+      setAviso((await pausarEvaluacionMinutito()).mensaje);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function reanudar() {
+    setError(null);
+    try {
+      setAviso((await generarEvaluacionMinutito(false, true)).mensaje);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (!datos) return error ? <Alert variant="danger">{error}</Alert> : <Spinner size="sm" />;
 
   const faltan = datos.tickets_cargados - datos.con_respuesta;
@@ -259,12 +280,19 @@ export default function EvaluacionMinutito() {
         <Card>
           <Card.Body className="space-y-2">
             <div className="text-sm font-medium text-gray-500">Respuestas de Minutito</div>
+            <ControlPausa
+              enCurso={enCurso}
+              pausada={datos.pausada}
+              pausando={datos.progreso?.pausar}
+              onPausar={pausar}
+              onReanudar={reanudar}
+            />
             {enCurso ? (
               <p className="flex items-center gap-2 text-sm font-medium text-acento">
                 <Spinner size="sm" />
                 Generando respuestas: {datos.progreso.hechas} de {datos.progreso.total || "…"}. Se actualiza solo.
               </p>
-            ) : (
+            ) : datos.pausada ? null : (
               <>
                 <p className="text-sm text-gray-600">
                   {faltan > 0

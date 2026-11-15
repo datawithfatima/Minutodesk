@@ -85,6 +85,9 @@ ACCIONES = [
     _a("GET", "/admin/respaldos/{nombre}", "respaldo_descargado", "Descargó un respaldo de la base de datos", "respaldo"),
     # Evaluación de Minutito (datos de la tesis)
     _a("POST", "/admin/evaluacion-minutito/generar", "evaluacion_generada", "Generó respuestas para la evaluación de Minutito", "evaluacion"),
+    _a("POST", "/admin/evaluacion-minutito/pausar", "evaluacion_pausada", "Pausó la generación de la evaluación de Minutito", "evaluacion"),
+    _a("POST", "/admin/prueba-controlada/pausar", "prueba_pausada", "Pausó la prueba controlada", "prueba"),
+    _a("POST", "/admin/evaluacion-historico/pausar", "historico_pausado", "Pausó la generación de las incidencias del histórico", "evaluacion"),
     _a("POST", "/admin/evaluacion-minutito/{id}", "evaluacion_marcada", "Marcó el veredicto de la evaluación #{id}", "evaluacion"),
     _a("PATCH", "/admin/evaluacion-minutito/{id}/solucion", "evaluacion_solucion", "Guardó la solución esperada de la evaluación #{id}", "evaluacion"),
     _a("POST", "/admin/prueba-controlada/generar", "prueba_generada", "Generó conversaciones de la prueba controlada", "prueba"),

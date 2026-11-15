@@ -15,6 +15,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models import Cliente, EvaluacionMinutito, Ticket
+from app.services import pausas
 from app.services.casos_resueltos import casos_parecidos
 from app.services.minutito_chat import MinutitoNoDisponible, responder
 
@@ -36,29 +37,40 @@ def _pendientes(session: Session, todas: bool = False) -> list[Ticket]:
 
 
 # Avance de la corrida en segundo plano, para que la pantalla lo muestre y no se lancen
-# dos a la vez (las dos competirían por el mismo procesador).
-progreso = {"en_curso": False, "hechas": 0, "total": 0}
+# dos a la vez (las dos competirían por el mismo procesador). «pausar» la detiene después
+# del ticket que está haciendo (ver pausas.py).
+progreso = {"en_curso": False, "hechas": 0, "total": 0, "pausar": False}
+NOMBRE = "evaluacion_minutito"
 
 
 def generar_pendientes(session: Session, *args, **kwargs) -> dict:
-    progreso.update(en_curso=True, hechas=0, total=0)
+    progreso.update(en_curso=True, hechas=0, total=0, pausar=False)
     try:
         return _generar(session, *args, **kwargs)
     finally:
-        progreso["en_curso"] = False
+        progreso.update(en_curso=False, pausar=False)
 
 
-def _generar(session: Session, limite: Optional[int] = None, todas: bool = False) -> dict:
+def _generar(session: Session, limite: Optional[int] = None, todas: bool = False, reanudar: bool = False) -> dict:
     """Pide a Minutito la respuesta para los tickets que aún no la tienen (o, con
     `todas`, vuelve a generarlas para que use los casos anotados desde entonces). Si
-    Ollama no está disponible se detiene: lo que falte se completa en otra corrida."""
+    Ollama no está disponible se detiene: lo que falte se completa en otra corrida.
+    Con `reanudar` sigue una corrida pausada donde quedó."""
+    desde = pausas.todas_desde(NOMBRE) if reanudar else None
+    pausas.quitar(NOMBRE)
+    inicio = desde or datetime.now()
+    todas = todas or desde is not None
     hechos = 0
     pendientes = _pendientes(session, todas)
+    registros = {e.ticket_id: e for e in session.exec(select(EvaluacionMinutito)).all()}
+    if desde is not None:  # solo las que la corrida pausada aún no había rehecho
+        pendientes = [t for t in pendientes if t.id not in registros or registros[t.id].generada_en < desde]
     progreso["total"] = len(pendientes[:limite])
     for ticket in pendientes[:limite]:
-        registro = session.exec(
-            select(EvaluacionMinutito).where(EvaluacionMinutito.ticket_id == ticket.id)
-        ).first() or EvaluacionMinutito(ticket_id=ticket.id)
+        if progreso["pausar"]:
+            pausas.anotar(NOMBRE, inicio if todas else None)
+            return {"generadas": hechos, "pendientes": len(pendientes) - hechos, "error": None, "pausada": True}
+        registro = registros.get(ticket.id) or EvaluacionMinutito(ticket_id=ticket.id)
         try:
             # Como si la persona le escribiera a Minutito el texto de su ticket.
             # Aprende de los demás casos anotados, nunca del suyo (ver casos_resueltos.py).
@@ -128,6 +140,7 @@ def resumen(session: Session) -> dict:
         # Igual que la meta de la tesis: sobre las consultas de primer nivel.
         "pct_resolveria": round(cuenta["resuelve"] / primer_nivel, 4) if primer_nivel else None,
         "progreso": dict(progreso),
+        "pausada": pausas.esta_pausada(NOMBRE),
         "items": [
             {
                 "id": e.id,

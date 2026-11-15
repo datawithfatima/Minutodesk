@@ -278,22 +278,25 @@ export const actualizarUsuario = (id, data) => enviar("PATCH", `/admin/usuarios/
 // Evaluación simulada de Minutito con los tickets cargados (solo administrador).
 export const obtenerEvaluacionMinutito = () => get("/reportes/evaluacion-minutito");
 // Con `todas`, vuelve a generar todas las respuestas para que usen los casos anotados.
-export const generarEvaluacionMinutito = (todas = false) =>
-  enviar("POST", `/admin/evaluacion-minutito/generar${todas ? "?todas=true" : ""}`);
+export const generarEvaluacionMinutito = (todas = false, reanudar = false) =>
+  enviar("POST", `/admin/evaluacion-minutito/generar${reanudar ? "?reanudar=true" : todas ? "?todas=true" : ""}`);
+export const pausarEvaluacionMinutito = () => enviar("POST", "/admin/evaluacion-minutito/pausar");
 export const guardarSolucionEsperada = (id, solucion) =>
   enviar("PATCH", `/admin/evaluacion-minutito/${id}/solucion`, { solucion });
 export const marcarEvaluacionMinutito = (id, veredicto) =>
   enviar("POST", `/admin/evaluacion-minutito/${id}`, { veredicto });
 // Prueba controlada: un colaborador simulado conversa con Minutito (solo administrador).
 export const obtenerPruebaControlada = () => get("/reportes/prueba-controlada");
-export const generarPruebaControlada = (todas = false) =>
-  enviar("POST", `/admin/prueba-controlada/generar${todas ? "?todas=true" : ""}`);
+export const generarPruebaControlada = (todas = false, reanudar = false) =>
+  enviar("POST", `/admin/prueba-controlada/generar${reanudar ? "?reanudar=true" : todas ? "?todas=true" : ""}`);
+export const pausarPruebaControlada = () => enviar("POST", "/admin/prueba-controlada/pausar");
 export const marcarPruebaControlada = (id, veredicto) =>
   enviar("POST", `/admin/prueba-controlada/${id}`, { veredicto });
 
 // Objetivo 3 en las incidencias del histórico (solo administrador).
 export const obtenerEvaluacionHistorico = () => get("/reportes/evaluacion-historico");
 export const generarEvaluacionHistorico = () => enviar("POST", "/admin/evaluacion-historico/generar");
+export const pausarEvaluacionHistorico = () => enviar("POST", "/admin/evaluacion-historico/pausar");
 export const marcarEvaluacionHistorico = (id, veredicto) =>
   enviar("POST", `/admin/evaluacion-historico/${id}`, { veredicto });
 export const obtenerSimulacionTiempos = (minutosMinutito) =>

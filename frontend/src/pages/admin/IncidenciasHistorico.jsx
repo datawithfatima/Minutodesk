@@ -1,11 +1,17 @@
 import { Bot, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { generarEvaluacionHistorico, marcarEvaluacionHistorico, obtenerEvaluacionHistorico } from "../../api";
+import {
+  generarEvaluacionHistorico,
+  marcarEvaluacionHistorico,
+  obtenerEvaluacionHistorico,
+  pausarEvaluacionHistorico,
+} from "../../api";
 import Alert from "../../components/ui/Alert";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
+import ControlPausa from "./ControlPausa";
 
 const OPCIONES = [
   { valor: "resuelve", texto: "Lo resolvería", variante: "outlineSuccess" },
@@ -124,6 +130,25 @@ export default function IncidenciasHistorico() {
     }
   }
 
+  async function pausar() {
+    try {
+      setAviso((await pausarEvaluacionHistorico()).mensaje);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function reanudar() {
+    setError(null);
+    try {
+      setAviso((await generarEvaluacionHistorico()).mensaje);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (!datos) return error ? <Alert variant="danger">{error}</Alert> : <Spinner size="sm" />;
 
   const conTexto = datos.incidencias - datos.sin_texto;
@@ -174,12 +199,19 @@ export default function IncidenciasHistorico() {
         <Card>
           <Card.Body className="space-y-2">
             <div className="text-sm font-medium text-gray-500">Respuestas de Minutito</div>
+            <ControlPausa
+              enCurso={enCurso}
+              pausada={datos.pausada}
+              pausando={datos.progreso?.pausar}
+              onPausar={pausar}
+              onReanudar={reanudar}
+            />
             {enCurso ? (
               <p className="flex items-center gap-2 text-sm font-medium text-acento">
                 <Spinner size="sm" />
                 Generando: {datos.progreso.hechas} de {datos.progreso.total || "…"}. Se actualiza solo.
               </p>
-            ) : faltan > 0 ? (
+            ) : datos.pausada ? null : faltan > 0 ? (
               <>
                 <p className="text-sm text-gray-600">
                   Faltan {faltan} de {conTexto} (necesita Ollama encendido; menos de un minuto cada una).

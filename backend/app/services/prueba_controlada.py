@@ -18,7 +18,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models import Cliente, PruebaMinutito
-from app.services import minutito_chat
+from app.services import minutito_chat, pausas
 from app.services.casos_resueltos import casos_parecidos
 from app.services.escenarios_prueba import ESCENARIOS, Escenario
 from app.services.minutito_chat import MinutitoNoDisponible
@@ -104,28 +104,45 @@ def simular(session: Session, escenario: Escenario) -> tuple[list[tuple[str, str
 
 
 # Avance de la corrida en segundo plano, para que la pantalla lo muestre y no se lancen
-# dos a la vez (las dos competirían por el mismo procesador).
-progreso = {"en_curso": False, "hechas": 0, "total": 0}
+# dos a la vez (las dos competirían por el mismo procesador). «pausar» la detiene después
+# de la conversación que está haciendo (ver pausas.py).
+progreso = {"en_curso": False, "hechas": 0, "total": 0, "pausar": False}
+NOMBRE = "prueba_controlada"
 
 
 def generar_pendientes(session: Session, *args, **kwargs) -> dict:
-    progreso.update(en_curso=True, hechas=0, total=0)
+    progreso.update(en_curso=True, hechas=0, total=0, pausar=False)
     try:
         return _generar(session, *args, **kwargs)
     finally:
-        progreso["en_curso"] = False
+        progreso.update(en_curso=False, pausar=False)
 
 
-def _generar(session: Session, todas: bool = False) -> dict:
+def _generar(session: Session, todas: bool = False, reanudar: bool = False) -> dict:
     """Corre las conversaciones que faltan (o todas otra vez). Si Ollama no responde se
-    detiene: lo que falte se completa en otra corrida."""
+    detiene: lo que falte se completa en otra corrida. Con `reanudar` sigue una corrida
+    pausada donde quedó."""
+    desde = pausas.todas_desde(NOMBRE) if reanudar else None
+    pausas.quitar(NOMBRE)
+    inicio = desde or datetime.now()
+    todas = todas or desde is not None
     hechos = 0
     existentes = {p.clave: p for p in session.exec(select(PruebaMinutito)).all()}
     pendientes = [
         e for e in ESCENARIOS if todas or e.clave not in existentes or existentes[e.clave].conversacion is None
     ]
+    if desde is not None:  # solo las que la corrida pausada aún no había rehecho
+        pendientes = [
+            e for e in pendientes
+            if e.clave not in existentes
+            or existentes[e.clave].conversacion is None
+            or existentes[e.clave].generada_en < desde
+        ]
     progreso["total"] = len(pendientes)
     for escenario in pendientes:
+        if progreso["pausar"]:
+            pausas.anotar(NOMBRE, inicio if todas else None)
+            return {"generadas": hechos, "pendientes": len(pendientes) - hechos, "error": None, "pausada": True}
         registro = existentes.get(escenario.clave) or PruebaMinutito(clave=escenario.clave)
         try:
             historial, termino = simular(session, escenario)
@@ -177,6 +194,7 @@ def resumen(session: Session) -> dict:
         **cuenta,
         "pct_resolveria": round(cuenta["resuelve"] / primer_nivel, 4) if primer_nivel else None,
         "progreso": dict(progreso),
+        "pausada": pausas.esta_pausada(NOMBRE),
         "items": [
             {
                 "id": p.id,

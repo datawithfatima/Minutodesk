@@ -269,14 +269,25 @@ def _en_hilo(funcion, *args) -> None:
     threading.Thread(target=funcion, args=args, daemon=True).start()
 
 
-def _generar_en_segundo_plano(todas: bool) -> None:
+def _generar_en_segundo_plano(todas: bool, reanudar: bool = False) -> None:
     with Session(engine) as session:
-        evaluacion_minutito.generar_pendientes(session, todas=todas)
+        evaluacion_minutito.generar_pendientes(session, todas=todas, reanudar=reanudar)
+
+
+def _pausar(progreso: dict) -> MensajeRespuesta:
+    """Pide a la corrida que se detenga después del caso que está haciendo."""
+    if not progreso["en_curso"]:
+        return MensajeRespuesta(mensaje="No hay nada corriendo.")
+    progreso["pausar"] = True
+    return MensajeRespuesta(
+        mensaje="Pausando: termina el caso que está haciendo y se detiene. Lo generado y lo marcado se conservan."
+    )
 
 
 @router.post("/evaluacion-minutito/generar", response_model=MensajeRespuesta)
 def generar_evaluacion_minutito(
     todas: bool = False,
+    reanudar: bool = False,
     admin: Cliente = Depends(requerir_admin),
 ):
     """Pide a Minutito, en segundo plano, la respuesta para los tickets cargados que aún
@@ -284,8 +295,13 @@ def generar_evaluacion_minutito(
     if evaluacion_minutito.progreso["en_curso"]:
         return MensajeRespuesta(mensaje="Ya se están generando las respuestas; la pantalla muestra el avance.")
     evaluacion_minutito.progreso.update(en_curso=True, hechas=0, total=0)  # se ve en curso desde ya
-    _en_hilo(_generar_en_segundo_plano, todas)
+    _en_hilo(_generar_en_segundo_plano, todas, reanudar)
     return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. Vuelve a cargar en unos minutos.")
+
+
+@router.post("/evaluacion-minutito/pausar", response_model=MensajeRespuesta)
+def pausar_evaluacion_minutito(admin: Cliente = Depends(requerir_admin)):
+    return _pausar(evaluacion_minutito.progreso)
 
 
 @router.patch("/evaluacion-minutito/{evaluacion_id}/solucion")
@@ -320,14 +336,15 @@ def marcar_evaluacion_minutito(
     return {"id": registro.id, "veredicto": registro.veredicto}
 
 
-def _probar_en_segundo_plano(todas: bool) -> None:
+def _probar_en_segundo_plano(todas: bool, reanudar: bool = False) -> None:
     with Session(engine) as session:
-        prueba_controlada.generar_pendientes(session, todas=todas)
+        prueba_controlada.generar_pendientes(session, todas=todas, reanudar=reanudar)
 
 
 @router.post("/prueba-controlada/generar", response_model=MensajeRespuesta)
 def generar_prueba_controlada(
     todas: bool = False,
+    reanudar: bool = False,
     admin: Cliente = Depends(requerir_admin),
 ):
     """Corre en segundo plano las conversaciones del colaborador simulado con Minutito
@@ -335,8 +352,13 @@ def generar_prueba_controlada(
     if prueba_controlada.progreso["en_curso"]:
         return MensajeRespuesta(mensaje="La prueba ya está corriendo; la pantalla muestra el avance.")
     prueba_controlada.progreso.update(en_curso=True, hechas=0, total=0)  # se ve en curso desde ya
-    _en_hilo(_probar_en_segundo_plano, todas)
+    _en_hilo(_probar_en_segundo_plano, todas, reanudar)
     return MensajeRespuesta(mensaje="Corriendo la prueba con Minutito. Vuelve a cargar en unos minutos.")
+
+
+@router.post("/prueba-controlada/pausar", response_model=MensajeRespuesta)
+def pausar_prueba_controlada(admin: Cliente = Depends(requerir_admin)):
+    return _pausar(prueba_controlada.progreso)
 
 
 @router.post("/prueba-controlada/{prueba_id}")
@@ -369,6 +391,11 @@ def generar_evaluacion_historico(admin: Cliente = Depends(requerir_admin)):
     evaluacion_historico.progreso.update(en_curso=True, hechas=0, total=0)
     _en_hilo(_historico_en_segundo_plano)
     return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. La pantalla se actualiza sola.")
+
+
+@router.post("/evaluacion-historico/pausar", response_model=MensajeRespuesta)
+def pausar_evaluacion_historico(admin: Cliente = Depends(requerir_admin)):
+    return _pausar(evaluacion_historico.progreso)
 
 
 @router.post("/evaluacion-historico/{evaluacion_id}")

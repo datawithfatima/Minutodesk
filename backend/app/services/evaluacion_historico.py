@@ -21,6 +21,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models import Cliente, EvaluacionHistorico, TicketHistorico
+from app.services import pausas
 from app.services.casos_resueltos import casos_parecidos
 from app.services.catalogos import TIPO_INCIDENCIA
 from app.services.minutito_chat import MinutitoNoDisponible, responder
@@ -32,7 +33,8 @@ VEREDICTOS = ("resuelve", "no_resuelve", "no_aplica")
 # Respuestas generadas antes con scripts/minutito_historico.py: se cargan sin repetirlas.
 RESPUESTAS_JSON = Path(__file__).resolve().parents[3] / "data" / "evaluacion_historico" / "respuestas.json"
 
-progreso = {"en_curso": False, "hechas": 0, "total": 0}
+progreso = {"en_curso": False, "hechas": 0, "total": 0, "pausar": False}
+NOMBRE = "evaluacion_historico"
 
 
 def incidencias(session: Session) -> list[TicketHistorico]:
@@ -74,13 +76,17 @@ def importar_respuestas_previas(session: Session) -> int:
 
 
 def generar_pendientes(session: Session) -> dict:
-    progreso.update(en_curso=True, hechas=0, total=0)
+    progreso.update(en_curso=True, hechas=0, total=0, pausar=False)
+    pausas.quitar(NOMBRE)
     try:
         importar_respuestas_previas(session)
         hechos = _registros(session)
         pendientes = [h for h in incidencias(session) if h.id not in hechos and (h.descripcion or "").strip()]
         progreso["total"] = len(pendientes)
         for h in pendientes:
+            if progreso["pausar"]:  # lo generado queda; «Reanudar» sigue con las que faltan
+                pausas.anotar(NOMBRE, None)
+                return {"error": None, "pausada": True}
             try:
                 casos = casos_parecidos(session, [h.descripcion])
                 texto, escala = responder([("usuario", h.descripcion)], casos=casos)
@@ -92,7 +98,7 @@ def generar_pendientes(session: Session) -> dict:
             progreso["hechas"] += 1
         return {"error": None}
     finally:
-        progreso["en_curso"] = False
+        progreso.update(en_curso=False, pausar=False)
 
 
 def marcar(session: Session, evaluacion_id: int, veredicto: Optional[str], quien: Cliente) -> EvaluacionHistorico:
@@ -147,6 +153,7 @@ def resumen(session: Session) -> dict:
         "mediana_simulada_dias": round(median(simulados), 2) if simulados else None,
         "reduccion": round((media_real - media_sim) / media_real, 4) if media_real else None,
         "progreso": dict(progreso),
+        "pausada": pausas.esta_pausada(NOMBRE),
         "items": [
             {
                 "id": registros[h.id].id,
