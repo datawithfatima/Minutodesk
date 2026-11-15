@@ -89,6 +89,8 @@ ACCIONES = [
     _a("PATCH", "/admin/evaluacion-minutito/{id}/solucion", "evaluacion_solucion", "Guardó la solución esperada de la evaluación #{id}", "evaluacion"),
     _a("POST", "/admin/prueba-controlada/generar", "prueba_generada", "Generó conversaciones de la prueba controlada", "prueba"),
     _a("POST", "/admin/prueba-controlada/{id}", "prueba_marcada", "Marcó el veredicto de la prueba #{id}", "prueba"),
+    _a("POST", "/admin/evaluacion-historico/generar", "historico_generado", "Generó respuestas de Minutito para las incidencias del histórico", "evaluacion"),
+    _a("POST", "/admin/evaluacion-historico/{id}", "historico_marcado", "Marcó el veredicto de la incidencia histórica #{id}", "evaluacion"),
 ]
 
 TITULOS = {a.clave: a.descripcion.replace(" #{id}", "").replace("{id}", "") for a in ACCIONES}

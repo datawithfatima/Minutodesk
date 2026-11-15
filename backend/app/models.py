@@ -378,3 +378,26 @@ class RespuestaPredefinida(SQLModel, table=True):
     usos: int = Field(default=0)
     activo: bool = Field(default=True)
     creado_en: datetime = Field(default_factory=datetime.now)
+
+
+class EvaluacionHistorico(SQLModel, table=True):
+    """Objetivo 3 medido en las incidencias del histórico: qué le habría respondido
+    Minutito a cada una y si, a juicio de una persona del equipo, eso la habría resuelto.
+    El histórico solo entrenó al clasificador; Minutito no aprende de estos casos."""
+
+    __tablename__ = "evaluacion_historico"
+    __table_args__ = (
+        CheckConstraint(
+            "veredicto IS NULL OR veredicto IN ('resuelve','no_resuelve','no_aplica')",
+            name="ck_evaluacion_historico_veredicto",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    historico_id: int = Field(foreign_key="ticket_historico.id", unique=True, index=True)
+    respuesta: str
+    escalado: bool = Field(default=False)
+    generada_en: datetime = Field(default_factory=datetime.now)
+    veredicto: Optional[str] = Field(default=None)
+    evaluado_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
+    evaluado_en: Optional[datetime] = Field(default=None)

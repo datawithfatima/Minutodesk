@@ -17,7 +17,7 @@ from app.services.auth import (
 )
 from app.services.catalogos import PRIORIDADES, TIPOS, TIPO_INCIDENCIA
 from app.services.classifier import cargar_metricas
-from app.services import evaluacion_minutito, prueba_controlada, simulacion_tiempos, sla
+from app.services import evaluacion_historico, evaluacion_minutito, prueba_controlada, simulacion_tiempos, sla
 from app.services.historico import resumen_historico
 
 router = APIRouter()
@@ -119,6 +119,15 @@ def prueba_controlada_de_minutito(
     """Prueba controlada: conversaciones de un colaborador simulado con Minutito y si,
     según el equipo, Minutito lo resolvió (solo administrador)."""
     return prueba_controlada.resumen(session)
+
+
+@router.get("/evaluacion-historico")
+def evaluacion_del_historico(
+    usuario: Cliente = Depends(requerir_admin), session: Session = Depends(get_session)
+):
+    """Objetivo 3 en las incidencias del histórico: respuesta de Minutito a cada una, el
+    veredicto del equipo y la reducción de tiempo que resulta (solo administrador)."""
+    return evaluacion_historico.resumen(session)
 
 
 @router.get("/simulacion-tiempos")

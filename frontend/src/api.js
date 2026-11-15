@@ -290,6 +290,12 @@ export const generarPruebaControlada = (todas = false) =>
   enviar("POST", `/admin/prueba-controlada/generar${todas ? "?todas=true" : ""}`);
 export const marcarPruebaControlada = (id, veredicto) =>
   enviar("POST", `/admin/prueba-controlada/${id}`, { veredicto });
+
+// Objetivo 3 en las incidencias del histórico (solo administrador).
+export const obtenerEvaluacionHistorico = () => get("/reportes/evaluacion-historico");
+export const generarEvaluacionHistorico = () => enviar("POST", "/admin/evaluacion-historico/generar");
+export const marcarEvaluacionHistorico = (id, veredicto) =>
+  enviar("POST", `/admin/evaluacion-historico/${id}`, { veredicto });
 export const obtenerSimulacionTiempos = (minutosMinutito) =>
   get("/reportes/simulacion-tiempos", { minutos_minutito: minutosMinutito });
 export const eliminarUsuario = (id) => enviar("DELETE", `/admin/usuarios/${id}`);

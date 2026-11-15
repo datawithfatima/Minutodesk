@@ -33,7 +33,7 @@ from app.schemas import (
     SolucionEsperada,
     VeredictoEvaluacion,
 )
-from app.services import correo, evaluacion_minutito, prueba_controlada, tokens_acceso
+from app.services import correo, evaluacion_historico, evaluacion_minutito, prueba_controlada, tokens_acceso
 from app.services.auth import requerir_admin
 from app.services.usuarios import a_cliente_read, mapa_areas
 
@@ -348,6 +348,38 @@ def marcar_prueba_controlada(
 ):
     try:
         registro = prueba_controlada.marcar(session, prueba_id, data.veredicto, admin)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"id": registro.id, "veredicto": registro.veredicto}
+
+
+def _historico_en_segundo_plano() -> None:
+    with Session(engine) as session:
+        evaluacion_historico.generar_pendientes(session)
+
+
+@router.post("/evaluacion-historico/generar", response_model=MensajeRespuesta)
+def generar_evaluacion_historico(admin: Cliente = Depends(requerir_admin)):
+    """Pide a Minutito, en segundo plano, la respuesta de las incidencias del histórico
+    que aún no la tienen."""
+    if evaluacion_historico.progreso["en_curso"]:
+        return MensajeRespuesta(mensaje="Ya está corriendo; la pantalla muestra el avance.")
+    evaluacion_historico.progreso.update(en_curso=True, hechas=0, total=0)
+    _en_hilo(_historico_en_segundo_plano)
+    return MensajeRespuesta(mensaje="Generando las respuestas de Minutito. La pantalla se actualiza sola.")
+
+
+@router.post("/evaluacion-historico/{evaluacion_id}")
+def marcar_evaluacion_historico(
+    evaluacion_id: int,
+    data: VeredictoEvaluacion,
+    admin: Cliente = Depends(requerir_admin),
+    session: Session = Depends(get_session),
+):
+    try:
+        registro = evaluacion_historico.marcar(session, evaluacion_id, data.veredicto, admin)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except LookupError as e:
