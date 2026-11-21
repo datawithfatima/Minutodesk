@@ -187,6 +187,7 @@ class TicketRead(SQLModel):
     cliente_id: int
     tecnico_id: Optional[int] = None
     tecnico_manual: bool = False
+    tomado_en: Optional[datetime] = None  # no nulo: el ticket es del técnico asignado
     texto: str
     tipo_predicho: Optional[str] = None
     categoria_predicha: Optional[str] = None
@@ -203,6 +204,30 @@ class TicketRead(SQLModel):
     solicitante_externo: Optional[str] = None  # tickets de la carga masiva: quien lo pidió
     duplicado_de_id: Optional[int] = None  # marcado como duplicado de este ticket
     sla: Optional[SlaRead] = None  # None si el ticket no tiene tipo (sin plazo definido)
+
+
+class LiberarTicket(SQLModel):
+    motivo: str  # clave de MOTIVOS_LIBERACION
+    detalle: str
+
+
+class MotivoLiberacion(SQLModel):
+    clave: str
+    titulo: str
+
+
+class AsignacionRead(SQLModel):
+    id: int
+    accion: str  # tomado · liberado · reasignado
+    tecnico_id: Optional[int] = None
+    tecnico: Optional[str] = None
+    por_id: int
+    por: str
+    motivo: Optional[str] = None
+    motivo_titulo: Optional[str] = None
+    detalle: Optional[str] = None
+    via: Optional[str] = None
+    fecha: datetime
 
 
 class CancelarTicket(SQLModel):
@@ -416,7 +441,9 @@ class BorradorTicket(SQLModel):
 
 
 class AvisoRead(SQLModel):
-    tipo: str  # «aprobacion» (te piden aprobar) o «mensaje» (te escribieron en un ticket)
+    # «aprobacion» (te piden aprobar), «mensaje» (te escribieron en un ticket), «sin_avance»
+    # (administrador: ticket tomado sin movimiento) o «esperando_respuesta» (usuario).
+    tipo: str
     ticket_id: int
     texto: str
     fecha: datetime

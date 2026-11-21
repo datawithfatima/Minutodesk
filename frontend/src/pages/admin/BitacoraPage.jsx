@@ -19,6 +19,7 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import { inputClass } from "../../components/ui/formStyles";
+import Selector from "../../components/ui/Selector";
 
 /*
  * Bitácora de auditoría como «libro de obra»: cada asiento dice quién hizo qué y cuándo.
@@ -196,22 +197,22 @@ function Bitacora() {
             className={`${inputClass} pl-9`}
           />
         </label>
-        <select value={filtros.accion} onChange={cambiar("accion")} className={inputClass} aria-label="Acción">
+        <Selector value={filtros.accion} onChange={cambiar("accion")} className={inputClass} aria-label="Acción">
           <option value="">Todas las acciones</option>
           {datos?.acciones.map((a) => (
             <option key={a.clave} value={a.clave}>
               {a.titulo}
             </option>
           ))}
-        </select>
-        <select value={filtros.actor_id} onChange={cambiar("actor_id")} className={inputClass} aria-label="Persona">
+        </Selector>
+        <Selector value={filtros.actor_id} onChange={cambiar("actor_id")} className={inputClass} aria-label="Persona">
           <option value="">Todas las personas</option>
           {datos?.personas.map(([id, nombre]) => (
             <option key={id} value={id}>
               {nombre}
             </option>
           ))}
-        </select>
+        </Selector>
         <div className="flex items-center gap-1.5">
           <input type="date" value={filtros.desde} onChange={cambiar("desde")} className={inputClass} aria-label="Desde" />
           <input type="date" value={filtros.hasta} onChange={cambiar("hasta")} className={inputClass} aria-label="Hasta" />

@@ -76,6 +76,10 @@ MOTIVOS_PAUSA: dict[str, str] = {
     "proveedor": "Proveedor externo",
     "otro": "Otro motivo",
 }
+# Pausas que solo pone el sistema (no aparecen en el menú de «Pausar plazo»).
+MOTIVOS_SISTEMA: dict[str, str] = {
+    "principal": "Se atiende en el ticket principal",
+}
 MIN_DETALLE = 5
 MAX_DETALLE = 500
 
@@ -197,7 +201,7 @@ def _a_pausa_read(p: PausaSla, nombres: dict[int, str]) -> PausaSlaRead:
     return PausaSlaRead(
         id=p.id,
         motivo=p.motivo,
-        motivo_titulo=MOTIVOS_PAUSA.get(p.motivo, p.motivo),
+        motivo_titulo=MOTIVOS_PAUSA.get(p.motivo) or MOTIVOS_SISTEMA.get(p.motivo, p.motivo),
         detalle=p.detalle,
         automatica=p.aprobacion_id is not None,
         inicio=p.inicio,

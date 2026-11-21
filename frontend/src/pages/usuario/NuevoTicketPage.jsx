@@ -1,14 +1,16 @@
 import { AlertTriangle, Bot, CheckCircle2, Lightbulb, Plus, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   crearAltaColaborador,
   crearTicket,
+  misTicketsParecidos,
   obtenerCatalogos,
   subirAdjunto,
   sugerirClasificacion,
 } from "../../api";
 import { COLOR_PRIORIDAD } from "../../components/charts/tokens";
+import AvisoParecido from "../../components/tickets/AvisoParecido";
 import SelectorArchivos from "../../components/tickets/SelectorArchivos";
 import Alert from "../../components/ui/Alert";
 import Button from "../../components/ui/Button";
@@ -17,6 +19,7 @@ import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import { inputClass } from "../../components/ui/formStyles";
 import FormAltaColaborador, { ALTA_VACIA, problemaDelAlta } from "./FormAltaColaborador";
+import Selector from "../../components/ui/Selector";
 
 const MIN = 5;
 const MAX = 5000;
@@ -74,6 +77,16 @@ export default function NuevoTicketPage() {
   const [alta, setAlta] = useState(ALTA_VACIA);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
+  // Tickets abiertos de la persona muy parecidos al que va a crear (se avisa antes de crearlo).
+  const [parecidos, setParecidos] = useState(null);
+  const crearIgual = useRef(false);
+  const formulario = useRef(null);
+
+  useEffect(() => {
+    // Si cambia la descripción, se vuelve a revisar al enviar.
+    setParecidos(null);
+    crearIgual.current = false;
+  }, [texto]);
 
   useEffect(() => {
     obtenerCatalogos()
@@ -143,6 +156,14 @@ export default function NuevoTicketPage() {
     }
 
     setEnviando(true);
+    if (!esAlta && !crearIgual.current) {
+      const encontrados = await misTicketsParecidos({ texto, categoria: categoria || sugerencia?.categoria }).catch(() => []);
+      if (encontrados.length) {
+        setParecidos(encontrados);
+        setEnviando(false);
+        return;
+      }
+    }
     try {
       const ticket = esAlta
         ? await crearAltaColaborador({
@@ -187,7 +208,7 @@ export default function NuevoTicketPage() {
                 {error}
               </Alert>
             )}
-            <form onSubmit={manejarEnvio} className="space-y-5">
+            <form ref={formulario} onSubmit={manejarEnvio} className="space-y-5">
               <Paso numero={1} titulo="¿Qué tipo de ticket es?" ayuda="Elige una opción. Si no estás seguro, escribe primero la descripción y te sugerimos una.">
                 <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {catalogos.tipos.map((t) => {
@@ -306,7 +327,7 @@ export default function NuevoTicketPage() {
                     )}
                     {!automatica && (
                       <>
-                        <select
+                        <Selector
                           className={inputClass}
                           value={categoria}
                           onChange={(e) => elegirCategoria(e.target.value)}
@@ -318,7 +339,7 @@ export default function NuevoTicketPage() {
                               {c}
                             </option>
                           ))}
-                        </select>
+                        </Selector>
                         {sugerencia && sugerencia.alternativas.length > 0 && (
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                             Más probables:
@@ -371,6 +392,15 @@ export default function NuevoTicketPage() {
               <Paso numero={esAlta ? 4 : 5} titulo="Archivos (opcional)" ayuda="Capturas de pantalla, documentos o cualquier evidencia que ayude.">
                 <SelectorArchivos archivos={archivos} onCambio={setArchivos} limites={catalogos.adjuntos} />
               </Paso>
+
+              <AvisoParecido
+                parecidos={parecidos}
+                enviando={enviando}
+                onCrearIgual={() => {
+                  crearIgual.current = true;
+                  formulario.current?.requestSubmit();
+                }}
+              />
 
               <div className="flex flex-col items-stretch gap-3 border-t border-gray-100 pt-5 text-center sm:flex-row sm:flex-wrap sm:items-center sm:text-left">
                 <Button type="submit" variant="dark" disabled={enviando || !puedeEnviar}>

@@ -65,6 +65,8 @@ ACCIONES = [
     _a("POST", "/tickets/alta-colaborador", "ticket_creado", "Creó un ticket de alta de colaborador", "ticket", leer_respuesta=True),
     _a("PATCH", "/tickets/{id}", "ticket_actualizado", "Actualizó el ticket #{id}", "ticket"),
     _a("POST", "/tickets/{id}/cancelar", "ticket_cancelado", "Canceló el ticket #{id}", "ticket"),
+    _a("POST", "/tickets/{id}/tomar", "ticket_tomado", "Tomó el ticket #{id}", "ticket"),
+    _a("POST", "/tickets/{id}/liberar", "ticket_liberado", "Liberó el ticket #{id}", "ticket"),
     _a("POST", "/tickets/{id}/sla/pausar", "plazo_pausado", "Pausó el plazo del ticket #{id}", "ticket"),
     _a("POST", "/tickets/{id}/sla/reanudar", "plazo_reanudado", "Reanudó el plazo del ticket #{id}", "ticket"),
     _a("POST", "/tickets/{id}/aprobaciones", "aprobacion_solicitada", "Pidió una aprobación en el ticket #{id}", "ticket"),

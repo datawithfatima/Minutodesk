@@ -1,13 +1,15 @@
 import { Link2, Link2Off, Search } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { posiblesDuplicados, quitarVinculo, vincularDuplicado } from "../../api";
+import { posiblesDuplicados, quitarVinculo, separarAfectado, vincularDuplicado } from "../../api";
 import Button from "../ui/Button";
+import PanelIncidente from "./PanelIncidente";
 
 /*
  * Duplicados (solo personal): muestra si el ticket está unido a otro, busca tickets
  * abiertos parecidos y lo marca como duplicado de uno de ellos. Al marcarlo se cancela
  * con el motivo «Duplicado del ticket #X» y la atención sigue en el principal.
+ * Arriba, PanelIncidente: el mismo problema de varias personas (principal y afectados).
  */
 export default function PanelDuplicados({ ticket, onCambio }) {
   const [sugeridos, setSugeridos] = useState(null);
@@ -44,16 +46,23 @@ export default function PanelDuplicados({ ticket, onCambio }) {
   }
 
   if (ticket.duplicado_de_id) {
+    // Abierto: es un afectado del problema general; cancelado: un duplicado de la misma persona.
+    const afectado = !cerrado;
     return (
       <div className="space-y-3 text-sm">
         <p className="text-gray-700">
-          Es duplicado del{" "}
+          {afectado ? "Afectado del problema general del " : "Es duplicado del "}
           <Link to={`../${ticket.duplicado_de_id}`} relative="path" className="font-semibold text-acento hover:underline">
             ticket #{ticket.duplicado_de_id}
           </Link>
-          : la atención sigue allí.
+          {afectado ? ": se atiende allí y se cerrará con él." : ": la atención sigue allí."}
         </p>
-        <Button size="sm" variant="outlineSecondary" disabled={trabajando} onClick={() => accion(() => quitarVinculo(ticket.id))}>
+        <Button
+          size="sm"
+          variant="outlineSecondary"
+          disabled={trabajando}
+          onClick={() => accion(() => (afectado ? separarAfectado(ticket.id) : quitarVinculo(ticket.id)))}
+        >
           <Link2Off size={14} aria-hidden="true" /> Quitar vínculo
         </Button>
         {ticket.estado === "cancelado" && (
@@ -66,26 +75,13 @@ export default function PanelDuplicados({ ticket, onCambio }) {
 
   return (
     <div className="space-y-3 text-sm">
-      {ticket.duplicados?.length > 0 && (
-        <div>
-          <p className="text-xs text-gray-500">Tickets unidos a este como duplicados</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {ticket.duplicados.map((d) => (
-              <Link
-                key={d}
-                to={`../${d}`}
-                relative="path"
-                className="rounded-[4px] border border-linea bg-gray-50 px-2 py-0.5 font-mono text-xs text-noche hover:border-acento hover:text-acento"
-              >
-                #{d}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      <PanelIncidente ticket={ticket} onCambio={onCambio} />
 
       {!cerrado && !ticket.duplicados?.length && (
         <>
+          <p className="border-t border-dashed border-linea pt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">
+            ¿Es un duplicado de la misma persona?
+          </p>
           {sugeridos === null ? (
             <Button size="sm" variant="outlineSecondary" onClick={buscar}>
               <Search size={14} aria-hidden="true" /> Buscar tickets parecidos

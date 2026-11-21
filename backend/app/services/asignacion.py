@@ -9,7 +9,9 @@ Si un sistema tiene varios técnicos, se elige al que tiene menos tickets pendie
 cualquier técnico. Si ninguno de los técnicos del sistema tiene cuenta todavía, el
 ticket queda sin asignar para que lo tome quien corresponda.
 """
+import json
 import unicodedata
+from pathlib import Path
 from typing import Optional
 
 from sqlmodel import Session, func, select
@@ -19,21 +21,26 @@ from app.services.catalogos import CATEGORIA_OTROS
 
 TODOS = "*"
 
-TECNICOS_POR_CATEGORIA: dict[str, list[str]] = {
-    "Heinsohn Nomina": ["Jimmy Lopez"],
-    "Internet": ["Geovanny Remache", "Fátima Reyes"],
-    "Interpro": ["Geovanny Remache", "Fátima Reyes"],
-    "Laptops - Impresoras": ["Geovanny Remache", "Fátima Reyes"],
-    "Mantenimiento de equipos": ["Geovanny Remache", "Fátima Reyes"],
-    "Office": ["Geovanny Remache", "Fátima Reyes"],
-    "Portal de Planificación": ["Ricardo Neumane"],
-    "Portal de Proveedores": ["Jimmy Lopez"],
-    "Power BI": ["Jimmy Lopez"],
-    "SAP": ["Jimmy Lopez", "Ricardo Neumane", "Luis Peñafiel", "Mercedes Lara"],
-    "Salesforce": ["Carlos Sanchez"],
-    "Webdox": ["Carlos Sanchez", "Ricardo Neumane"],
-    CATEGORIA_OTROS: [TODOS],
-}
+# Los nombres reales de los técnicos no van en el código (el repositorio puede ser
+# público): se leen de backend/tecnicos_por_categoria.json, que git ignora. Si no existe se
+# usa el ejemplo (tecnicos_por_categoria.example.json, con nombres ficticios).
+CARPETA_BACKEND = Path(__file__).resolve().parents[2]
+ARCHIVO_TECNICOS = CARPETA_BACKEND / "tecnicos_por_categoria.json"
+ARCHIVO_EJEMPLO = CARPETA_BACKEND / "tecnicos_por_categoria.example.json"
+
+
+def cargar_tabla(archivo: Optional[Path] = None) -> dict[str, list[str]]:
+    origen = archivo or (ARCHIVO_TECNICOS if ARCHIVO_TECNICOS.exists() else ARCHIVO_EJEMPLO)
+    try:
+        datos = json.loads(origen.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        datos = {}
+    tabla = {str(k): [str(n) for n in v] for k, v in datos.items() if isinstance(v, list)}
+    tabla[CATEGORIA_OTROS] = [TODOS]  # «Otros» siempre lo puede atender cualquier técnico
+    return tabla
+
+
+TECNICOS_POR_CATEGORIA: dict[str, list[str]] = cargar_tabla()
 
 ESTADOS_PENDIENTES = ("abierto", "en_proceso")
 
@@ -44,7 +51,7 @@ def _normalizar(texto: str) -> list[str]:
 
 
 def _coincide(nombre_tabla: str, nombre_cuenta: str) -> bool:
-    """«Jimmy Lopez» coincide con «Jimmy López» y con «Jimmy López Vera»."""
+    """«Ana Lopez» coincide con «Ana López» y con «Ana López Vera»."""
     return set(_normalizar(nombre_tabla)) <= set(_normalizar(nombre_cuenta))
 
 
@@ -66,8 +73,10 @@ def candidatos(session: Session, categoria: Optional[str]) -> list[Cliente]:
     return elegidos
 
 
-def tecnico_sugerido(session: Session, categoria: Optional[str]) -> Optional[Cliente]:
-    elegibles = candidatos(session, categoria)
+def tecnico_sugerido(
+    session: Session, categoria: Optional[str], excluir: Optional[int] = None
+) -> Optional[Cliente]:
+    elegibles = [t for t in candidatos(session, categoria) if t.id != excluir]
     if len(elegibles) <= 1:
         return elegibles[0] if elegibles else None
     ids = [t.id for t in elegibles]
@@ -82,14 +91,15 @@ def tecnico_sugerido(session: Session, categoria: Optional[str]) -> Optional[Cli
     return min(elegibles, key=lambda t: carga.get(t.id, 0))
 
 
-def asignar_automaticamente(session: Session, ticket: Ticket) -> None:
+def asignar_automaticamente(session: Session, ticket: Ticket, excluir: Optional[int] = None) -> None:
     """Pone el técnico sugerido según la categoría vigente, salvo que alguien haya
-    elegido o tomado el técnico a mano (eso no se pisa)."""
-    if ticket.tecnico_manual or ticket.estado not in ESTADOS_PENDIENTES:
+    elegido o tomado el técnico a mano (eso no se pisa). `excluir`: el técnico que acaba
+    de liberar el ticket, para no devolvérselo."""
+    if ticket.tecnico_manual or ticket.tomado_en is not None or ticket.estado not in ESTADOS_PENDIENTES:
         return
     categoria = ticket.categoria or ticket.categoria_predicha
     # Si el técnico actual también atiende la nueva categoría, se queda con el ticket.
     if ticket.tecnico_id is not None and any(t.id == ticket.tecnico_id for t in candidatos(session, categoria)):
         return
-    sugerido = tecnico_sugerido(session, categoria)
+    sugerido = tecnico_sugerido(session, categoria, excluir)
     ticket.tecnico_id = sugerido.id if sugerido else None

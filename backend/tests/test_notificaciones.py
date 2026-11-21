@@ -27,13 +27,13 @@ def _crear(client, h, categoria="Power BI"):
 
 def test_ciclo_completo_de_avisos(client, crear_cuenta, entrar, correos):
     crear_cuenta("usr@ejemplo.com", nombre="Ana Torres")
-    crear_cuenta("jimmy@ejemplo.com", "tecnico", nombre="Jimmy Lopez")
-    hu, ht = entrar("usr@ejemplo.com"), entrar("jimmy@ejemplo.com")
+    crear_cuenta("ana@ejemplo.com", "tecnico", nombre="Ana Mora")
+    hu, ht = entrar("usr@ejemplo.com"), entrar("ana@ejemplo.com")
 
     tid = _crear(client, hu)
     assert _correos(correos) == [
         ("usr@ejemplo.com", f"Ticket #{tid}: lo recibimos"),
-        ("jimmy@ejemplo.com", f"Ticket #{tid}: te lo asignaron"),
+        ("ana@ejemplo.com", f"Ticket #{tid}: te lo asignaron"),
     ]
     _limpiar(correos)
 
@@ -45,8 +45,8 @@ def test_ciclo_completo_de_avisos(client, crear_cuenta, entrar, correos):
     assert _correos(correos) == [
         ("usr@ejemplo.com", f"Ticket #{tid}: estamos trabajando en él"),
         ("usr@ejemplo.com", f"Ticket #{tid}: nuevo mensaje de soporte"),
-        ("jimmy@ejemplo.com", f"Ticket #{tid}: nuevo mensaje del usuario"),
-        ("usr@ejemplo.com", f"Ticket #{tid}: fue resuelto"),
+        ("ana@ejemplo.com", f"Ticket #{tid}: nuevo mensaje del usuario"),
+        ("usr@ejemplo.com", f"Ticket #{tid}: ¿quedó resuelto?"),
         ("usr@ejemplo.com", f"Ticket #{tid}: se reabrió"),
     ]
 
@@ -72,7 +72,10 @@ def test_no_se_avisa_a_quien_hizo_el_cambio_ni_por_cambios_menores(client, crear
     ht = entrar("tec@ejemplo.com")
     client.patch(f"/tickets/{tid}", json={"tecnico_id": tec.id}, headers=ht)  # se lo asigna a sí mismo
     assert _correos(correos) == []
-    client.patch(f"/tickets/{tid}", json={"tecnico_id": otro.id}, headers=ht)
+    # Ya es suyo: para pasárselo a otro técnico tiene que liberarlo; el administrador sí
+    # lo reasigna directo, y el nuevo técnico recibe el aviso.
+    crear_cuenta("adm@ejemplo.com", "administrador")
+    client.patch(f"/tickets/{tid}", json={"tecnico_id": otro.id}, headers=entrar("adm@ejemplo.com"))
     assert _correos(correos) == [("otro@ejemplo.com", f"Ticket #{tid}: te lo asignaron")]
 
 
@@ -87,9 +90,9 @@ def test_avisos_nuevos_aprobacion_archivo_prioridad_encuesta_y_contrasena(
     monkeypatch.setattr(adjuntos, "DIRECTORIO_ARCHIVOS", tmp_path / "uploads")  # nunca la carpeta real
 
     crear_cuenta("usr@ejemplo.com", nombre="Ana Torres")
-    crear_cuenta("jimmy@ejemplo.com", "tecnico", nombre="Jimmy Lopez")
+    crear_cuenta("ana@ejemplo.com", "tecnico", nombre="Ana Mora")
     crear_cuenta("jefe@ejemplo.com", "usuario", nombre="Jefe Area")
-    hu, ht, hj = entrar("usr@ejemplo.com"), entrar("jimmy@ejemplo.com"), entrar("jefe@ejemplo.com")
+    hu, ht, hj = entrar("usr@ejemplo.com"), entrar("ana@ejemplo.com"), entrar("jefe@ejemplo.com")
     tid = _crear(client, hu)
     jefe_id = client.get("/auth/yo", headers=hj).json()["id"]
 
@@ -105,7 +108,7 @@ def test_avisos_nuevos_aprobacion_archivo_prioridad_encuesta_y_contrasena(
     subir(hu)
     subir(ht)
     assert _correos(correos) == [
-        ("jimmy@ejemplo.com", f"Ticket #{tid}: nuevo archivo del usuario"),
+        ("ana@ejemplo.com", f"Ticket #{tid}: nuevo archivo del usuario"),
         ("usr@ejemplo.com", f"Ticket #{tid}: nuevo archivo de soporte"),
     ]
 
@@ -123,7 +126,7 @@ def test_avisos_nuevos_aprobacion_archivo_prioridad_encuesta_y_contrasena(
     _limpiar(correos)
     client.post(f"/aprobaciones/{r.json()['id']}/responder", json={"aprobada": True}, headers=hj)
     assert _correos(correos) == [
-        ("jimmy@ejemplo.com", f"Ticket #{tid}: aprobación aprobada"),
+        ("ana@ejemplo.com", f"Ticket #{tid}: aprobación aprobada"),
         ("usr@ejemplo.com", f"Ticket #{tid}: aprobación aprobada"),
     ]
 
@@ -131,7 +134,7 @@ def test_avisos_nuevos_aprobacion_archivo_prioridad_encuesta_y_contrasena(
     _limpiar(correos)
     client.post(f"/tickets/{tid}/encuesta", json={"estrellas": 5, "comentario": "Excelente"}, headers=hu)
     client.post(f"/tickets/{tid}/encuesta", json={"estrellas": 4}, headers=hu)  # cambiarla no vuelve a avisar
-    assert _correos(correos) == [("jimmy@ejemplo.com", f"Ticket #{tid}: calificación 5 de 5")]
+    assert _correos(correos) == [("ana@ejemplo.com", f"Ticket #{tid}: calificación 5 de 5")]
 
     _limpiar(correos)
     client.post("/auth/cambiar-password", json={"password_actual": "Clave12345", "password_nueva": "OtraClave99"}, headers=hu)

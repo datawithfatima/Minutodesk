@@ -23,9 +23,12 @@ import { useOutletContext, useParams } from "react-router-dom";
 import {
   actualizarTicket,
   cancelarTicket,
+  liberarTicket,
+  listarAsignaciones,
   listarHistorial,
   listarClientes,
   listarInteracciones,
+  listarMotivosLiberacion,
   listarMotivosPausa,
   obtenerCatalogos,
   obtenerCliente,
@@ -33,9 +36,13 @@ import {
   obtenerUmbralConfianza,
   pausarSla,
   reanudarSla,
+  tomarTicket,
 } from "../../api";
+import { obtenerUsuario } from "../../auth";
+import { PanelAtencion, situacionAtencion } from "../../components/tickets/Atencion";
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
+import ConfirmacionCierre from "../../components/tickets/ConfirmacionCierre";
 import EncuestaSatisfaccion from "../../components/tickets/EncuestaSatisfaccion";
 import PanelDuplicados from "../../components/tickets/PanelDuplicados";
 import { tituloTipo } from "../../components/tickets/formato";
@@ -60,6 +67,7 @@ import {
   PanelFicha,
   PestanasTicket,
 } from "../../components/tickets/FichaTicket";
+import Selector from "../../components/ui/Selector";
 
 const ICONO_PESTANA = { Chat: MessageSquare, Minutito: Bot, Historial: History, Archivos: Paperclip };
 
@@ -70,7 +78,14 @@ const TABS = [
   { nombre: "Archivos", activa: true },
 ];
 
-function construirHistorial(cliente, interacciones, cambiosDeEstado, pausas = []) {
+const COMO_SE_TOMO = {
+  boton: "con «Tomar ticket»",
+  respuesta: "al responder al solicitante",
+  estado: "al cambiar su estado",
+  asignacion: "al asignárselo",
+};
+
+function construirHistorial(cliente, interacciones, cambiosDeEstado, pausas = [], asignaciones = []) {
   const quien = cliente?.nombre ?? "El usuario";
   const eventos = cambiosDeEstado.map((c) =>
     c.estado_anterior === null
@@ -100,6 +115,19 @@ function construirHistorial(cliente, interacciones, cambiosDeEstado, pausas = []
         fecha: p.fin,
         titulo: "Plazo reanudado",
         detalle: p.reanudada_por ? `por ${p.reanudada_por}` : "al responder la aprobación",
+      });
+    }
+  });
+  asignaciones.forEach((a) => {
+    if (a.accion === "tomado") {
+      eventos.push({ fecha: a.fecha, titulo: `${a.tecnico} tomó el ticket`, detalle: COMO_SE_TOMO[a.via] });
+    } else if (a.accion === "reasignado") {
+      eventos.push({ fecha: a.fecha, titulo: `Reasignado a ${a.tecnico}`, detalle: `por ${a.por}` });
+    } else {
+      eventos.push({
+        fecha: a.fecha,
+        titulo: `${a.tecnico ?? "El técnico"} dejó el ticket${a.por_id !== a.tecnico_id ? ` (lo liberó ${a.por})` : ""}`,
+        detalle: [a.motivo_titulo, a.detalle].filter(Boolean).join(": "),
       });
     }
   });
@@ -196,6 +224,10 @@ export default function TicketDetailPage() {
   const [catalogos, setCatalogos] = useState(null);
   const [tecnicos, setTecnicos] = useState([]);
   const [motivosPausa, setMotivosPausa] = useState([]);
+  const [motivosLiberacion, setMotivosLiberacion] = useState([]);
+  const [asignaciones, setAsignaciones] = useState([]);
+  const yo = obtenerUsuario();
+  const esAdmin = yo?.rol === "administrador";
 
   useEffect(() => {
     obtenerCatalogos()
@@ -203,6 +235,9 @@ export default function TicketDetailPage() {
       .catch(() => {});
     listarMotivosPausa()
       .then(setMotivosPausa)
+      .catch(() => {});
+    listarMotivosLiberacion()
+      .then(setMotivosLiberacion)
       .catch(() => {});
     listarClientes()
       .then((lista) => setTecnicos(lista.filter((c) => c.rol === "tecnico" && c.activo)))
@@ -219,12 +254,14 @@ export default function TicketDetailPage() {
   const cargar = useCallback(async () => {
     const t = await obtenerTicket(id);
     setTicket(t);
-    const [c, ints, cambios, tec] = await Promise.all([
+    const [c, ints, cambios, tec, asig] = await Promise.all([
       obtenerCliente(t.cliente_id),
       listarInteracciones(id),
       listarHistorial(id),
       t.tecnico_id ? obtenerCliente(t.tecnico_id) : Promise.resolve(null),
+      listarAsignaciones(id).catch(() => []),
     ]);
+    setAsignaciones(asig);
     // Ticket de la carga masiva: quien lo pidió no tiene cuenta, se muestra su nombre.
     setCliente(t.solicitante_externo ? { ...c, nombre: t.solicitante_externo, email: "Sin cuenta en MinutoDesk" } : c);
     setInteracciones(ints);
@@ -282,6 +319,33 @@ export default function TicketDetailPage() {
     }
   }
 
+  async function tomar() {
+    setActualizando(true);
+    setError(null);
+    try {
+      await tomarTicket(id);
+    } catch (e) {
+      setError(e.message); // p. ej. otro técnico lo tomó un instante antes
+    } finally {
+      await cargar().catch(() => {});
+      await recargar();
+      setActualizando(false);
+    }
+  }
+
+  async function liberar(motivo, detalle) {
+    setError(null);
+    try {
+      await liberarTicket(id, { motivo, detalle });
+      await cargar();
+      await recargar();
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    }
+  }
+
   async function cancelar(motivo) {
     setError(null);
     try {
@@ -319,6 +383,11 @@ export default function TicketDetailPage() {
   // Si atiende alguien que no está en la lista (p. ej. un administrador que lo tomó), se agrega.
   const opcionesTecnico =
     tecnico && !tecnicos.some((t) => t.id === tecnico.id) ? [...tecnicos, tecnico] : tecnicos;
+
+  // Tomado por otro técnico: se ve, pero solo esa persona o un administrador lo cambian.
+  const situacion = situacionAtencion(ticket, yo?.id);
+  const bloqueado = situacion === "ajeno" && !esAdmin;
+  const tomadoSinAdmin = (situacion === "mio" || situacion === "ajeno") && !esAdmin;
 
   const confianzaBaja =
     umbralConfianza != null &&
@@ -403,40 +472,46 @@ export default function TicketDetailPage() {
                     <strong className="font-semibold text-noche">Ticket cancelado.</strong>
                     {ticket.motivo_cancelacion && <> Motivo: {ticket.motivo_cancelacion}</>}
                   </Alert>
-                  <Button
-                    variant="outlineSecondary"
-                    onClick={() => aplicarCambio({ estado: "abierto" })}
-                    disabled={actualizando}
-                    className="w-full"
-                  >
-                    Reabrir ticket
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  {ticket.estado !== "en_proceso" && (
+                  {!bloqueado && (
                     <Button
                       variant="outlineSecondary"
-                      onClick={() => aplicarCambio({ estado: "en_proceso" })}
+                      onClick={() => aplicarCambio({ estado: "abierto" })}
                       disabled={actualizando}
                       className="w-full"
                     >
-                      Tomar ticket
+                      Reabrir ticket
                     </Button>
                   )}
-                  <Button
-                    variant="primary"
-                    onClick={() => aplicarCambio({ estado: "resuelto", resuelto_por: "tecnico" })}
-                    disabled={actualizando}
-                    className="w-full"
-                  >
-                    Marcar como resuelto
-                  </Button>
-                  <CancelarTicket deshabilitado={actualizando} onConfirmar={cancelar} />
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <PanelAtencion
+                    ticket={ticket}
+                    tecnico={tecnico}
+                    yoId={yo?.id}
+                    esAdmin={esAdmin}
+                    motivos={motivosLiberacion}
+                    deshabilitado={actualizando}
+                    onTomar={tomar}
+                    onLiberar={liberar}
+                  />
+                  {!bloqueado && (
+                    <div className="mt-2 grid gap-2 border-t border-dashed border-linea pt-4">
+                      <Button
+                        variant={situacion === "mio" ? "primary" : "outlineSecondary"}
+                        onClick={() => aplicarCambio({ estado: "resuelto", resuelto_por: "tecnico" })}
+                        disabled={actualizando}
+                        className="w-full"
+                      >
+                        Marcar como resuelto
+                      </Button>
+                      <CancelarTicket deshabilitado={actualizando} onConfirmar={cancelar} />
+                    </div>
+                  )}
                 </div>
               )}
 
-              {ticket.sla && !resuelto && !cancelado && (
+              {ticket.sla && !resuelto && !cancelado && !bloqueado && (
                 <div className="space-y-2 border-t border-dashed border-linea pt-4">
                   <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Plazo de atención</p>
                   <PanelPausaSla
@@ -456,11 +531,11 @@ export default function TicketDetailPage() {
                     <label htmlFor="gestion-categoria" className={labelClass}>
                       Categoría
                     </label>
-                    <select
+                    <Selector
                       id="gestion-categoria"
                       className={inputClass}
                       value={ticket.categoria || ""}
-                      disabled={actualizando || !!ticket.datos_alta}
+                      disabled={actualizando || bloqueado || !!ticket.datos_alta}
                       onChange={(e) => e.target.value && aplicarCambio({ categoria: e.target.value })}
                     >
                       <option value="">
@@ -472,17 +547,17 @@ export default function TicketDetailPage() {
                         </option>
                       ))}
                       {ticket.datos_alta && <option value={ticket.categoria}>{ticket.categoria}</option>}
-                    </select>
+                    </Selector>
                   </div>
                   <div>
                     <label htmlFor="gestion-prioridad" className={labelClass}>
                       Prioridad
                     </label>
-                    <select
+                    <Selector
                       id="gestion-prioridad"
                       className={inputClass}
                       value={ticket.prioridad}
-                      disabled={actualizando}
+                      disabled={actualizando || bloqueado}
                       onChange={(e) => aplicarCambio({ prioridad: e.target.value })}
                     >
                       {catalogos.prioridades.map((p) => (
@@ -490,17 +565,17 @@ export default function TicketDetailPage() {
                           {p}
                         </option>
                       ))}
-                    </select>
+                    </Selector>
                   </div>
                   <div>
                     <label htmlFor="gestion-tecnico" className={labelClass}>
                       Técnico asignado
                     </label>
-                    <select
+                    <Selector
                       id="gestion-tecnico"
                       className={inputClass}
                       value={ticket.tecnico_id ?? ""}
-                      disabled={actualizando || resuelto || cancelado}
+                      disabled={actualizando || resuelto || cancelado || tomadoSinAdmin}
                       onChange={(e) => e.target.value && aplicarCambio({ tecnico_id: Number(e.target.value) })}
                     >
                       <option value="">Sin asignar</option>
@@ -509,10 +584,28 @@ export default function TicketDetailPage() {
                           {t.nombre}
                         </option>
                       ))}
-                    </select>
+                    </Selector>
                     {!resuelto && !cancelado && (
                       <p className="mt-1.5 text-xs text-gray-500">
-                        {ticket.tecnico_manual ? (
+                        {tomadoSinAdmin ? (
+                          situacion === "mio" ? (
+                            <>Para pasarlo a otro técnico, libéralo indicando el motivo.</>
+                          ) : (
+                            <>Solo un administrador puede reasignarlo.</>
+                          )
+                        ) : esAdmin && ticket.tomado_en ? (
+                          <>
+                            Tomado. Al elegir a otro técnico, queda a su nombre.{" "}
+                            <button
+                              type="button"
+                              disabled={actualizando}
+                              onClick={() => aplicarCambio({ tecnico_auto: true })}
+                              className="font-medium text-acento underline-offset-2 hover:underline disabled:opacity-50"
+                            >
+                              Devolver al sugerido por sistema
+                            </button>
+                          </>
+                        ) : ticket.tecnico_manual ? (
                           <>
                             Elegido a mano.{" "}
                             <button
@@ -549,7 +642,7 @@ export default function TicketDetailPage() {
                       </p>
                     )}
                   </div>
-                  {!ticket.clasificacion_confirmada && ticket.categoria_predicha && (
+                  {!ticket.clasificacion_confirmada && ticket.categoria_predicha && !bloqueado && (
                     <div>
                       <Button
                         variant="outlinePrimary"
@@ -615,7 +708,11 @@ export default function TicketDetailPage() {
                 {tecnico ? (
                   <span className="inline-flex flex-wrap items-center gap-1.5">
                     {tecnico.nombre}
-                    {!ticket.tecnico_manual && ticket.estado === "abierto" && <Badge color="sky">Sugerido</Badge>}
+                    {ticket.tomado_en ? (
+                      !resuelto && !cancelado && <Badge color="green">Tomado</Badge>
+                    ) : (
+                      !resuelto && !cancelado && <Badge color="sky">Sugerido</Badge>
+                    )}
                   </span>
                 ) : (
                   <span className="font-normal text-gray-500">Nadie aún</span>
@@ -632,7 +729,7 @@ export default function TicketDetailPage() {
             </dl>
           </PanelFicha>
 
-          <PanelFicha icono={Link2} titulo="Tickets duplicados" className="max-lg:order-5">
+          <PanelFicha icono={Link2} titulo="Duplicados y afectados" className="max-lg:order-5">
             <PanelDuplicados
               ticket={ticket}
               onCambio={async () => {
@@ -644,6 +741,12 @@ export default function TicketDetailPage() {
 
           {ticket.estado === "resuelto" && !ticket.solicitante_externo && (
             <PanelFicha icono={ClipboardCheck} titulo="Satisfacción del usuario" className="max-lg:order-5">
+              <ConfirmacionCierre
+                key={`${ticket.id}-${ticket.cerrado_en}`}
+                ticketId={ticket.id}
+                editable={false}
+                className="mb-3 border-b border-dashed border-linea pb-3"
+              />
               <EncuestaSatisfaccion key={ticket.id} ticketId={ticket.id} editable={false} />
             </PanelFicha>
           )}
@@ -658,7 +761,15 @@ export default function TicketDetailPage() {
             {tab === "Chat" && (
               <Card className="anim-pestana">
                 <Card.Body>
-                  <ConversacionTicket key={ticket.id} ticket={ticket} esPersonal />
+                  <ConversacionTicket
+                    key={ticket.id}
+                    ticket={ticket}
+                    esPersonal
+                    bloqueadoPor={bloqueado ? tecnico?.nombre ?? "otro técnico" : null}
+                    onEnviado={() => {
+                      if (!ticket.tomado_en) cargar().then(recargar).catch(() => {});
+                    }}
+                  />
                 </Card.Body>
               </Card>
             )}
@@ -683,7 +794,7 @@ export default function TicketDetailPage() {
               <Card className="anim-pestana">
                 <Card.Body>
                   <ol className="relative ml-2 border-l border-linea">
-                    {construirHistorial(cliente, interacciones, cambiosDeEstado, ticket.sla?.pausas).map((e, idx) => (
+                    {construirHistorial(cliente, interacciones, cambiosDeEstado, ticket.sla?.pausas, asignaciones).map((e, idx) => (
                       <li key={idx} className="mb-4 ml-4 last:mb-0">
                         <span className="absolute -left-[6px] mt-1.5 h-3 w-3 rounded-[3px] border-2 border-superficie bg-acento" />
                         <div className="text-xs text-gray-400">{new Date(e.fecha).toLocaleString()}</div>

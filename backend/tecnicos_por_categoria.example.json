@@ -1,0 +1,47 @@
+{
+  "Heinsohn Nomina": [
+    "Técnico Nómina"
+  ],
+  "Internet": [
+    "Técnico Soporte Uno",
+    "Técnico Soporte Dos"
+  ],
+  "Interpro": [
+    "Técnico Soporte Uno",
+    "Técnico Soporte Dos"
+  ],
+  "Laptops - Impresoras": [
+    "Técnico Soporte Uno",
+    "Técnico Soporte Dos"
+  ],
+  "Mantenimiento de equipos": [
+    "Técnico Soporte Uno",
+    "Técnico Soporte Dos"
+  ],
+  "Office": [
+    "Técnico Soporte Uno",
+    "Técnico Soporte Dos"
+  ],
+  "Portal de Planificación": [
+    "Técnico Planificación"
+  ],
+  "Portal de Proveedores": [
+    "Técnico Nómina"
+  ],
+  "Power BI": [
+    "Técnico Nómina"
+  ],
+  "SAP": [
+    "Técnico Nómina",
+    "Técnico Planificación",
+    "Técnico SAP Uno",
+    "Técnico SAP Dos"
+  ],
+  "Salesforce": [
+    "Técnico Salesforce"
+  ],
+  "Webdox": [
+    "Técnico Salesforce",
+    "Técnico Planificación"
+  ]
+}

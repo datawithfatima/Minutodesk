@@ -110,7 +110,9 @@ export default function DashboardPage() {
               icono: Ticket,
               titulo: "Mis tickets",
               valor: resumen ? formatoNumero(resumen.total) : "—",
-              detalle: resumen ? `${resumen.resueltos} resueltos` : undefined,
+              detalle: resumen
+                ? `${resumen.resueltos} resueltos${resumen.cancelados ? ` · ${resumen.cancelados} cancelados` : ""}`
+                : undefined,
               // Sin tickets en los últimos días la línea quedaría plana: no se muestra.
               tendencia: resumen?.ultimos_dias.some((d) => d.total) ? resumen.ultimos_dias.map((d) => d.total) : undefined,
               to: "/usuario/mis-tickets",
@@ -119,7 +121,7 @@ export default function DashboardPage() {
               icono: Inbox,
               titulo: "Pendientes",
               valor: resumen ? formatoNumero(pendientes) : "—",
-              detalle: resumen ? `${resumen.en_proceso} en proceso` : undefined,
+              detalle: resumen ? `${resumen.abiertos} nuevos · ${resumen.en_proceso} en proceso` : undefined,
               to: "/usuario/mis-tickets",
             },
             {

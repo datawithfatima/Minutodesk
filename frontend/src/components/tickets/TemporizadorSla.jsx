@@ -5,6 +5,7 @@ import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { inputClass, labelClass } from "../ui/formStyles";
 import { Pastilla } from "./Pastillas";
+import Selector from "../ui/Selector";
 
 /*
  * Temporizador del plazo de atención (SLA). El backend calcula los segundos; aquí solo se
@@ -206,14 +207,14 @@ export function PanelPausaSla({ sla, motivos, deshabilitado, onPausar, onReanuda
         <label htmlFor="pausa-motivo" className={labelClass}>
           Motivo de la pausa
         </label>
-        <select id="pausa-motivo" className={inputClass} value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus>
+        <Selector id="pausa-motivo" className={inputClass} value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus>
           <option value="">Elige un motivo</option>
           {motivos.map((m) => (
             <option key={m.clave} value={m.clave}>
               {m.titulo}
             </option>
           ))}
-        </select>
+        </Selector>
       </div>
       <div>
         <label htmlFor="pausa-detalle" className={labelClass}>

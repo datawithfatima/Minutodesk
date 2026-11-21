@@ -81,26 +81,32 @@ function Plataforma({ resumen, personal }) {
             icono: Ticket,
             titulo: "Tickets",
             valor: formatoNumero(total),
-            detalle: `${resumen.resueltos} resueltos`,
-            tendencia: resumen.ultimos_dias.map((d) => d.total),
+            // Los cancelados también cuentan en el total: sin ellos la suma no cuadra.
+            detalle: `${resumen.resueltos} resueltos · ${resumen.cancelados} cancelados`,
           },
           {
             icono: Inbox,
             titulo: "Pendientes",
             valor: formatoNumero(pendientes),
-            detalle: `${resumen.en_proceso} en proceso`,
+            detalle: `${resumen.abiertos} nuevos · ${resumen.en_proceso} en proceso`,
           },
           {
             icono: Clock,
             titulo: "Tiempo medio de resolución",
             valor: formatearHoras(resumen.tiempo_medio_resolucion_horas),
-            detalle: "Tickets resueltos",
+            detalle: "De la apertura al cierre, días corridos",
           },
           {
+            // Conversaciones del chat de Minutito ya terminadas (no las respuestas de la
+            // evaluación a los tickets cargados, que van en Datos históricos).
             icono: MessagesSquare,
             titulo: "Conversaciones con Minutito",
-            valor: formatoNumero(resumen.con_minutito),
-            detalle: total ? `${Math.round((100 * resumen.con_minutito) / total)}% de los tickets` : "Sin tickets",
+            valor: formatoNumero(resumen.conversaciones_minutito),
+            detalle: resumen.conversaciones_minutito
+              ? `${resumen.conversaciones_resueltas} resueltas sin ticket · ${
+                  resumen.conversaciones_minutito - resumen.conversaciones_resueltas
+                } pasaron a ticket`
+              : "Ninguna terminada aún",
           },
         ]}
       />
@@ -210,7 +216,7 @@ function Plataforma({ resumen, personal }) {
       <ChartCard
         className="mt-4"
         titulo="Tickets por categoría"
-        subtitulo="Categoría que predijo el clasificador"
+        subtitulo="La categoría confirmada del ticket; si nadie la confirmó, la que sugirió el clasificador"
         tabla={{
           columnas: ["Categoría", "Tickets"],
           filas: resumen.por_categoria.map((c) => [c.categoria, c.total]),
@@ -546,7 +552,8 @@ function Clasificador() {
             Acierto en uso real
           </h3>
           <p className="mt-0.5 text-xs text-gray-400">
-            Compara lo que sugirió el SVM con lo que eligió la persona al crear el ticket o corrigió el técnico.
+            Compara lo que sugirió el SVM con la categoría y el tipo reales: los del export en los tickets cargados, y
+            en los nuevos lo que eligió la persona al crear el ticket o corrigió el técnico.
           </p>
           {m.en_uso.tickets_categoria === 0 ? (
             <p className="mt-3 text-sm text-gray-500">
@@ -665,7 +672,9 @@ export default function ReportesPage() {
 
       {resumen && (
         <>
-          <Seccion numero={1} titulo="Plataforma" subtitulo={personal ? "Tickets creados en MinutoDesk" : undefined} />
+          <Seccion numero={1} titulo="Plataforma" subtitulo={
+              personal ? "Todos los tickets de MinutoDesk, incluidos los cargados del export de la herramienta anterior" : undefined
+            } />
           <Plataforma resumen={resumen} personal={personal} />
         </>
       )}

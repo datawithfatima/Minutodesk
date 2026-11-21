@@ -8,6 +8,7 @@ export default defineConfig({
   server: {
     // Con el túnel de Cloudflare (iniciar-tunel.bat) todo entra por un solo enlace: la
     // página y, bajo /api, el backend. Así quien revisa desde otra red no necesita el puerto 8000.
+    // «vite preview» (lo que usa el túnel) hereda allowedHosts y proxy de aquí.
     allowedHosts: ['.trycloudflare.com'],
     proxy: {
       '/api': {

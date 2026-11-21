@@ -5,6 +5,7 @@ import Alert from "../../components/ui/Alert";
 import Spinner from "../../components/ui/Spinner";
 import { inputClass, labelClass } from "../../components/ui/formStyles";
 import { COLOR_ESTADO_HISTORICO, COLOR_PRIORIDAD, GRIS_SIN_DATO, hexA } from "../../components/charts/tokens";
+import Selector from "../../components/ui/Selector";
 
 const POR_PAGINA = 25;
 
@@ -228,14 +229,14 @@ export default function TicketsImportados() {
         ].map(([etiqueta, valor, poner, opciones]) => (
           <div key={etiqueta} className="min-w-[140px] flex-1 lg:flex-none">
             <label className={labelClass}>{etiqueta}</label>
-            <select className={`${inputClass} lg:w-44`} value={valor} onChange={cambiar(poner)}>
+            <Selector className={`${inputClass} lg:w-44`} value={valor} onChange={cambiar(poner)}>
               <option value="">Todas</option>
               {(opciones ?? []).map((o) => (
                 <option key={o} value={o}>
                   {o}
                 </option>
               ))}
-            </select>
+            </Selector>
           </div>
         ))}
         {hayFiltros && (

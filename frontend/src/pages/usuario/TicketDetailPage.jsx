@@ -1,4 +1,4 @@
-import { Bot, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Flag, Layers, MessageSquare, Paperclip, Tag, TimerReset } from "lucide-react";
+import { BadgeCheck, Bot, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Flag, Layers, MessageSquare, Paperclip, Tag, TimerReset } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { obtenerTicket } from "../../api";
@@ -6,6 +6,7 @@ import Alert from "../../components/ui/Alert";
 import Spinner from "../../components/ui/Spinner";
 import EstadoBadge from "../../components/EstadoBadge";
 import ArchivosTicket from "../../components/tickets/ArchivosTicket";
+import ConfirmacionCierre from "../../components/tickets/ConfirmacionCierre";
 import ConversacionMinutito from "../../components/tickets/ConversacionMinutito";
 import ConversacionTicket from "../../components/tickets/ConversacionTicket";
 import DatosAlta from "../../components/tickets/DatosAlta";
@@ -88,13 +89,20 @@ export default function TicketDetailPage() {
           )}
 
           {resuelto && (
+            <PanelFicha icono={BadgeCheck} titulo="Entrega · ¿quedó resuelto?" acento>
+              <ConfirmacionCierre key={ticket.cerrado_en} ticketId={id} onCambio={() => cargar()} />
+            </PanelFicha>
+          )}
+
+          {resuelto && (
             <PanelFicha icono={ClipboardCheck} titulo="Acta de recepción · califica la atención" acento>
               <EncuestaSatisfaccion ticketId={id} />
             </PanelFicha>
           )}
 
           <PanelFicha icono={MessageSquare} titulo="Chat con soporte" acento>
-            <ConversacionTicket ticket={ticket} />
+            {/* Se vuelve a montar si cambia el estado (p. ej. al decir «no quedó resuelto»). */}
+            <ConversacionTicket key={ticket.estado} ticket={ticket} />
           </PanelFicha>
 
           <PanelFicha icono={Bot} titulo="Conversación con Minutito">

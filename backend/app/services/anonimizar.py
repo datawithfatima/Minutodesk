@@ -2,8 +2,10 @@
 
 Los nombres de solicitantes y técnicos se reemplazan por alias estables
 ("Solicitante 007", "Técnico 03"): la misma persona recibe siempre el mismo alias,
-así los análisis por persona siguen funcionando. En la base solo queda el hash del
-nombre, nunca el nombre.
+así los análisis por persona siguen funcionando. En la base solo queda un HMAC-SHA256
+del nombre con una clave secreta guardada fuera de la base (backend/.clave_seudonimos,
+ignorada por git): aunque alguien copie la base y tenga la lista de empleados, no puede
+comprobar a quién corresponde cada alias sin esa clave.
 
 En las descripciones se reemplazan correos, cédulas y teléfonos, los nombres
 completos de las personas conocidas, las menciones (@Nombre) y el nombre que va
@@ -11,7 +13,11 @@ justo antes de una cédula. Un nombre suelto ("Carlos, por favor…") no se
 puede distinguir con seguridad de una palabra común y se deja.
 """
 import hashlib
+import hmac
+import os
 import re
+import secrets
+from pathlib import Path
 from typing import Iterable, Optional
 
 from sqlmodel import Session, select
@@ -29,7 +35,7 @@ NUMERO_RE = re.compile(r"(?<!\d)(?:\+?593[\s-]?)?\d{2,3}[\s-]?\d{3}[\s-]?\d{4}(?
 
 _PALABRA = r"[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñü]+"
 # Menciones (@Nombre Apellido) y nombres de terceros justo antes de su cédula
-# ("Danny Briones C.I. #…", "DAVID MALLA CEDULA …"): suelen ser colaboradores nuevos.
+# ("Juan Pérez C.I. #…", "MARIA LOPEZ CEDULA …"): suelen ser colaboradores nuevos.
 MENCION_RE = re.compile(rf"@{_PALABRA}(?:\s+{_PALABRA}){{0,3}}")
 ANTES_DE_CEDULA_RE = re.compile(
     rf"\b{_PALABRA}(?:\s+{_PALABRA}){{1,3}}(?=\s*-?\s*(?i:con\s+)?(?i:C\.?\s?I\b|c[eé]dula))"
@@ -44,20 +50,69 @@ def es_alias(texto: Optional[str]) -> bool:
     return bool(texto) and bool(ALIAS_RE.match(texto))
 
 
+ARCHIVO_CLAVE = Path(__file__).resolve().parents[2] / ".clave_seudonimos"
+
+
+def _clave_secreta() -> bytes:
+    """Clave del HMAC: de SEUDONIMOS_KEY en .env o, si no está, de un archivo local que se
+    crea la primera vez. Guarda una copia: sin ella los nombres de una carga futura
+    recibirían alias nuevos en lugar de los mismos."""
+    valor = os.getenv("SEUDONIMOS_KEY", "").strip()
+    if valor:
+        return valor.encode()
+    if ARCHIVO_CLAVE.exists():
+        return ARCHIVO_CLAVE.read_text(encoding="utf-8").strip().encode()
+    valor = secrets.token_urlsafe(48)
+    ARCHIVO_CLAVE.write_text(valor, encoding="utf-8")
+    return valor.encode()
+
+
+def clave_de(nombre: str, tipo: str) -> str:
+    return hmac.new(_clave_secreta(), f"{tipo}:{_normalizar(nombre)}".encode(), hashlib.sha256).hexdigest()
+
+
+def clave_antigua(nombre: str, tipo: str) -> str:
+    """Hash sin clave que se usaba antes (SHA-256 simple); solo para reconocer filas viejas."""
+    return hashlib.sha256(f"{tipo}:{_normalizar(nombre)}".encode()).hexdigest()
+
+
 def alias(session: Session, nombre: Optional[str], tipo: str) -> Optional[str]:
     """Alias de la persona; lo crea la primera vez que aparece."""
     if not nombre or es_alias(nombre):
         return nombre
-    clave = hashlib.sha256(f"{tipo}:{_normalizar(nombre)}".encode()).hexdigest()
+    clave = clave_de(nombre, tipo)
     existente = session.exec(select(Seudonimo).where(Seudonimo.clave == clave)).first()
     if existente:
         return existente.alias
+    # Fila creada con el hash anterior: se reconoce y se pasa al HMAC (el alias no cambia).
+    antiguo = session.exec(select(Seudonimo).where(Seudonimo.clave == clave_antigua(nombre, tipo))).first()
+    if antiguo:
+        antiguo.clave = clave
+        session.add(antiguo)
+        session.flush()
+        return antiguo.alias
     prefijo, digitos = PREFIJOS[tipo]
     cuantos = len(session.exec(select(Seudonimo.id).where(Seudonimo.alias.startswith(prefijo))).all())
     nuevo = Seudonimo(clave=clave, alias=f"{prefijo} {cuantos + 1:0{digitos}d}")
     session.add(nuevo)
     session.flush()
     return nuevo.alias
+
+
+def proteger_claves_antiguas(session: Session, nombres: Iterable[tuple[str, str]]) -> int:
+    """Pasa al HMAC las filas con el hash anterior, a partir de los nombres originales
+    (pares (nombre, tipo), p. ej. leídos del CSV de la empresa). Devuelve cuántas cambió."""
+    cambiadas = 0
+    for nombre, tipo in set(nombres):
+        if not nombre or es_alias(nombre):
+            continue
+        fila = session.exec(select(Seudonimo).where(Seudonimo.clave == clave_antigua(nombre, tipo))).first()
+        if fila is not None:
+            fila.clave = clave_de(nombre, tipo)
+            session.add(fila)
+            cambiadas += 1
+    session.commit()
+    return cambiadas
 
 
 _VOCALES = {"a": "[aáà]", "e": "[eéè]", "i": "[iíì]", "o": "[oóò]", "u": "[uúüù]", "n": "[nñ]"}

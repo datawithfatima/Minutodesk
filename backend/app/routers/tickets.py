@@ -6,9 +6,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Cliente, HistorialEstadoTicket, Ticket
+from app.models import AsignacionTicket, Cliente, HistorialEstadoTicket, Ticket
 from app.schemas import (
     AltaColaboradorCreate,
+    AsignacionRead,
+    LiberarTicket,
+    MotivoLiberacion,
     CancelarTicket,
     CatalogosRead,
     HistorialEstadoRead,
@@ -48,7 +51,7 @@ from app.routers.conversacion import hay_aprobacion_pendiente
 from app.routers.minutito import enlazar_ticket
 from app.services.asignacion import asignar_automaticamente, tecnico_sugerido
 from app.services.classifier import categorias_clasificables, clasificar_ticket, sugerir
-from app.services import notificaciones, sla
+from app.services import confirmacion, incidentes, notificaciones, sla, toma
 from app.services.gamification_rules import evaluar_evento
 
 router = APIRouter()
@@ -309,6 +312,11 @@ def motivos_de_pausa(usuario: Cliente = Depends(requerir_personal)):
     return [MotivoPausa(clave=k, titulo=v) for k, v in sla.MOTIVOS_PAUSA.items()]
 
 
+@router.get("/motivos-liberacion", response_model=list[MotivoLiberacion])
+def motivos_de_liberacion(usuario: Cliente = Depends(requerir_personal)):
+    return [MotivoLiberacion(clave=k, titulo=v) for k, v in toma.MOTIVOS_LIBERACION.items()]
+
+
 @router.get("/{ticket_id}", response_model=TicketDetalle)
 def obtener_ticket(
     ticket_id: int,
@@ -404,6 +412,23 @@ def actualizar_ticket(
         raise HTTPException(
             status_code=400, detail="Un ticket de accesos se crea con el formulario de alta de colaborador."
         )
+    # Un ticket tomado solo lo cambian quien lo atiende y el administrador.
+    toma.exigir_que_pueda_atender(session, ticket, usuario)
+    admin = toma.es_admin(usuario)
+    if not admin and toma.esta_tomado(ticket):
+        if data.tecnico_id is not None and data.tecnico_id != usuario.id:
+            raise HTTPException(
+                status_code=409, detail="Para pasar el ticket a otro técnico, libéralo indicando el motivo."
+            )
+        if data.tecnico_auto:
+            raise HTTPException(
+                status_code=409,
+                detail="Para devolver el ticket a la asignación automática, libéralo indicando el motivo.",
+            )
+    if data.estado == "resuelto" and ticket.estado != "resuelto" and hay_aprobacion_pendiente(session, ticket.id):
+        raise HTTPException(
+            status_code=409, detail="Hay una aprobación pendiente: espera la respuesta antes de resolver."
+        )
 
     prioridad_anterior = ticket.prioridad
     if data.prioridad is not None and data.prioridad != ticket.prioridad:
@@ -421,12 +446,23 @@ def actualizar_ticket(
 
     tecnico_anterior = ticket.tecnico_id
     # Técnico: elegido a mano, devuelto al sugerido, o (si cambió la categoría y nadie lo
-    # eligió a mano) el que corresponde a la nueva categoría.
+    # eligió a mano) el que corresponde a la nueva categoría. Elegirse a sí mismo es
+    # tomarlo; el administrador, al elegir a alguien, se lo deja tomado; un técnico que
+    # elige a otro en un ticket libre solo cambia la sugerencia.
     if data.tecnico_id is not None:
-        ticket.tecnico_id = data.tecnico_id
-        ticket.tecnico_manual = True
+        if data.tecnico_id == usuario.id and not toma.tomado_por_otro(ticket, usuario):
+            toma.tomar(session, ticket, usuario, via="asignacion")
+        elif admin:
+            if not (toma.esta_tomado(ticket) and ticket.tecnico_id == data.tecnico_id):
+                toma.reasignar(session, ticket, session.get(Cliente, data.tecnico_id), usuario)
+        else:
+            ticket.tecnico_id = data.tecnico_id
+            ticket.tecnico_manual = True
     elif data.tecnico_auto:
+        if toma.esta_tomado(ticket):  # solo llega aquí el administrador
+            toma.liberar(session, ticket, usuario, None, "Devuelto a la asignación automática")
         ticket.tecnico_manual = False
+        ticket.tomado_en = None
         ticket.tecnico_id = None
         asignar_automaticamente(session, ticket)
     elif data.categoria is not None:
@@ -435,12 +471,11 @@ def actualizar_ticket(
     estado_anterior = ticket.estado
     ya_estaba_resuelto = estado_anterior == "resuelto"
 
-    if data.estado == "resuelto" and estado_anterior != "resuelto" and hay_aprobacion_pendiente(session, ticket.id):
-        raise HTTPException(
-            status_code=409, detail="Hay una aprobación pendiente: espera la respuesta antes de resolver."
-        )
-
     if data.estado is not None and data.estado != estado_anterior:
+        if data.estado == "resuelto" and estado_anterior not in ESTADOS_FINALES:
+            # Quien lo resuelve queda a cargo, salvo que ya lo atendiera otro (el
+            # administrador puede cerrar un ticket ajeno sin quitárselo).
+            toma.tomar_si_libre(session, ticket, usuario, via="estado")
         ticket.estado = data.estado
         if data.estado == "resuelto":
             ticket.cerrado_en = datetime.now()
@@ -454,19 +489,23 @@ def actualizar_ticket(
             ticket.resuelto_por = None
             ticket.motivo_cancelacion = None  # reabrir un cancelado borra el motivo vigente
             if data.estado == "en_proceso":
-                # Quien toma el ticket pasa a atenderlo (aunque el sugerido fuera otro).
-                ticket.tecnico_id = usuario.id
-                ticket.tecnico_manual = True
+                # Quien pasa el ticket a «En proceso» lo toma (aunque el sugerido fuera otro).
+                toma.tomar_si_libre(session, ticket, usuario, via="estado")
         registrar_estado(session, ticket.id, estado_anterior, data.estado, usuario.id)
     elif data.resuelto_por is not None and ticket.estado == "resuelto":
         ticket.resuelto_por = data.resuelto_por
 
+    if ticket.estado != estado_anterior:
+        # «¿Quedó resuelto?»: se abre al resolver y se anula si el personal lo reabre.
+        confirmacion.al_cambiar_estado(session, ticket, estado_anterior)
     session.add(ticket)
     session.commit()
     session.refresh(ticket)
 
     if not ya_estaba_resuelto and ticket.estado == "resuelto":
         evaluar_evento(ticket, ticket.cliente_id, session)
+        # Si era el principal de un problema general, sus afectados se resuelven con él.
+        incidentes.resolver_afectados(session, tareas, ticket, usuario)
 
     if ticket.estado != estado_anterior:
         notificaciones.estado_cambiado(tareas, session, ticket, estado_anterior, usuario)
@@ -491,6 +530,7 @@ def cancelar_ticket(
     ticket = session.get(Ticket, ticket_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    toma.exigir_que_pueda_atender(session, ticket, usuario)
     if ticket.estado in ESTADOS_FINALES:
         raise HTTPException(
             status_code=409,
@@ -543,6 +583,7 @@ def pausar_plazo(
     ticket = session.get(Ticket, ticket_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    toma.exigir_que_pueda_atender(session, ticket, usuario)
     if ticket.estado in ESTADOS_FINALES:
         raise HTTPException(status_code=409, detail="El plazo de un ticket cerrado ya no corre.")
     if data.motivo not in sla.MOTIVOS_PAUSA:
@@ -573,6 +614,7 @@ def reanudar_plazo(
     ticket = session.get(Ticket, ticket_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    toma.exigir_que_pueda_atender(session, ticket, usuario)
     pausa = sla.pausa_activa(session, ticket.id)
     if pausa is None:
         raise HTTPException(status_code=409, detail="El plazo no está en pausa.")
@@ -585,3 +627,112 @@ def reanudar_plazo(
     session.commit()
     notificaciones.sla_reanudado(tareas, session, ticket, usuario)
     return sla.calcular(session, ticket)
+
+
+# ---------- tomar y liberar ----------
+
+def _obtener(session: Session, ticket_id: int) -> Ticket:
+    ticket = session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    return ticket
+
+
+@router.post("/{ticket_id}/tomar", response_model=TicketRead)
+def tomar_ticket(
+    ticket_id: int,
+    tareas: BackgroundTasks,
+    usuario: Cliente = Depends(requerir_personal),
+    session: Session = Depends(get_session),
+):
+    """El ticket queda a nombre de quien lo toma y pasa a «En proceso». Si otro técnico
+    lo tomó antes (aunque sea en el mismo instante), 409 con su nombre."""
+    ticket = _obtener(session, ticket_id)
+    tecnico_anterior = ticket.tecnico_id
+    toma.tomar(session, ticket, usuario, via="boton")
+    estado_anterior = ticket.estado
+    if ticket.estado == "abierto":
+        ticket.estado = "en_proceso"
+        registrar_estado(session, ticket.id, estado_anterior, "en_proceso", usuario.id)
+        session.add(ticket)
+    session.commit()
+    session.refresh(ticket)
+    if ticket.estado != estado_anterior:
+        notificaciones.estado_cambiado(tareas, session, ticket, estado_anterior, usuario)
+    return _con_sla(session, [ticket])[0]
+
+
+@router.post("/{ticket_id}/liberar", response_model=TicketRead)
+def liberar_ticket(
+    ticket_id: int,
+    data: LiberarTicket,
+    tareas: BackgroundTasks,
+    usuario: Cliente = Depends(requerir_personal),
+    session: Session = Depends(get_session),
+):
+    """Quien atiende el ticket (o un administrador) lo suelta con un motivo. Vuelve a
+    «Nuevo» y la asignación automática lo sugiere a otro técnico del sistema."""
+    ticket = _obtener(session, ticket_id)
+    if ticket.estado in ESTADOS_FINALES:
+        raise HTTPException(status_code=409, detail=f"Este ticket ya está {ticket.estado}.")
+    if not toma.esta_tomado(ticket):
+        raise HTTPException(status_code=409, detail="Nadie ha tomado este ticket todavía.")
+    toma.exigir_que_pueda_atender(session, ticket, usuario)
+    if data.motivo not in toma.MOTIVOS_LIBERACION:
+        raise HTTPException(status_code=400, detail="Motivo no válido")
+    detalle = " ".join(data.detalle.split())
+    if len(detalle) < toma.MIN_DETALLE:
+        raise HTTPException(status_code=400, detail="Explica por qué liberas el ticket (mínimo 5 caracteres).")
+    if len(detalle) > toma.MAX_DETALLE:
+        raise HTTPException(status_code=400, detail=f"El detalle es demasiado largo (máximo {toma.MAX_DETALLE}).")
+
+    anterior = toma.liberar(session, ticket, usuario, data.motivo, detalle)
+    estado_anterior = ticket.estado
+    if ticket.estado == "en_proceso":
+        ticket.estado = "abierto"
+        registrar_estado(
+            session, ticket.id, estado_anterior, "abierto", usuario.id,
+            f"Liberado: {toma.MOTIVOS_LIBERACION[data.motivo]}. {detalle}",
+        )
+    asignar_automaticamente(session, ticket, excluir=anterior)
+    session.add(ticket)
+    session.commit()
+    session.refresh(ticket)
+    if ticket.tecnico_id is not None:
+        notificaciones.tecnico_asignado(tareas, session, ticket, usuario)
+    return _con_sla(session, [ticket])[0]
+
+
+@router.get("/{ticket_id}/asignaciones", response_model=list[AsignacionRead])
+def historial_de_asignacion(
+    ticket_id: int,
+    usuario: Cliente = Depends(requerir_personal),
+    session: Session = Depends(get_session),
+):
+    """Quién tomó, liberó o reasignó el ticket (solo lo ve el personal)."""
+    _obtener(session, ticket_id)
+    filas = session.exec(
+        select(AsignacionTicket)
+        .where(AsignacionTicket.ticket_id == ticket_id)
+        .order_by(AsignacionTicket.fecha, AsignacionTicket.id)
+    ).all()
+    ids = {f.por_id for f in filas} | {f.tecnico_id for f in filas if f.tecnico_id}
+    nombres = (
+        {c.id: c.nombre for c in session.exec(select(Cliente).where(Cliente.id.in_(ids))).all()} if ids else {}
+    )
+    return [
+        AsignacionRead(
+            id=f.id,
+            accion=f.accion,
+            tecnico_id=f.tecnico_id,
+            tecnico=nombres.get(f.tecnico_id),
+            por_id=f.por_id,
+            por=nombres.get(f.por_id, "—"),
+            motivo=f.motivo,
+            motivo_titulo=toma.MOTIVOS_LIBERACION.get(f.motivo) if f.motivo else None,
+            detalle=f.detalle,
+            via=f.via,
+            fecha=f.fecha,
+        )
+        for f in filas
+    ]

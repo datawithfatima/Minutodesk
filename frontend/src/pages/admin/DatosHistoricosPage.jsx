@@ -100,7 +100,9 @@ function Historico() {
             icono: Gauge,
             titulo: "Tiempo medio de resolución",
             valor: datos.dias_medio_resolucion != null ? `${datos.dias_medio_resolucion} d` : "—",
-            detalle: "Días entre creación y solución",
+            // Fecha a fecha: el CSV trae la solución sin hora. La simulación de tiempos usa
+            // horas exactas desde la creación, por eso allí la línea base da algo menos.
+            detalle: "Días de calendario entre la fecha de creación y la de solución",
             tendencia: diasPorMes.some((v) => v != null) ? diasPorMes.map((v) => v ?? 0) : undefined,
           },
           {

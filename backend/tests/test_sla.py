@@ -152,8 +152,8 @@ def test_resolver_cierra_la_pausa_y_el_tiempo_cerrado_no_cuenta_al_reabrir(clien
 
 def test_avisos_al_80_por_ciento_y_al_vencer_una_sola_vez(client, crear_cuenta, entrar, session, correos):
     crear_cuenta("usr@ejemplo.com")
-    tec = crear_cuenta("jimmy@ejemplo.com", "tecnico", nombre="Jimmy Lopez")
-    t = _crear(client, entrar("usr@ejemplo.com"), prioridad="Alta")  # 3 días → Jimmy (Power BI)
+    tec = crear_cuenta("ana@ejemplo.com", "tecnico", nombre="Ana Mora")
+    t = _crear(client, entrar("usr@ejemplo.com"), prioridad="Alta")  # 3 días → Ana (Power BI)
     assert t["tecnico_id"] == tec.id
     _limpiar(correos)
 
@@ -164,8 +164,8 @@ def test_avisos_al_80_por_ciento_y_al_vencer_una_sola_vez(client, crear_cuenta, 
     assert avisos_sla.revisar(session, ahora + timedelta(days=3, hours=1)) == 1  # vencido
     assert avisos_sla.revisar(session, ahora + timedelta(days=4)) == 0
     assert _correos(correos) == [
-        ("jimmy@ejemplo.com", f"Ticket #{t['id']}: plazo por vencer"),
-        ("jimmy@ejemplo.com", f"Ticket #{t['id']}: plazo vencido"),
+        ("ana@ejemplo.com", f"Ticket #{t['id']}: plazo por vencer"),
+        ("ana@ejemplo.com", f"Ticket #{t['id']}: plazo vencido"),
     ]
 
 

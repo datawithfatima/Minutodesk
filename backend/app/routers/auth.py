@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.database import get_session
@@ -37,27 +37,63 @@ def _buscar_por_email(session: Session, email: str):
     return session.exec(select(Cliente).where(Cliente.email == email.strip().lower())).first()
 
 
-# Freno contra adivinar contraseñas: tras varios intentos fallidos con un mismo correo,
-# se bloquea ese correo un rato. Vive en memoria: se reinicia al reiniciar el backend.
+# Freno contra adivinar contraseñas, en dos niveles (viven en memoria: se reinician al
+# reiniciar el backend):
+# - por correo: tras 5 intentos fallidos con un mismo correo, ese correo se bloquea 15 min;
+# - por equipo (IP): tras 20 fallos desde un mismo origen, sea con el correo que sea, ese
+#   origen se bloquea 15 min. Frena el «rociado» de una contraseña común contra muchos correos.
 MAX_INTENTOS_FALLIDOS = 5
+MAX_FALLOS_POR_IP = 20
 VENTANA_BLOQUEO = timedelta(minutes=15)
+# Tope de claves recordadas: alguien que prueba miles de correos inventados no llena la memoria.
+MAX_CLAVES_RECORDADAS = 5000
 intentos_fallidos: dict[str, list[datetime]] = {}
+fallos_por_ip: dict[str, list[datetime]] = {}
+# Lo mismo para «olvidé mi contraseña»: un mismo origen no puede pedir enlaces sin límite.
+MAX_RECUPERACIONES_POR_IP = 10
+recuperaciones_por_ip: dict[str, list[datetime]] = {}
 
 
-def _intentos_recientes(email: str) -> list[datetime]:
+def ip_de(request: Request) -> str:
+    """Origen de la petición. Con el túnel de Cloudflare todo llega desde 127.0.0.1 (el
+    proxy de Vite), así que se usa la IP real que Cloudflare pone en CF-Connecting-IP."""
+    reenviada = request.headers.get("cf-connecting-ip", "").strip()
+    if reenviada:
+        return reenviada[:64]
+    return request.client.host if request.client else "desconocido"
+
+
+def _recientes(registro: dict[str, list[datetime]], clave: str) -> list[datetime]:
     desde = datetime.now() - VENTANA_BLOQUEO
-    recientes = [t for t in intentos_fallidos.get(email, []) if t > desde]
+    recientes = [t for t in registro.get(clave, []) if t > desde]
     if recientes:
-        intentos_fallidos[email] = recientes
+        registro[clave] = recientes
     else:
-        intentos_fallidos.pop(email, None)
+        registro.pop(clave, None)
     return recientes
 
 
+def _anotar(registro: dict[str, list[datetime]], clave: str) -> None:
+    if clave not in registro and len(registro) >= MAX_CLAVES_RECORDADAS:
+        for vieja in list(registro):  # se descartan las que ya no tienen intentos recientes
+            _recientes(registro, vieja)
+        if len(registro) >= MAX_CLAVES_RECORDADAS:
+            registro.pop(next(iter(registro)))  # la más antigua
+    registro.setdefault(clave, []).append(datetime.now())
+
+
+def _intentos_recientes(email: str) -> list[datetime]:
+    return _recientes(intentos_fallidos, email)
+
+
 @router.post("/login", response_model=TokenResponse)
-def iniciar_sesion(data: LoginRequest, session: Session = Depends(get_session)):
-    email = data.email.strip().lower()
-    if len(_intentos_recientes(email)) >= MAX_INTENTOS_FALLIDOS:
+def iniciar_sesion(data: LoginRequest, request: Request, session: Session = Depends(get_session)):
+    email = data.email.strip().lower()[:254]
+    ip = ip_de(request)
+    if (
+        len(_intentos_recientes(email)) >= MAX_INTENTOS_FALLIDOS
+        or len(_recientes(fallos_por_ip, ip)) >= MAX_FALLOS_POR_IP
+    ):
         raise HTTPException(
             status_code=429,
             detail="Demasiados intentos fallidos. Espera 15 minutos o usa «¿Olvidaste tu contraseña?».",
@@ -66,7 +102,8 @@ def iniciar_sesion(data: LoginRequest, session: Session = Depends(get_session)):
     hash_guardado = cliente.password_hash if cliente and cliente.password_hash else HASH_FALSO
     password_ok = verificar_password(data.password, hash_guardado)
     if cliente is None or cliente.password_hash is None or not password_ok:
-        intentos_fallidos.setdefault(email, []).append(datetime.now())
+        _anotar(intentos_fallidos, email)
+        _anotar(fallos_por_ip, ip)
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
     intentos_fallidos.pop(email, None)
     if not cliente.activo:
@@ -82,11 +119,16 @@ def iniciar_sesion(data: LoginRequest, session: Session = Depends(get_session)):
 @router.post("/olvide-password", response_model=MensajeRespuesta)
 def olvide_password(
     data: OlvidePasswordRequest,
+    request: Request,
     tareas: BackgroundTasks,
     session: Session = Depends(get_session),
 ):
     # La respuesta es siempre la misma, exista o no el correo, para no revelar quién tiene cuenta.
-    cliente = _buscar_por_email(session, data.email)
+    ip = ip_de(request)
+    if len(_recientes(recuperaciones_por_ip, ip)) >= MAX_RECUPERACIONES_POR_IP:
+        return MensajeRespuesta(mensaje=MENSAJE_GENERICO)  # sin enviar nada, sin delatar el freno
+    _anotar(recuperaciones_por_ip, ip)
+    cliente = _buscar_por_email(session, data.email[:254])
     if (
         cliente is not None
         and cliente.activo

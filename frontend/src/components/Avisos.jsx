@@ -1,11 +1,20 @@
-import { Bell, ClipboardCheck, MessageSquare } from "lucide-react";
+import { AlarmClock, BadgeCheck, Bell, ClipboardCheck, MessageCircleQuestion, MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { misAvisos } from "../api";
 
 const CADA_MS = 60_000; // se revisa cada minuto y al cambiar de pantalla
 
-/** Campanita de la barra superior: mensajes nuevos en tus tickets y aprobaciones pendientes. */
+// Cómo se muestra cada tipo de aviso (los tres últimos los genera el seguimiento por plazos).
+const TIPOS = {
+  aprobacion: { Icono: ClipboardCheck, titulo: "Te piden una aprobación" },
+  mensaje: { Icono: MessageSquare, titulo: "Nuevo mensaje" },
+  sin_avance: { Icono: AlarmClock, titulo: "Ticket sin avance" },
+  esperando_respuesta: { Icono: MessageCircleQuestion, titulo: "Soporte espera tu respuesta" },
+  confirmar_cierre: { Icono: BadgeCheck, titulo: "¿Quedó resuelto?" },
+};
+
+/** Campanita de la barra superior: mensajes nuevos, aprobaciones pendientes y avisos de seguimiento por plazos. */
 export default function Avisos() {
   const { pathname } = useLocation();
   const seccion = pathname.split("/")[1]; // usuario | tecnico | admin
@@ -69,7 +78,7 @@ export default function Avisos() {
             <ul className="max-h-80 divide-y divide-gray-100 overflow-y-auto">
               {avisos.map((a) => {
                 const esAprobacion = a.tipo === "aprobacion";
-                const Icono = esAprobacion ? ClipboardCheck : MessageSquare;
+                const { Icono, titulo } = TIPOS[a.tipo] ?? TIPOS.mensaje;
                 return (
                   <li key={`${a.tipo}-${a.ticket_id}-${a.fecha}`}>
                     <Link
@@ -80,7 +89,7 @@ export default function Avisos() {
                       <Icono size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-acento" />
                       <span className="min-w-0">
                         <span className="block text-xs font-medium text-gray-700">
-                          {esAprobacion ? "Te piden una aprobación" : "Nuevo mensaje"} · ticket #{a.ticket_id}
+                          {titulo} · ticket #{a.ticket_id}
                         </span>
                         <span className="line-clamp-2 text-sm text-gray-600">{a.texto}</span>
                         <span className="text-[11px] text-gray-400">{new Date(a.fecha).toLocaleString()}</span>

@@ -100,8 +100,8 @@ def test_solucion_esperada_se_guarda_sin_tocar_la_respuesta_de_minutito(
 def test_limpiar_texto_quita_menciones_y_nombres_antes_de_la_cedula():
     from app.services.anonimizar import limpiar_texto
 
-    assert limpiar_texto("Ingreso de Danny Briones C.I. # 0912345678", []) == "Ingreso de [persona] C.I. # [número]"
-    assert limpiar_texto("@Robert Vasquez revisa esto", []) == "@[persona] revisa esto"
+    assert limpiar_texto("Ingreso de Juan Pérez C.I. # 0912345678", []) == "Ingreso de [persona] C.I. # [número]"
+    assert limpiar_texto("@Pedro Gómez revisa esto", []) == "@[persona] revisa esto"
     # sin nombre ni dato personal, el texto no cambia
     assert limpiar_texto("No tengo internet en la oficina, ci ves algo", []) == "No tengo internet en la oficina, ci ves algo"
 

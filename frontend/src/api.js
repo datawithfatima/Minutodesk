@@ -124,6 +124,10 @@ export const cancelarTicket = (id, motivo) => enviar("POST", `/tickets/${id}/can
 export const listarMotivosPausa = () => get("/tickets/motivos-pausa");
 export const pausarSla = (id, { motivo, detalle }) => enviar("POST", `/tickets/${id}/sla/pausar`, { motivo, detalle });
 export const reanudarSla = (id) => enviar("POST", `/tickets/${id}/sla/reanudar`, {});
+export const tomarTicket = (id) => enviar("POST", `/tickets/${id}/tomar`, {});
+export const liberarTicket = (id, { motivo, detalle }) => enviar("POST", `/tickets/${id}/liberar`, { motivo, detalle });
+export const listarMotivosLiberacion = () => get("/tickets/motivos-liberacion");
+export const listarAsignaciones = (ticketId) => get(`/tickets/${ticketId}/asignaciones`);
 export const listarInteracciones = (ticketId) => get(`/tickets/${ticketId}/interacciones`);
 export const listarHistorial = (ticketId) => get(`/tickets/${ticketId}/historial`);
 export const confirmarResolucion = (ticketId, resuelto) =>
@@ -307,3 +311,14 @@ export const restablecerPassword = (id) =>
 export const listarAreas = () => get("/admin/areas");
 export const crearArea = ({ nombre }) => enviar("POST", "/admin/areas", { nombre });
 export const actualizarArea = (id, data) => enviar("PATCH", `/admin/areas/${id}`, data);
+
+// Plazos de seguimiento (20/11/2026): ticket parecido, «¿quedó resuelto?» y principal/afectados.
+export const misTicketsParecidos = ({ texto, categoria }) =>
+  enviar("POST", "/tickets/parecidos-mios", { texto, categoria: categoria || null });
+export const obtenerConfirmacionCierre = (ticketId) => get(`/tickets/${ticketId}/confirmacion-cierre`);
+export const responderConfirmacionCierre = (ticketId, { quedoResuelto, comentario }) =>
+  enviar("POST", `/tickets/${ticketId}/confirmacion-cierre`, { quedo_resuelto: quedoResuelto, comentario: comentario || null });
+export const listarAfectados = (ticketId) => get(`/tickets/${ticketId}/afectados`);
+export const incidenteSugerido = (ticketId) => get(`/tickets/${ticketId}/incidente-sugerido`);
+export const unirAfectados = (ticketId, ids) => enviar("POST", `/tickets/${ticketId}/afectados`, { ids });
+export const separarAfectado = (ticketId) => enviar("DELETE", `/tickets/${ticketId}/afectado`);

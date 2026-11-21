@@ -17,6 +17,14 @@ import Card from "../../components/ui/Card";
 import PageHeader from "../../components/ui/PageHeader";
 import Spinner from "../../components/ui/Spinner";
 import { inputClass, labelClass } from "../../components/ui/formStyles";
+import Selector from "../../components/ui/Selector";
+import {
+  SelectorVistaUsuarios,
+  VistaTablero,
+  VistaTarjetas,
+  guardarVista,
+  vistaGuardada,
+} from "../../components/usuarios/VistasUsuarios";
 
 const FORM_VACIO = { nombre: "", email: "", area_id: "", rol: "usuario", activo: true };
 
@@ -32,7 +40,7 @@ function EstadoCuenta({ usuario: u }) {
   return <Badge color="green">Activo</Badge>;
 }
 
-function AccionesUsuario({ usuario: u, esYo, onEditar, onRestablecer, onEliminar, className = "" }) {
+function AccionesUsuario({ usuario: u, esYo, onEditar, onRestablecer, onEliminar, className = "", compacta = false }) {
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
       <Button variant="outlineSecondary" size="sm" onClick={() => onEditar(u)}>
@@ -44,14 +52,28 @@ function AccionesUsuario({ usuario: u, esYo, onEditar, onRestablecer, onEliminar
           size="sm"
           onClick={() => onRestablecer(u)}
           title="Restablecer contraseña"
+          aria-label={compacta ? `Restablecer la contraseña de ${u.nombre}` : undefined}
         >
-          <KeyRound size={14} /> Restablecer
-          <span className="-ml-1.5 hidden sm:inline"> contraseña</span>
+          <KeyRound size={14} aria-hidden="true" />
+          {!compacta && (
+            <>
+              {" "}
+              Restablecer
+              <span className="-ml-1.5 hidden sm:inline"> contraseña</span>
+            </>
+          )}
         </Button>
       )}
       {!esYo && (
-        <Button variant="outlineDanger" size="sm" onClick={() => onEliminar(u)}>
-          <Trash2 size={14} /> Eliminar
+        <Button
+          variant="outlineDanger"
+          size="sm"
+          onClick={() => onEliminar(u)}
+          title="Eliminar"
+          aria-label={compacta ? `Eliminar a ${u.nombre}` : undefined}
+        >
+          <Trash2 size={14} aria-hidden="true" />
+          {!compacta && " Eliminar"}
         </Button>
       )}
     </div>
@@ -69,6 +91,7 @@ export default function UsuariosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
+  const [vista, setVista] = useState(vistaGuardada); // tabla | tablero | tarjetas
   const [panel, setPanel] = useState(null); // { modo: "crear" } | { modo: "editar", usuario }
   const [form, setForm] = useState(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
@@ -107,6 +130,18 @@ export default function UsuariosPage() {
         return true;
       }),
     [usuarios, busqueda, filtroRol, filtroEstado]
+  );
+
+  // Botones de cada persona en las vistas de tablero y tarjetas.
+  const accionesDe = ({ usuario }) => (
+    <AccionesUsuario
+      usuario={usuario}
+      esYo={usuario.id === yo.id}
+      onEditar={abrirEditar}
+      onRestablecer={restablecer}
+      onEliminar={eliminar}
+      compacta
+    />
   );
 
   function abrirCrear() {
@@ -253,7 +288,7 @@ export default function UsuariosPage() {
               </div>
               <div className="min-w-0 flex-1 sm:flex-none">
                 <label className={labelClass}>Rol</label>
-                <select
+                <Selector
                   className={`${inputClass} sm:w-44`}
                   value={filtroRol}
                   onChange={(e) => setFiltroRol(e.target.value)}
@@ -264,11 +299,11 @@ export default function UsuariosPage() {
                       {etiqueta}
                     </option>
                   ))}
-                </select>
+                </Selector>
               </div>
               <div className="min-w-0 flex-1 sm:flex-none">
                 <label className={labelClass}>Estado</label>
-                <select
+                <Selector
                   className={`${inputClass} sm:w-36`}
                   value={filtroEstado}
                   onChange={(e) => setFiltroEstado(e.target.value)}
@@ -276,7 +311,7 @@ export default function UsuariosPage() {
                   <option value="">Todos</option>
                   <option value="activo">Activos</option>
                   <option value="inactivo">Inactivos</option>
-                </select>
+                </Selector>
               </div>
               <Button variant="dark" onClick={abrirCrear} className="w-full sm:w-auto">
                 <Plus size={16} /> Nuevo usuario
@@ -316,7 +351,7 @@ export default function UsuariosPage() {
                     </div>
                     <div>
                       <label className={labelClass}>Área</label>
-                      <select
+                      <Selector
                         className={inputClass}
                         value={form.area_id}
                         onChange={(e) => setForm({ ...form, area_id: e.target.value })}
@@ -328,11 +363,11 @@ export default function UsuariosPage() {
                             {a.activo ? "" : " (inactiva)"}
                           </option>
                         ))}
-                      </select>
+                      </Selector>
                     </div>
                     <div>
                       <label className={labelClass}>Rol</label>
-                      <select
+                      <Selector
                         className={inputClass}
                         value={form.rol}
                         onChange={(e) => setForm({ ...form, rol: e.target.value })}
@@ -343,7 +378,7 @@ export default function UsuariosPage() {
                             {etiqueta}
                           </option>
                         ))}
-                      </select>
+                      </Selector>
                     </div>
                     {panel.modo === "editar" && (
                       <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -381,6 +416,30 @@ export default function UsuariosPage() {
             </div>
           )}
 
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gray-500">
+              {visibles.length} {visibles.length === 1 ? "persona" : "personas"}
+            </p>
+            <div className="w-full sm:w-80">
+              <SelectorVistaUsuarios
+                vista={vista}
+                onCambiar={(v) => {
+                  setVista(v);
+                  guardarVista(v);
+                }}
+              />
+            </div>
+          </div>
+
+          {vista === "tablero" && (
+            <VistaTablero usuarios={visibles} yoId={yo.id} Estado={EstadoCuenta} Acciones={accionesDe} />
+          )}
+          {vista === "tarjetas" && (
+            <VistaTarjetas usuarios={visibles} yoId={yo.id} Estado={EstadoCuenta} Acciones={accionesDe} />
+          )}
+
+          {vista === "tabla" && (
+          <>
           {/* Móvil y tablet: una tarjeta por persona. */}
           <Card className="divide-y divide-gray-100 overflow-hidden lg:hidden">
             {visibles.map((u) => (
@@ -455,6 +514,8 @@ export default function UsuariosPage() {
               <p className="p-4 text-sm text-gray-500">No hay usuarios para este filtro.</p>
             )}
           </Card>
+          </>
+          )}
         </>
       )}
     </>

@@ -172,7 +172,10 @@ export default function IncidenciasHistorico() {
           <Card.Body>
             <div className="text-sm font-medium text-gray-500">Reducción del tiempo promedio</div>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-3xl font-semibold tracking-tight text-noche">{porcentaje(datos.reduccion)}</span>
+              {/* Sin ninguna marcada, la simulada es igual a la real: un 0 % que no mide nada. */}
+              <span className="text-3xl font-semibold tracking-tight text-noche">
+                {marcadas > 0 ? porcentaje(datos.reduccion) : "—"}
+              </span>
               {marcadas > 0 && (
                 <Badge color={cumple ? "green" : "amber"}>
                   {cumple ? "Cumple" : "Por debajo de"} la meta de {porcentaje(datos.meta)}
@@ -180,8 +183,14 @@ export default function IncidenciasHistorico() {
               )}
             </div>
             <p className="mt-1 text-sm text-gray-500">
-              De {dias(datos.media_real_dias)} a {dias(datos.media_simulada_dias)} en promedio.
-              {datos.sin_evaluar > 0 && " Las que faltan marcar cuentan como no resueltas."}
+              {marcadas > 0 ? (
+                <>
+                  De {dias(datos.media_real_dias)} a {dias(datos.media_simulada_dias)} en promedio.
+                  {datos.sin_evaluar > 0 && " Las que faltan marcar cuentan como no resueltas."}
+                </>
+              ) : (
+                `Aún no se marca ninguna. Tiempo real promedio: ${dias(datos.media_real_dias)}.`
+              )}
             </p>
           </Card.Body>
         </Card>

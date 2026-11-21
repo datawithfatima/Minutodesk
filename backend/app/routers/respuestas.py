@@ -21,6 +21,7 @@ from app.models import Cliente, RespuestaPredefinida, Ticket
 from app.routers.tickets import ESTADOS_FINALES, _con_sla, cancelar_ticket
 from app.schemas import CancelarTicket, TicketRead
 from app.services.auth import requerir_personal
+from app.services import toma
 from app.services.conocimiento import normalizar
 
 router = APIRouter()
@@ -292,6 +293,7 @@ def vincular_duplicado(
     principal = session.get(Ticket, data.principal_id)
     if ticket is None or principal is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    toma.exigir_que_pueda_atender(session, ticket, usuario)
     if principal.id == ticket.id:
         raise HTTPException(status_code=400, detail="Un ticket no puede ser duplicado de sí mismo.")
     if principal.duplicado_de_id is not None:

@@ -8,16 +8,34 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
 os.environ.setdefault("MINUTITO_PRECALENTAR", "0")  # las pruebas no cargan el modelo
+os.environ.setdefault("SEUDONIMOS_KEY", "clave-solo-para-pruebas")  # no crea backend/.clave_seudonimos
 
 from app.database import get_session
 from app.main import app
 from app.models import Area, Cliente
-from app.routers.auth import intentos_fallidos
+from app.routers.auth import fallos_por_ip, intentos_fallidos, recuperaciones_por_ip
 from app.routers.minutito import mensajes_recientes, respondiendo
-from app.services import correo
+from app.services import asignacion, correo
 from app.services.auth import hashear_password
 
 PASSWORD = "Clave12345"
+
+# Tabla de técnicos por sistema con nombres ficticios: la real vive fuera del repositorio
+# (backend/tecnicos_por_categoria.json) y las pruebas no dependen de ella.
+TABLA_DE_PRUEBA = {
+    "Power BI": ["Ana Mora"],
+    "Office": ["Gabriel Ruiz", "Sofía Luna"],
+    "Internet": ["Gabriel Ruiz", "Sofía Luna"],
+    "Interpro": ["Gabriel Ruiz", "Sofía Luna"],
+    "Salesforce": ["Pedro Vera"],
+    "Webdox": ["Pedro Vera", "Marta Gil"],
+    "Otros": [asignacion.TODOS],
+}
+
+
+@pytest.fixture(autouse=True)
+def tabla_de_tecnicos(monkeypatch):
+    monkeypatch.setattr(asignacion, "TECNICOS_POR_CATEGORIA", TABLA_DE_PRUEBA)
 
 
 @pytest.fixture()
@@ -59,6 +77,8 @@ def client(engine, correos):
 
     app.dependency_overrides[get_session] = _sesion
     intentos_fallidos.clear()  # el freno de inicio de sesión no pasa de una prueba a otra
+    fallos_por_ip.clear()
+    recuperaciones_por_ip.clear()
     mensajes_recientes.clear()
     respondiendo.clear()
     yield TestClient(app)

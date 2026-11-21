@@ -13,6 +13,7 @@ import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { inputClass, labelClass } from "../ui/formStyles";
 import RespuestasPredefinidas from "./RespuestasPredefinidas";
+import Selector from "../ui/Selector";
 
 // Cada cuánto se buscan mensajes nuevos mientras la pantalla está abierta.
 const INTERVALO_MS = 15000;
@@ -115,7 +116,7 @@ function FormAprobacion({ ticket, onCreada, onCancelar }) {
         {personas === null ? (
           <Spinner size="sm" />
         ) : (
-          <select
+          <Selector
             id="aprobador"
             required
             value={aprobadorId}
@@ -128,7 +129,7 @@ function FormAprobacion({ ticket, onCreada, onCancelar }) {
                 {p.nombre} · {p.area}
               </option>
             ))}
-          </select>
+          </Selector>
         )}
       </div>
       <div>
@@ -166,7 +167,12 @@ function FormAprobacion({ ticket, onCreada, onCancelar }) {
  * Chat del ticket entre la persona que lo abrió y el equipo de soporte, con los pasos de
  * aprobación intercalados por fecha. El personal además puede pedir aprobaciones.
  */
-export default function ConversacionTicket({ ticket, esPersonal = false }) {
+/**
+ * `bloqueadoPor`: nombre del técnico que atiende el ticket cuando no es quien mira (solo
+ * esa persona o un administrador le escriben al solicitante). `onEnviado`: avisa a la
+ * página, porque la primera respuesta del personal toma el ticket.
+ */
+export default function ConversacionTicket({ ticket, esPersonal = false, bloqueadoPor = null, onEnviado }) {
   const yo = obtenerUsuario();
   const [datos, setDatos] = useState(null);
   const [texto, setTexto] = useState("");
@@ -200,6 +206,7 @@ export default function ConversacionTicket({ ticket, esPersonal = false }) {
       await enviarMensajeSoporte(ticket.id, texto);
       setTexto("");
       await cargar();
+      onEnviado?.();
     } catch (e) {
       setError(e.message);
     } finally {
@@ -218,7 +225,9 @@ export default function ConversacionTicket({ ticket, esPersonal = false }) {
     <div className="space-y-3">
       {linea.length === 0 ? (
         <Alert variant="secondary">
-          {esPersonal
+          {bloqueadoPor
+            ? "Todavía no hay mensajes."
+            : esPersonal
             ? "Todavía no hay mensajes. Escríbele al usuario para pedirle datos o contarle cómo avanza."
             : "Aquí puedes conversar con el técnico que atiende tu ticket."}
         </Alert>
@@ -239,6 +248,11 @@ export default function ConversacionTicket({ ticket, esPersonal = false }) {
 
       {cerrado ? (
         <p className="text-sm text-gray-500">El ticket está cerrado: el chat queda solo para consulta.</p>
+      ) : bloqueadoPor ? (
+        <p className="text-sm text-gray-500">
+          Este ticket lo atiende <strong className="font-medium text-noche">{bloqueadoPor}</strong>: solo esa persona o
+          un administrador le escriben al solicitante.
+        </p>
       ) : (
         <>
           <form onSubmit={enviar} className="flex items-end gap-2">

@@ -44,3 +44,7 @@ backend/respaldos/
 
 # Corridas de Minutito en pausa (estado local)
 backend/corridas_pausadas.json
+
+# Tabla real de técnicos por sistema (nombres reales) y clave de los seudónimos
+backend/tecnicos_por_categoria.json
+.clave_seudonimos

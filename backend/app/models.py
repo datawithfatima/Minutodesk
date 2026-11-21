@@ -72,6 +72,11 @@ class Ticket(SQLModel, table=True):
     # Falso mientras el técnico es el que sugirió el sistema según la categoría; verdadero
     # cuando alguien lo eligió o tomó el ticket a mano (entonces no se reasigna solo).
     tecnico_manual: bool = Field(default=False)
+    # Cuándo el técnico actual tomó el ticket (con «Tomar», al pasarlo a «En proceso» o
+    # con su primera respuesta), o el administrador se lo asignó. Mientras no sea nulo el
+    # ticket es suyo: los demás técnicos no pueden tomarlo ni reasignarlo. Nulo = sugerido
+    # o sin asignar, cualquiera puede tomarlo.
+    tomado_en: Optional[datetime] = Field(default=None)
     texto: str
     tipo_predicho: Optional[str] = Field(default=None)
     categoria_predicha: Optional[str] = Field(default=None, index=True)
@@ -123,6 +128,27 @@ class HistorialEstadoTicket(SQLModel, table=True):
     # Nulo cuando el cambio lo hizo Minutito (no una persona).
     cambiado_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
     motivo: Optional[str] = Field(default=None)  # por ahora, solo al cancelar
+    fecha: datetime = Field(default_factory=datetime.now)
+
+
+class AsignacionTicket(SQLModel, table=True):
+    """Quién tomó, liberó o reasignó cada ticket, y por qué (la liberación exige motivo)."""
+
+    __tablename__ = "asignacion_ticket"
+    __table_args__ = (
+        CheckConstraint("accion IN ('tomado','liberado','reasignado')", name="ck_asignacion_accion"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", index=True)
+    accion: str
+    # Técnico que queda a cargo (tomado/reasignado) o que suelta el ticket (liberado).
+    tecnico_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
+    por_id: int = Field(foreign_key="cliente.id")
+    motivo: Optional[str] = Field(default=None)  # clave de MOTIVOS_LIBERACION
+    detalle: Optional[str] = Field(default=None)
+    # Cómo se tomó: «boton», «respuesta», «estado» (al pasar a En proceso o resolver).
+    via: Optional[str] = Field(default=None)
     fecha: datetime = Field(default_factory=datetime.now)
 
 
@@ -401,3 +427,52 @@ class EvaluacionHistorico(SQLModel, table=True):
     veredicto: Optional[str] = Field(default=None)
     evaluado_por_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
     evaluado_en: Optional[datetime] = Field(default=None)
+
+
+class AvisoAutomatico(SQLModel, table=True):
+    """Lo que MinutoDesk hizo solo por los plazos de seguimiento (services/seguimiento.py):
+    avisar al administrador de un ticket sin avance, recordarle al usuario que se espera su
+    respuesta, cerrar un ticket sin respuesta o recordar una aprobación pendiente. Sirve
+    para no repetir un aviso y para mostrarlo en la campanita."""
+
+    __tablename__ = "aviso_automatico"
+    __table_args__ = (
+        CheckConstraint(
+            "tipo IN ('sin_avance','recordatorio_usuario','cierre_sin_respuesta','recordatorio_aprobacion')",
+            name="ck_aviso_automatico_tipo",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", index=True)
+    tipo: str
+    # La pausa «Esperando al usuario» o la aprobación a la que se refiere (si aplica).
+    referencia_id: Optional[int] = Field(default=None)
+    # Desde cuándo se contó (p. ej. la última actividad del técnico): si cambia, es otro caso.
+    desde: Optional[datetime] = Field(default=None)
+    enviado_en: datetime = Field(default_factory=datetime.now)
+
+
+class ConfirmacionCierre(SQLModel, table=True):
+    """«¿Quedó resuelto?»: cuando un técnico marca resuelto un ticket, quien lo abrió lo
+    confirma o dice que no quedó resuelto (vuelve al mismo técnico). Si no contesta dentro
+    del plazo, se confirma solo. Una fila por cada vez que se resolvió; vale la última."""
+
+    __tablename__ = "confirmacion_cierre"
+    __table_args__ = (
+        CheckConstraint(
+            "respuesta IN ('pendiente','confirmado','rechazado','automatico','anulado')",
+            name="ck_confirmacion_cierre_respuesta",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: int = Field(foreign_key="ticket.id", index=True)
+    tecnico_id: Optional[int] = Field(default=None, foreign_key="cliente.id")
+    resuelto_en: datetime = Field(default_factory=datetime.now)
+    vence_en: datetime  # si el usuario no contesta antes, se confirma solo
+    # pendiente → confirmado (dijo que sí) | rechazado (dijo que no, se reabrió) |
+    # automatico (no contestó a tiempo) | anulado (el personal lo reabrió antes)
+    respuesta: str = Field(default="pendiente", index=True)
+    comentario: Optional[str] = Field(default=None)
+    respondido_en: Optional[datetime] = Field(default=None)

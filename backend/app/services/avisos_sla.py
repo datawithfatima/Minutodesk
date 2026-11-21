@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from app.database import engine
 from app.models import Ticket
-from app.services import notificaciones, sla
+from app.services import notificaciones, seguimiento, sla
 
 logger = logging.getLogger("minutodesk.sla")
 
@@ -43,7 +43,10 @@ def revisar(session: Session, ahora: Optional[datetime] = None) -> int:
 
 def _revisar_con_sesion() -> int:
     with Session(engine) as session:
-        return revisar(session)
+        enviados = revisar(session)
+    # Plazos de seguimiento (sin avance, usuario que no contesta, aprobaciones pendientes).
+    with Session(engine) as session:
+        return enviados + seguimiento.revisar(session)
 
 
 async def bucle() -> None:

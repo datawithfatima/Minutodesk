@@ -23,12 +23,14 @@ import { inputClass } from "../../components/ui/formStyles";
 import EstadoBadge from "../../components/EstadoBadge";
 import { PrioridadPastilla } from "../../components/tickets/Pastillas";
 import { SlaPastilla } from "../../components/tickets/TemporizadorSla";
+import { AtiendePastilla } from "../../components/tickets/Atencion";
 import {
   CuadriculaTickets,
   SelectorVista,
   TableroTickets,
   VISTAS_TICKETS,
 } from "../../components/tickets/VistasTickets";
+import Selector from "../../components/ui/Selector";
 
 // La vista elegida (tabla, tablero o tarjetas) se recuerda en este navegador.
 const CLAVE_VISTA = "minutodesk_vista_tickets";
@@ -51,7 +53,7 @@ const TABS = [
 
 const POR_PAGINA = 10;
 
-function FilaCompacta({ base, ticket, cliente }) {
+function FilaCompacta({ base, ticket, cliente, tecnico, yoId }) {
   return (
     <Link to={`${base}/${ticket.id}`} className="block px-4 py-3 transition-colors duration-150 hover:bg-marfil">
       <div className="mb-0.5 flex items-center justify-between gap-2">
@@ -67,6 +69,9 @@ function FilaCompacta({ base, ticket, cliente }) {
           {new Date(ticket.creado_en).toLocaleDateString()}
         </span>
         <PrioridadPastilla prioridad={ticket.prioridad} />
+        <span className="ml-auto min-w-0">
+          <AtiendePastilla ticket={ticket} nombre={tecnico?.nombre} yoId={yoId} />
+        </span>
       </div>
     </Link>
   );
@@ -315,7 +320,7 @@ export default function TicketsWorkspace({
                   <label htmlFor="filtro-categoria" className="sr-only">
                     Categoría
                   </label>
-                  <select
+                  <Selector
                     id="filtro-categoria"
                     className={inputClass}
                     value={categoria}
@@ -330,7 +335,7 @@ export default function TicketsWorkspace({
                         {c}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </div>
                 <div className="relative min-w-0 sm:w-64">
                   <label htmlFor="filtro-busqueda" className="sr-only">
@@ -381,7 +386,14 @@ export default function TicketsWorkspace({
           {vista === "tabla" && visibles.length > 0 && (
             <Card className="mb-3 divide-y divide-gray-100 overflow-hidden md:hidden">
               {visibles.map((t) => (
-                <FilaCompacta key={t.id} base={base} ticket={t} cliente={clientesPorId[t.cliente_id]} />
+                <FilaCompacta
+                  key={t.id}
+                  base={base}
+                  ticket={t}
+                  cliente={clientesPorId[t.cliente_id]}
+                  tecnico={clientesPorId[t.tecnico_id]}
+                  yoId={yoId}
+                />
               ))}
             </Card>
           )}
@@ -397,6 +409,7 @@ export default function TicketsWorkspace({
                     <th className="px-3 py-2.5">Categoría</th>
                     <th className="px-3 py-2.5">Prioridad</th>
                     <th className="px-3 py-2.5">Estado</th>
+                    <th className="px-3 py-2.5">Atiende</th>
                     <th className="px-3 py-2.5">Plazo</th>
                     <th className="hidden px-4 py-2.5 xl:table-cell">Fecha</th>
                   </tr>
@@ -422,6 +435,9 @@ export default function TicketsWorkspace({
                       </td>
                       <td className="px-3 py-3">
                         <EstadoBadge estado={t.estado} />
+                      </td>
+                      <td className="max-w-[10rem] px-3 py-3">
+                        <AtiendePastilla ticket={t} nombre={clientesPorId[t.tecnico_id]?.nombre} yoId={yoId} />
                       </td>
                       <td className="px-3 py-3">
                         <SlaPastilla sla={t.sla} />

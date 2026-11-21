@@ -1,5 +1,7 @@
 import asyncio
+import json
 import os
+import re
 from contextlib import contextmanager
 
 from fastapi import FastAPI, Request
@@ -15,13 +17,16 @@ from app.routers import (
     auth,
     bitacora,
     chat,
+    cierre,
     clientes,
     conocimiento,
     conversacion,
     encuestas,
     gamificacion,
     historico,
+    incidentes,
     minutito,
+    parecidos,
     reportes,
     respuestas,
     tickets,
@@ -122,9 +127,58 @@ class BitacoraDeAuditoria:
 app.add_middleware(BitacoraDeAuditoria)
 
 
+# Las subidas de archivos tienen su propio tope (10 MB, en cuerpo.py); el resto de la API
+# solo recibe JSON pequeño. Sin este límite, un cuerpo JSON de cientos de MB se cargaría
+# entero en memoria antes de que ningún endpoint pudiera rechazarlo.
+MAX_BYTES_JSON = 1024 * 1024
+RUTAS_DE_SUBIDA = re.compile(r"^/(api/)?(tickets/\d+/adjuntos|minutito/conversaciones/\d+/imagenes)/?$")
+
+
+class LimiteDeCuerpo:
+    def __init__(self, aplicacion, maximo: int = MAX_BYTES_JSON):
+        self.aplicacion = aplicacion
+        self.maximo = maximo
+
+    async def _rechazar(self, send):
+        cuerpo = json.dumps({"detail": "La petición es demasiado grande."}).encode()
+        await send({"type": "http.response.start", "status": 413,
+                    "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(cuerpo)).encode())]})
+        await send({"type": "http.response.body", "body": cuerpo})
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] in ("GET", "HEAD", "OPTIONS") or RUTAS_DE_SUBIDA.match(scope["path"]):
+            return await self.aplicacion(scope, receive, send)
+        for nombre, valor in scope.get("headers", []):
+            if nombre == b"content-length" and valor.isdigit() and int(valor) > self.maximo:
+                return await self._rechazar(send)
+        # Sin Content-Length (envío por partes) se lee hasta el tope y se reenvía tal cual.
+        mensajes, total = [], 0
+        while True:
+            mensaje = await receive()
+            mensajes.append(mensaje)
+            if mensaje["type"] != "http.request":
+                break
+            total += len(mensaje.get("body", b""))
+            if total > self.maximo:
+                return await self._rechazar(send)
+            if not mensaje.get("more_body", False):
+                break
+
+        async def repetir():
+            return mensajes.pop(0) if mensajes else await receive()
+
+        await self.aplicacion(scope, repetir, send)
+
+
+app.add_middleware(LimiteDeCuerpo)
+
+
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(bitacora.router, prefix="/admin", tags=["bitacora"])  # bitácora y respaldos
+app.include_router(parecidos.router, tags=["parecidos"])  # «ya tienes uno abierto igual»
+app.include_router(cierre.router, tags=["cierre"])  # «¿quedó resuelto?»
+app.include_router(incidentes.router, tags=["incidentes"])  # ticket principal y afectados
 app.include_router(tickets.router, prefix="/tickets", tags=["tickets"])
 app.include_router(adjuntos.router, tags=["adjuntos"])  # /tickets/{id}/adjuntos y /adjuntos/{id}
 app.include_router(chat.router, prefix="/tickets", tags=["chat"])

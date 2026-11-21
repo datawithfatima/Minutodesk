@@ -187,6 +187,19 @@ def estado_cambiado(
             tono="info",
             parrafos=[f"{quien}, del equipo de soporte, tomó tu ticket y ya está trabajando en él."],
         )
+    elif nuevo == "resuelto" and ticket.resuelto_por == "tecnico" and _pide_confirmacion(ticket):
+        datos = dict(
+            asunto="¿quedó resuelto?",
+            titulo="Marcamos tu ticket como resuelto",
+            etiqueta="Resuelto",
+            tono="ok",
+            parrafos=[
+                "Obra entregada: el equipo de soporte marcó tu ticket como resuelto. Entra a tu ticket y "
+                "cuéntanos si quedó bien: si no, vuelve al mismo técnico sin que tengas que crear otro.",
+                "Si no nos respondes en unos días, lo daremos por resuelto. "
+                "Ahí mismo califica la atención de 1 a 5 estrellas: toma diez segundos.",
+            ],
+        )
     elif nuevo == "resuelto":
         datos = dict(
             asunto="fue resuelto",
@@ -220,6 +233,25 @@ def estado_cambiado(
     else:
         return
     _al_solicitante(tareas, session, ticket, actor_id, **datos)
+
+
+def _pide_confirmacion(ticket: Ticket) -> bool:
+    from app.services.confirmacion import aplica  # aquí para evitar un import circular
+
+    return aplica(ticket)
+
+
+def no_quedo_resuelto(tareas: BackgroundTasks, session: Session, ticket: Ticket, autor: Cliente, comentario: str) -> None:
+    _al_tecnico(
+        tareas, session, ticket, autor.id,
+        asunto="no quedó resuelto",
+        titulo=f"{autor.nombre} dice que no quedó resuelto",
+        etiqueta="Reabierto",
+        tono="alerta",
+        parrafos=["El ticket que marcaste como resuelto volvió a «En proceso» y sigue a tu cargo."],
+        cita=_extracto(comentario),
+        cita_rotulo="Qué sigue fallando",
+    )
 
 
 def _duracion(segundos: int) -> str:

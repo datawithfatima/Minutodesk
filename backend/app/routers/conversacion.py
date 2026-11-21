@@ -12,7 +12,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Aprobacion, Cliente, MensajeTicket, Ticket
+from app.models import Aprobacion, Cliente, HistorialEstadoTicket, MensajeTicket, Ticket
 from app.schemas import (
     AprobacionCreate,
     AprobacionRead,
@@ -22,7 +22,7 @@ from app.schemas import (
     MensajeCreate,
     MensajeRead,
 )
-from app.services import correo, notificaciones, sla
+from app.services import correo, notificaciones, seguimiento, sla, toma
 from app.services.auth import es_personal, obtener_usuario_actual, requerir_personal
 
 router = APIRouter()
@@ -140,8 +140,24 @@ def enviar_mensaje(
         raise HTTPException(
             status_code=400, detail=f"El mensaje es demasiado largo (máximo {MAX_MENSAJE} caracteres)."
         )
+    if es_personal(usuario) and ticket.cliente_id != usuario.id:
+        # La primera respuesta del personal toma el ticket. Si ya lo atiende otro
+        # técnico, solo esa persona (o un administrador) le escribe al solicitante.
+        toma.exigir_que_pueda_atender(session, ticket, usuario)
+        if toma.tomar_si_libre(session, ticket, usuario, via="respuesta") and ticket.estado == "abierto":
+            # Ya hay alguien trabajando en él. El solicitante no recibe otro correo por el
+            # cambio de estado: ya le llega el del mensaje.
+            ticket.estado = "en_proceso"
+            session.add(ticket)
+            session.add(
+                HistorialEstadoTicket(
+                    ticket_id=ticket.id, estado_anterior="abierto", estado_nuevo="en_proceso", cambiado_por_id=usuario.id
+                )
+            )
     mensaje = MensajeTicket(ticket_id=ticket.id, autor_id=usuario.id, texto=texto)
     session.add(mensaje)
+    # Si soporte esperaba la respuesta del usuario, el plazo vuelve a correr.
+    seguimiento.reanudar_si_responde(session, ticket, usuario)
     session.commit()
     session.refresh(mensaje)
     notificaciones.mensaje_nuevo(tareas, session, ticket, usuario, texto)
@@ -165,6 +181,7 @@ def solicitar_aprobacion(
     session: Session = Depends(get_session),
 ):
     ticket = _ticket_accesible(session, ticket_id, usuario)
+    toma.exigir_que_pueda_atender(session, ticket, usuario)
     if ticket.estado in ESTADOS_CERRADOS:
         raise HTTPException(status_code=409, detail=f"Este ticket ya está {ticket.estado}.")
     descripcion = data.descripcion.strip()
@@ -246,6 +263,7 @@ def mis_avisos(usuario: Cliente = Depends(obtener_usuario_actual), session: Sess
         ).first()
         if ultimo is not None and ultimo.autor_id != usuario.id:
             avisos.append(AvisoRead(tipo="mensaje", ticket_id=t.id, texto=ultimo.texto[:160], fecha=ultimo.creado_en))
+    avisos += seguimiento.avisos_para(session, usuario)  # sin avance / esperando tu respuesta
     return sorted(avisos, key=lambda a: a.fecha, reverse=True)
 
 

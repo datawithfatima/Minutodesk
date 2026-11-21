@@ -6,6 +6,7 @@ import {
   conversacionMinutitoActual,
   crearTicket,
   hablarConMinutito,
+  misTicketsParecidos,
   nuevaConversacionMinutito,
   obtenerCatalogos,
   resolverConversacionMinutito,
@@ -14,11 +15,13 @@ import {
 } from "../api";
 import { obtenerUsuario } from "../auth";
 import Markdown from "./Markdown";
+import AvisoParecido from "./tickets/AvisoParecido";
 import SelectorArchivos from "./tickets/SelectorArchivos";
 import { tituloTipo } from "./tickets/formato";
 import Button from "./ui/Button";
 import Spinner from "./ui/Spinner";
 import { inputClass, labelClass } from "./ui/formStyles";
+import Selector from "./ui/Selector";
 
 const MAX_IMAGENES = 3; // igual que MAX_ADJUNTOS del backend: las imágenes pasan al ticket
 const MAX_BYTES_IMAGEN = 10 * 1024 * 1024;
@@ -35,6 +38,14 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
   const [archivos, setArchivos] = useState([]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
+  const [parecidos, setParecidos] = useState(null); // tickets abiertos suyos casi iguales
+  const crearIgual = useRef(false);
+  const formulario = useRef(null);
+
+  useEffect(() => {
+    setParecidos(null);
+    crearIgual.current = false;
+  }, [texto]);
 
   useEffect(() => {
     Promise.all([obtenerCatalogos(), borradorTicketMinutito(conversacionId)])
@@ -63,6 +74,14 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
     e.preventDefault();
     setEnviando(true);
     setError(null);
+    if (!crearIgual.current) {
+      const encontrados = await misTicketsParecidos({ texto, categoria }).catch(() => []);
+      if (encontrados.length) {
+        setParecidos(encontrados);
+        setEnviando(false);
+        return;
+      }
+    }
     try {
       // Si queda la categoría que el clasificador asignó solo, se envía vacía (como en el
       // formulario): así no cuenta como confirmada por la persona.
@@ -91,7 +110,7 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3 rounded-lg border border-acento/30 bg-acento-50/40 p-3 text-sm">
+    <form ref={formulario} onSubmit={enviar} className="space-y-3 rounded-lg border border-acento/30 bg-acento-50/40 p-3 text-sm">
       <div className="font-semibold text-noche">Tu ticket para el equipo de sistemas</div>
       <p className="text-xs text-gray-600">Lo armé con nuestra conversación. Revísalo y cámbialo si hace falta.</p>
       {error && <p className="text-red-600">{error}</p>}
@@ -115,23 +134,23 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
           <label htmlFor="borrador-tipo" className={labelClass}>
             Tipo
           </label>
-          <select id="borrador-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} className={inputClass}>
+          <Selector id="borrador-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} className={inputClass}>
             {catalogos.tipos.map((t) => (
               <option key={t.nombre} value={t.nombre}>
                 {tituloTipo(t.nombre)}
               </option>
             ))}
-          </select>
+          </Selector>
         </div>
         <div>
           <label htmlFor="borrador-prioridad" className={labelClass}>
             Prioridad
           </label>
-          <select id="borrador-prioridad" value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className={inputClass}>
+          <Selector id="borrador-prioridad" value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className={inputClass}>
             {catalogos.prioridades.map((p) => (
               <option key={p}>{p}</option>
             ))}
-          </select>
+          </Selector>
         </div>
       </div>
       {esAlta ? (
@@ -151,7 +170,7 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
               Clasificada automáticamente ({Math.round(sugerencia.confianza * 100)}% de confianza).
             </p>
           )}
-          <select
+          <Selector
             id="borrador-categoria"
             required
             value={categoria}
@@ -162,7 +181,7 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
             {catalogos.categorias.map((c) => (
               <option key={c}>{c}</option>
             ))}
-          </select>
+          </Selector>
         </div>
       )}
       {!esAlta && imagenesEnviadas > 0 && (
@@ -182,6 +201,14 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
           />
         </div>
       )}
+      <AvisoParecido
+        parecidos={parecidos}
+        enviando={enviando}
+        onCrearIgual={() => {
+          crearIgual.current = true;
+          formulario.current?.requestSubmit();
+        }}
+      />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" variant="dark" disabled={enviando || esAlta}>
           {enviando ? <Spinner size="sm" /> : "Enviar ticket"}
