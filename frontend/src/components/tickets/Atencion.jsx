@@ -166,7 +166,7 @@ export function PanelAtencion({ ticket, tecnico, yoId, esAdmin, motivos, deshabi
               className={`${inputClass} resize-y`}
             />
             <p className="mt-1 text-xs text-gray-500">
-              Vuelve a «Nuevo» y se sugiere a otro técnico del sistema. Queda en el historial y en la bitácora.
+              Vuelve a «Nuevo» y se sugiere a otro técnico.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

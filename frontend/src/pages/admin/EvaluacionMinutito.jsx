@@ -241,12 +241,7 @@ export default function EvaluacionMinutito() {
   return (
     <div className="space-y-4">
       <Alert variant="info">
-        Estos tickets se atendieron en la herramienta anterior, así que nadie habló con Minutito. Aquí se le pasa
-        a Minutito el texto de cada ticket y tú marcas si su respuesta lo habría resuelto. Es una{" "}
-        <strong className="font-semibold">estimación por evaluación experta</strong>: no crea conversaciones ni
-        cambia los tickets, y no se mezcla con la resolución autónoma real. En cada ticket puedes anotar qué se debía
-        hacer: Minutito aprende de esas soluciones para casos parecidos (también en el chat real). Su respuesta no se
-        edita, porque es lo que se evalúa.
+        <strong className="font-semibold">Evaluación experta</strong> · tickets cargados · no modifica los tickets
       </Alert>
       {error && <Alert variant="danger">{error}</Alert>}
       {aviso && <Alert variant="success">{aviso}</Alert>}
@@ -296,7 +291,7 @@ export default function EvaluacionMinutito() {
               <>
                 <p className="text-sm text-gray-600">
                   {faltan > 0
-                    ? `Faltan ${faltan} de ${datos.tickets_cargados} tickets por generar (necesita Ollama encendido).`
+                    ? `Faltan ${faltan} de ${datos.tickets_cargados} · requiere Ollama`
                     : `Generadas para los ${datos.tickets_cargados} tickets cargados.`}
                 </p>
                 {faltan > 0 && (
@@ -307,9 +302,8 @@ export default function EvaluacionMinutito() {
                 {datos.con_solucion > 0 && (
                   <>
                     <p className="text-sm text-gray-600">
-                      Minutito aprende de {datos.con_solucion}{" "}
-                      {datos.con_solucion === 1 ? "solución anotada" : "soluciones anotadas"}. Cada ticket se responde
-                      con las de los demás, nunca con la suya.
+                      {datos.con_solucion} {datos.con_solucion === 1 ? "solución anotada" : "soluciones anotadas"} ·
+                      dejando uno fuera
                     </p>
                     <Button size="sm" variant="outlinePrimary" onClick={() => generar(true)}>
                       Volver a generar con lo aprendido

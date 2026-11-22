@@ -155,7 +155,7 @@ function BorradorTicket({ conversacionId, imagenesEnviadas = 0, onCancelar }) {
       </div>
       {esAlta ? (
         <p className="rounded-md bg-superficie p-2 text-gray-700">
-          Las altas de colaboradores, accesos y permisos van en su propio formulario.{" "}
+          Altas y accesos tienen su propio formulario.{" "}
           <Link to="/usuario/nuevo-ticket" className="font-medium text-acento underline">
             Ir al formulario
           </Link>
@@ -279,6 +279,7 @@ export default function MinutitoPanel() {
   const [ofreceTicket, setOfreceTicket] = useState(false);
   const [creandoTicket, setCreandoTicket] = useState(false);
   const [resuelta, setResuelta] = useState(false);
+  const [puntosGanados, setPuntosGanados] = useState(0);
   const [error, setError] = useState(null);
   const [adjuntas, setAdjuntas] = useState([]); // imágenes elegidas para el próximo mensaje: [{ archivo, url }]
   const final = useRef(null);
@@ -385,7 +386,8 @@ export default function MinutitoPanel() {
   async function marcarResuelta() {
     setError(null);
     try {
-      await resolverConversacionMinutito(conversacion.id);
+      const r = await resolverConversacionMinutito(conversacion.id);
+      setPuntosGanados(r?.puntos_otorgados ?? 0);
       setResuelta(true);
     } catch (err) {
       setError(err.message);
@@ -459,13 +461,18 @@ export default function MinutitoPanel() {
         {resuelta && (
           <div className="relative flex items-center gap-2 overflow-hidden rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
             {/* Celebración de obra: el sello de «resuelto» se estampa y sube un piso con los puntos. */}
-            <CheckCircle2 size={16} className="anim-sello shrink-0" /> ¡Qué bueno que se resolvió! Ganaste 10 puntos de autoservicio.
-            <span
-              aria-hidden="true"
-              className="anim-sube-puntos absolute right-3 top-1/2 rounded-[3px] bg-casco px-1.5 py-0.5 font-mono text-[11px] font-semibold text-grafito"
-            >
-              +10
-            </span>
+            <CheckCircle2 size={16} className="anim-sello shrink-0" /> ¡Qué bueno que se resolvió!{" "}
+            {puntosGanados > 0
+              ? `Ganaste ${puntosGanados} puntos de autoservicio.`
+              : "Hoy ya sumaste los puntos de autoservicio del día; mañana vuelves a ganar."}
+            {puntosGanados > 0 && (
+              <span
+                aria-hidden="true"
+                className="anim-sube-puntos absolute right-3 top-1/2 rounded-[3px] bg-casco px-1.5 py-0.5 font-mono text-[11px] font-semibold text-grafito"
+              >
+                +{puntosGanados}
+              </span>
+            )}
           </div>
         )}
 

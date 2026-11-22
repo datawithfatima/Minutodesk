@@ -398,8 +398,7 @@ export default function UsuariosPage() {
                     )}
                     {panel.modo === "crear" && (
                       <p className="text-xs text-gray-400 md:col-span-2">
-                        La persona recibirá en este correo un enlace para elegir su contraseña
-                        (vale 3 días). Nadie más la conoce, ni siquiera el administrador.
+                        Se envía un enlace para elegir contraseña (vale 3 días).
                       </p>
                     )}
                     <div className="flex flex-wrap gap-2 md:col-span-2">

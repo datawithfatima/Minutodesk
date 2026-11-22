@@ -65,9 +65,6 @@ export default function DashboardPage() {
             </p>
             <h1 className="text-[26px] font-bold leading-tight text-white sm:text-3xl">¡Hola, {usuario?.nombre?.split(" ")[0]}!</h1>
             <p className="mb-2 text-white/75">¿En qué podemos ayudarte hoy?</p>
-            <p className="max-w-md text-sm text-white/60">
-              Crea un ticket, revisa el estado de tus solicitudes o cuéntale tu problema a Minutito.
-            </p>
             <div className="mt-5 grid grid-cols-1 gap-2 min-[420px]:flex min-[420px]:flex-wrap">
               <Link
                 to="/usuario/nuevo-ticket"

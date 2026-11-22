@@ -75,7 +75,7 @@ export default function PanelIncidente({ ticket, onCambio }) {
               {sugeridos.length} {sugeridos.length === 1 ? "persona más reporta" : "personas más reportan"} algo parecido en las últimas 48 h
             </p>
             <p className="mt-0.5 text-xs text-amber-800">
-              Únelos a este ticket para resolverlo una sola vez: se cierran con él y se avisa a cada persona.
+              Al unirlos se cierran con este ticket.
             </p>
             <ul className="mt-2 space-y-1.5">
               {sugeridos.map((s) => (

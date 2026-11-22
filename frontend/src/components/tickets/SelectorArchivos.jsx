@@ -53,8 +53,7 @@ export default function SelectorArchivos({ archivos, onCambio, limites }) {
           <Paperclip size={15} /> Adjuntar archivos
         </button>
         <span className="text-xs text-gray-500">
-          o arrástralos aquí · hasta {maximo} archivos de {limites?.megabytes ?? 10} MB (Word, Excel, PowerPoint,
-          PDF, imagen, video, audio o texto)
+          o arrástralos · máx. {maximo} · {limites?.megabytes ?? 10} MB c/u
         </span>
         <input
           ref={entrada}

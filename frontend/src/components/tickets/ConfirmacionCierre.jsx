@@ -113,7 +113,7 @@ export default function ConfirmacionCierre({ ticketId, editable = true, onCambio
           }}
         >
           <label htmlFor={`no-resuelto-${ticketId}`} className="block text-xs font-medium text-gray-700">
-            Cuéntale al técnico qué sigue fallando. El ticket vuelve a él, sin que tengas que crear otro.
+            ¿Qué sigue fallando?
           </label>
           <textarea
             id={`no-resuelto-${ticketId}`}

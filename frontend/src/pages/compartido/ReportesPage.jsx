@@ -94,7 +94,7 @@ function Plataforma({ resumen, personal }) {
             icono: Clock,
             titulo: "Tiempo medio de resolución",
             valor: formatearHoras(resumen.tiempo_medio_resolucion_horas),
-            detalle: "De la apertura al cierre, días corridos",
+            detalle: "Días corridos",
           },
           {
             // Conversaciones del chat de Minutito ya terminadas (no las respuestas de la
@@ -145,19 +145,19 @@ function Plataforma({ resumen, personal }) {
                 <strong className="font-semibold text-noche">
                   {primerNivel ? resumen.conversaciones_primer_nivel : resumen.conversaciones_minutito}
                 </strong>{" "}
-                {primerNivel ? "consultas de primer nivel" : "consultas"} se resolvieron con Minutito, sin ticket.
+                {primerNivel ? "consultas de primer nivel, sin ticket" : "consultas, sin ticket"}
                 {primerNivel && (
-                  <span className="mt-2 block">
-                    Contando también las solicitudes que solo atiende sistemas: {resumen.pct_resolucion_autonoma}% (
-                    {resumen.conversaciones_resueltas} de {resumen.conversaciones_minutito}).
+                  <span className="mt-1 block text-xs text-gray-500">
+                    Todas las consultas: {resumen.pct_resolucion_autonoma}% ({resumen.conversaciones_resueltas} de{" "}
+                    {resumen.conversaciones_minutito})
                   </span>
                 )}
               </>
             ) : (
               <>
                 <strong className="font-semibold text-noche">{resumen.resueltos_por_minutito}</strong> de{" "}
-                <strong className="font-semibold text-noche">{total - resumen.cancelados}</strong> tickets los resolvió
-                Minutito y el usuario lo confirmó{resumen.cancelados > 0 ? " (sin contar los cancelados)" : ""}.
+                <strong className="font-semibold text-noche">{total - resumen.cancelados}</strong> tickets resueltos por
+                Minutito
               </>
             )}
           </div>
@@ -167,7 +167,6 @@ function Plataforma({ resumen, personal }) {
           {/* Estado de las solicitudes como cronograma por etapas */}
           <ChartCard
             titulo="Tickets por estado"
-            subtitulo="Cómo van las solicitudes ahora"
             tabla={{
               columnas: ["Estado", "Tickets"],
               filas: [
@@ -194,9 +193,7 @@ function Plataforma({ resumen, personal }) {
               <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
               Quién resolvió los casos
             </h3>
-            <p className="mb-4 mt-0.5 text-xs text-gray-500">
-              Consultas que Minutito cerró sin ticket y tickets que cerró el equipo
-            </p>
+            <div className="mb-4" />
             {resumen.resueltos_por_minutito + resumen.resueltos_por_tecnico === 0 ? (
               <div className="text-sm text-gray-400">Todavía no hay casos resueltos.</div>
             ) : (
@@ -216,7 +213,6 @@ function Plataforma({ resumen, personal }) {
       <ChartCard
         className="mt-4"
         titulo="Tickets por categoría"
-        subtitulo="La categoría confirmada del ticket; si nadie la confirmó, la que sugirió el clasificador"
         tabla={{
           columnas: ["Categoría", "Tickets"],
           filas: resumen.por_categoria.map((c) => [c.categoria, c.total]),
@@ -259,7 +255,7 @@ function CumplimientoSla({ sla }) {
           <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
           Cumplimiento del plazo de atención
         </h3>
-        <p className="mt-0.5 text-xs text-gray-500">Tickets resueltos dentro del plazo según su tipo y prioridad</p>
+        <p className="mt-0.5 text-xs text-gray-500">Resueltos a tiempo</p>
         <div className="mt-4 flex items-end gap-3">
           <div className="text-5xl font-bold tabular-nums tracking-tight text-noche [font-variation-settings:'wdth'_112]">
             {pct == null ? "—" : `${pct}%`}
@@ -292,7 +288,7 @@ function CumplimientoSla({ sla }) {
             </div>
           ))}
         </dl>
-        <p className="mt-2 text-xs text-gray-500">Tickets abiertos ahora mismo, según cómo va su plazo.</p>
+        <p className="mt-2 text-xs text-gray-500">Abiertos ahora</p>
       </Panel>
       <Panel className="lg:col-span-7">
         <h3 className="flex items-center gap-2 text-sm font-bold text-noche">
@@ -337,7 +333,7 @@ function Satisfaccion() {
       <Seccion
         numero={2}
         titulo="Satisfacción del usuario"
-        subtitulo="Al resolverse un ticket, quien lo abrió califica la atención de 1 a 5 estrellas («acta de recepción»)."
+        subtitulo="Encuesta de 1 a 5 estrellas"
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <Panel className="lg:col-span-5">
@@ -374,15 +370,11 @@ function Satisfaccion() {
               <dd className="font-mono text-lg font-semibold tabular-nums text-noche">{formatoNumero(s.resueltos_calificables)}</dd>
             </div>
           </dl>
-          <p className="mt-2 text-xs text-gray-500">
-            No cuentan los tickets de la carga masiva: quien los pidió no tiene cuenta para calificar.
-          </p>
         </Panel>
 
         <ChartCard
           className="lg:col-span-7"
           titulo="Reparto de calificaciones"
-          subtitulo="Cuántas respuestas dieron cada número de estrellas"
           tabla={{ columnas: ["Estrellas", "Respuestas"], filas: s.reparto.map((r) => [`${r.estrellas} ★`, r.total]) }}
         >
           {sinRespuestas ? (
@@ -476,24 +468,12 @@ function Clasificador() {
       <Seccion
         numero={3}
         titulo="Calidad del clasificador"
-        subtitulo={`Medida con ${m.metodo} sobre ${formatoNumero(cat.tickets)} tickets: cada ticket se predice sin haberlo visto al entrenar. Entrenado el ${fechaYHora(m.entrenado_en)}.`}
+        subtitulo={`${formatoNumero(cat.tickets)} tickets · ${m.metodo} · ${fechaYHora(m.entrenado_en)}`}
       />
       {/* Las tres precisiones en una sola lámina, cada una con su medidor */}
       <Panel relleno="p-0" className="overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-3">
           {[
-            {
-              titulo: "Categoría · precisión global",
-              valor: global,
-              texto: pct(cat.accuracy),
-              estado: (
-                <Estado
-                  icono={global >= meta ? CheckCircle2 : AlertTriangle}
-                  color={global >= meta ? ESTADO_OK : ESTADO_AVISO}
-                  texto={global >= meta ? `Meta de ${meta}% alcanzada` : `Por debajo de la meta de ${meta}%`}
-                />
-              ),
-            },
             {
               titulo:
                 cat.umbral != null
@@ -511,6 +491,13 @@ function Clasificador() {
                 ) : (
                   <Estado icono={AlertTriangle} color={ESTADO_AVISO} texto="Ningún umbral alcanza la meta" />
                 ),
+            },
+            {
+              // La meta del objetivo 1 se mide con el umbral; sin umbral es solo referencia.
+              titulo: "Categoría · sin umbral",
+              valor: global,
+              texto: pct(cat.accuracy),
+              estado: <Estado icono={Target} color={GRIS_SIN_DATO} texto="Todas las predicciones" />,
             },
             {
               titulo: "Tipo · precisión global",
@@ -551,19 +538,20 @@ function Clasificador() {
             <span aria-hidden="true" className="h-3 w-[3px] shrink-0 rounded-[1px] bg-acento" />
             Acierto en uso real
           </h3>
-          <p className="mt-0.5 text-xs text-gray-400">
-            Compara lo que sugirió el SVM con la categoría y el tipo reales: los del export en los tickets cargados, y
-            en los nuevos lo que eligió la persona al crear el ticket o corrigió el técnico.
-          </p>
+          <p className="mt-0.5 text-xs text-gray-400">Sugerencia del SVM frente a la categoría confirmada</p>
           {m.en_uso.tickets_categoria === 0 ? (
-            <p className="mt-3 text-sm text-gray-500">
-              Todavía no hay tickets creados con la categoría confirmada. Aparecerán aquí cuando los usuarios usen
-              «Crear ticket».
-            </p>
+            <p className="mt-3 text-sm text-gray-500">Sin tickets confirmados todavía.</p>
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-6">
               {[
-                ["Categoría", m.en_uso.acierto_categoria, m.en_uso.tickets_categoria],
+                ...(m.en_uso.acierto_categoria_umbral != null
+                  ? [[
+                      `Categoría · confianza ≥ ${Math.round(m.en_uso.umbral * 100)}%`,
+                      m.en_uso.acierto_categoria_umbral,
+                      m.en_uso.tickets_categoria_umbral,
+                    ]]
+                  : []),
+                ["Categoría · todas", m.en_uso.acierto_categoria, m.en_uso.tickets_categoria],
                 ["Tipo", m.en_uso.acierto_tipo, m.en_uso.tickets_tipo],
               ].map(([nombre, acierto, n]) => (
                 <div key={nombre}>
@@ -583,7 +571,7 @@ function Clasificador() {
       <ChartCard
         className={m.en_uso ? "lg:col-span-7" : "lg:col-span-12"}
         titulo="Precisión y cobertura según la confianza del modelo"
-        subtitulo="Al exigir más confianza el modelo acierta más, pero responde menos tickets."
+        subtitulo="Más confianza: más precisión, menos cobertura"
         tabla={{
           columnas: ["Confianza ≥", "Precisión", "Cobertura", "Tickets"],
           filas: cat.por_umbral.map((p) => [`${Math.round(p.umbral * 100)}%`, pct(p.precision), pct(p.cobertura), p.tickets]),
@@ -672,9 +660,7 @@ export default function ReportesPage() {
 
       {resumen && (
         <>
-          <Seccion numero={1} titulo="Plataforma" subtitulo={
-              personal ? "Todos los tickets de MinutoDesk, incluidos los cargados del export de la herramienta anterior" : undefined
-            } />
+          <Seccion numero={1} titulo="Plataforma" subtitulo={personal ? "Incluye los tickets cargados" : undefined} />
           <Plataforma resumen={resumen} personal={personal} />
         </>
       )}

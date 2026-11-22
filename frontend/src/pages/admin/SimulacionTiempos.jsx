@@ -51,10 +51,8 @@ export default function SimulacionTiempos() {
   return (
     <div className="space-y-4">
       <Alert variant="info">
-        El objetivo 3 se mide en las <strong className="font-semibold">incidencias</strong> (algo dejó de funcionar),
-        que es lo que Minutito atiende. Se toman las incidencias nuevas cargadas que ya se resolvieron: a las que, según
-        la <strong className="font-semibold">Evaluación de Minutito</strong>, Minutito habría resuelto se les asigna el
-        tiempo de una conversación; el resto conserva su tiempo real.
+        Objetivo 3 · <strong className="font-semibold">incidencias</strong> resueltas · resuelve = tiempo de una
+        conversación · resto = tiempo real
       </Alert>
 
       <h2 className="text-sm font-semibold text-noche">Incidencias (objetivo 3)</h2>

@@ -148,7 +148,7 @@ function FormAprobacion({ ticket, onCreada, onCancelar }) {
           className={`${inputClass} resize-y`}
         />
         <p className="mt-1 text-xs text-gray-500">
-          Le llegará un aviso por correo. El ticket no se podrá resolver hasta que responda.
+          Aviso por correo · bloquea la resolución hasta que responda
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

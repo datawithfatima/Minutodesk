@@ -424,6 +424,7 @@ class ConversacionMinutitoRead(SQLModel):
     creado_en: datetime
     cerrado_en: Optional[datetime] = None
     mensajes: list[MensajeMinutitoRead]
+    puntos_otorgados: int = 0  # solo al marcarla resuelta: 0 si ya alcanzó el tope del día
 
 
 class ResumenConversacion(SQLModel):

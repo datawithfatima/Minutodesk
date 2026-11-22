@@ -660,9 +660,6 @@ export default function TicketDetailPage() {
                       >
                         Confirmar la clasificación del SVM
                       </Button>
-                      <p className="mt-1.5 text-xs text-gray-500">
-                        Si es correcta, confírmala; si no, elige otra categoría. Así se mide el acierto real.
-                      </p>
                     </div>
                   )}
                 </div>

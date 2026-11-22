@@ -117,9 +117,7 @@ function Procedimiento({ ficha, codigo, onCerrar }) {
 
       <footer className="border-t border-linea bg-gray-50 px-5 py-4">
         <p className="text-sm text-gray-600">
-          {todos
-            ? "Hiciste todos los pasos. Si el problema sigue, el equipo de sistemas te ayuda:"
-            : "Marca cada paso a medida que lo pruebes. Si no se resuelve:"}
+          ¿Sigue el problema?
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
@@ -194,10 +192,6 @@ export default function ConocimientoPage() {
   return (
     <>
       <PageHeader icon={BookOpen} title="Base de conocimiento" />
-      <p className="-mt-2 mb-5 max-w-2xl text-sm text-gray-600">
-        Los procedimientos que el equipo de sistemas verificó para los problemas más comunes. Son los mismos pasos que te
-        da Minutito: puedes seguirlos por tu cuenta, sin chat y sin ticket.
-      </p>
 
       {error && <Alert variant="danger">{error}</Alert>}
       {!datos && !error && <Spinner size="sm" />}

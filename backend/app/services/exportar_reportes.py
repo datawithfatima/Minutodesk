@@ -123,6 +123,12 @@ def reunir(resumen, categorias: list[tuple[str, int]], satisfaccion: dict, clasi
                 ]
         if en_uso.get("acierto_categoria") is not None:
             filas.append([f"Acierto en uso · categoría ({en_uso['tickets_categoria']} tickets)", _pct(100 * en_uso["acierto_categoria"])])
+        if en_uso.get("acierto_categoria_umbral") is not None:
+            filas.append([
+                f"Acierto en uso · categoría con confianza ≥ {round(100 * en_uso['umbral'])} % "
+                f"({en_uso['tickets_categoria_umbral']} tickets)",
+                _pct(100 * en_uso["acierto_categoria_umbral"]),
+            ])
         if en_uso.get("acierto_tipo") is not None:
             filas.append([f"Acierto en uso · tipo ({en_uso['tickets_tipo']} tickets)", _pct(100 * en_uso["acierto_tipo"])])
         secciones.append(

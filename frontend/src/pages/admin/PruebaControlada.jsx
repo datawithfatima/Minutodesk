@@ -174,10 +174,8 @@ export default function PruebaControlada() {
   return (
     <div className="space-y-4">
       <Alert variant="info">
-        Un agente hace de colaborador con {datos.escenarios} problemas típicos de primer nivel ya definidos (Wi-Fi,
-        impresoras, Outlook, contraseñas, VPN, Teams…) y conversa con Minutito hasta 3 respuestas. Tú lees cada
-        conversación y marcas si <strong className="font-semibold">las respuestas de Minutito llevaban a lo que lo
-        arregla</strong>. Decide por eso y no por lo que dijo el colaborador simulado, que a veces se equivoca.
+        {datos.escenarios} escenarios de primer nivel · hasta 3 respuestas · criterio:{" "}
+        <strong className="font-semibold">¿las respuestas llevan a la solución?</strong>
       </Alert>
       {error && <Alert variant="danger">{error}</Alert>}
       {aviso && <Alert variant="success">{aviso}</Alert>}
@@ -227,7 +225,7 @@ export default function PruebaControlada() {
               <>
                 <p className="text-sm text-gray-600">
                   {faltan > 0
-                    ? `Faltan ${faltan} de ${datos.escenarios} (necesita Ollama encendido; 1 o 2 minutos cada una).`
+                    ? `Faltan ${faltan} de ${datos.escenarios} · requiere Ollama`
                     : `Corridas las ${datos.escenarios}.`}
                 </p>
                 {faltan > 0 && (

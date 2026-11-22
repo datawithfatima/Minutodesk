@@ -26,8 +26,7 @@ export default function AvisoParecido({ parecidos, onCrearIgual, enviando = fals
               {uno ? `Ya tienes el ticket #${parecidos[0].id} abierto con algo muy parecido` : "Ya tienes tickets abiertos muy parecidos"}
             </p>
             <p className="mt-0.5 text-[13px] text-amber-800">
-              Para que te atiendan más rápido, sigue en {uno ? "ese ticket" : "el que corresponda"}: ahí puedes escribirle al
-              técnico y adjuntar lo nuevo.
+              Continúa en {uno ? "ese ticket" : "el que corresponda"}.
             </p>
           </div>
         </div>

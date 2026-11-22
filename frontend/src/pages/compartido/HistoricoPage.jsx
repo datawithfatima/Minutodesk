@@ -112,7 +112,6 @@ export default function HistoricoPage() {
                     <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
                       <span>{new Date(c.cerrado_en || c.creado_en).toLocaleDateString()}</span>
                       {c.cerrado_en && <span>{formatearDuracion(c.creado_en, c.cerrado_en)}</span>}
-                      <span className="font-medium text-green-700">+10 pts</span>
                     </div>
                   </div>
                 ))}

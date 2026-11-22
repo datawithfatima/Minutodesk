@@ -37,12 +37,7 @@ const ETIQUETA_DESCRIPCION = {
   1: "Indícanos tu idea o solicitud de servicio",
 };
 
-const CONSEJOS = [
-  "Cuenta qué pasó y desde cuándo.",
-  "Si aparece un mensaje de error, escríbelo tal cual.",
-  "Indica qué equipo o sistema usas (por ejemplo, SAP, Salesforce o tu laptop).",
-  "Un ticket por problema: así se atiende más rápido.",
-];
+const CONSEJOS = ["Qué pasó y desde cuándo", "Mensaje de error exacto", "Equipo o sistema", "Un problema por ticket"];
 
 function Paso({ numero, titulo, ayuda, children }) {
   return (
@@ -209,7 +204,7 @@ export default function NuevoTicketPage() {
               </Alert>
             )}
             <form ref={formulario} onSubmit={manejarEnvio} className="space-y-5">
-              <Paso numero={1} titulo="¿Qué tipo de ticket es?" ayuda="Elige una opción. Si no estás seguro, escribe primero la descripción y te sugerimos una.">
+              <Paso numero={1} titulo="¿Qué tipo de ticket es?">
                 <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {catalogos.tipos.map((t) => {
                     const elegido = tipo === t.nombre;
@@ -251,7 +246,7 @@ export default function NuevoTicketPage() {
               </Paso>
 
               {esAlta ? (
-                <Paso numero={2} titulo="Datos del nuevo colaborador" ayuda="Completa lo que pide el alta; los campos con * son obligatorios.">
+                <Paso numero={2} titulo="Datos del nuevo colaborador" ayuda="* obligatorio">
                   <FormAltaColaborador datos={alta} onCambio={setAlta} catalogos={catalogos} />
                 </Paso>
               ) : (
@@ -280,7 +275,6 @@ export default function NuevoTicketPage() {
                   <Paso
                     numero={3}
                     titulo="Categoría"
-                    ayuda="Se asigna sola según tu descripción. Solo te la preguntamos si el sistema no está seguro."
                   >
                     {sugiriendo && (
                       <p className="mb-2 flex items-center gap-2 text-xs text-gray-500">
@@ -363,7 +357,7 @@ export default function NuevoTicketPage() {
                 </>
               )}
 
-              <Paso numero={esAlta ? 3 : 4} titulo="Prioridad" ayuda="Si no estás seguro, déjala en Normal: el técnico puede ajustarla.">
+              <Paso numero={esAlta ? 3 : 4} titulo="Prioridad">
                 <div role="radiogroup" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {catalogos.prioridades.map((p) => {
                     const elegida = prioridad === p;
@@ -389,7 +383,7 @@ export default function NuevoTicketPage() {
                 </div>
               </Paso>
 
-              <Paso numero={esAlta ? 4 : 5} titulo="Archivos (opcional)" ayuda="Capturas de pantalla, documentos o cualquier evidencia que ayude.">
+              <Paso numero={esAlta ? 4 : 5} titulo="Archivos (opcional)">
                 <SelectorArchivos archivos={archivos} onCambio={setArchivos} limites={catalogos.adjuntos} />
               </Paso>
 
@@ -418,7 +412,7 @@ export default function NuevoTicketPage() {
           <Card>
             <Card.Body>
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-noche">
-                <Lightbulb size={16} className="text-amber-500" /> Para que lo atiendan más rápido
+                <Lightbulb size={16} className="text-amber-500" /> Incluye
               </div>
               <ul className="list-disc space-y-1.5 pl-5 text-sm text-gray-600">
                 {CONSEJOS.map((c) => (
@@ -433,9 +427,6 @@ export default function NuevoTicketPage() {
               <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-noche">
                 <Bot size={16} /> ¿Prefieres ayuda inmediata?
               </div>
-              <p className="mb-3 text-sm text-gray-600">
-                Minutito puede darte pasos para resolverlo ahora mismo. Si no te sirve, tu ticket queda listo para un técnico.
-              </p>
               <Link to="/usuario" className="text-sm font-medium text-noche hover:underline">
                 Hablar con Minutito →
               </Link>

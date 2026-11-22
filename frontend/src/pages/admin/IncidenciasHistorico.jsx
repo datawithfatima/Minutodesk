@@ -159,10 +159,8 @@ export default function IncidenciasHistorico() {
   return (
     <div className="space-y-4">
       <Alert variant="info">
-        Son las {datos.incidencias} incidencias resueltas del histórico, con su tiempo real de resolución. Minutito
-        respondió el texto de cada una como si la persona se lo escribiera; tú marcas si esa respuesta la habría
-        resuelto, con el mismo criterio que en la evaluación de Minutito. Las que Minutito resolvería cuentan con{" "}
-        {datos.minutos_minutito} minutos; las demás, y las {datos.sin_texto} sin texto, con su tiempo real.
+        {datos.incidencias} incidencias del histórico · resuelve = {datos.minutos_minutito} min · resto y{" "}
+        {datos.sin_texto} sin texto = tiempo real
       </Alert>
       {error && <Alert variant="danger">{error}</Alert>}
       {aviso && <Alert variant="success">{aviso}</Alert>}
@@ -223,7 +221,7 @@ export default function IncidenciasHistorico() {
             ) : datos.pausada ? null : faltan > 0 ? (
               <>
                 <p className="text-sm text-gray-600">
-                  Faltan {faltan} de {conTexto} (necesita Ollama encendido; menos de un minuto cada una).
+                  Faltan {faltan} de {conTexto} · requiere Ollama
                 </p>
                 <Button size="sm" variant="dark" onClick={generar}>
                   Generar las que faltan

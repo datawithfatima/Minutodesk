@@ -154,7 +154,7 @@ export default function RespuestasPredefinidas({ ticketId, textoActual, onInsert
               </button>
             )}
             <p className="mt-1 px-1.5 text-[11px] text-gray-500">
-              Usa {"{nombre}"}, {"{ticket}"} y {"{tecnico}"}: se reemplazan solos al elegirla.
+              Variables: {"{nombre}"}, {"{ticket}"}, {"{tecnico}"}
             </p>
             {error && <p className="mt-1 px-1.5 text-xs text-red-600">{error}</p>}
           </div>

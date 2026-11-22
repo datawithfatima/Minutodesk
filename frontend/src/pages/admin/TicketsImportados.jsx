@@ -121,8 +121,7 @@ function Detalle({ id, onCerrar }) {
               </dl>
 
               <p className="rounded-md border border-linea p-3 text-xs text-gray-500">
-                Viene del CSV de la herramienta anterior. No es un ticket de MinutoDesk: no se puede
-                editar ni asignar, y no cuenta en los indicadores, el ranking ni los puntos.
+                Importado del CSV · solo lectura · fuera de indicadores y puntos
               </p>
             </>
           )}
@@ -196,10 +195,8 @@ export default function TicketsImportados() {
       <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <Archive size={20} className="mt-0.5 shrink-0 text-amber-700" />
         <div className="text-sm text-amber-900">
-          <strong className="font-semibold">Archivo histórico · solo lectura.</strong> Son los tickets del
-          CSV de la herramienta anterior. Se identifican con el prefijo <strong>H-</strong> y no forman parte de
-          MinutoDesk: no cuentan en los indicadores, el ranking ni los puntos, y no se pueden editar. Los
-          tickets de la plataforma están en el menú <strong>Tickets</strong>.
+          <strong className="font-semibold">Archivo histórico · solo lectura</strong> · prefijo <strong>H-</strong> ·
+          fuera de indicadores y puntos
         </div>
       </div>
 

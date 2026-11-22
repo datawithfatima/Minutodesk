@@ -26,6 +26,13 @@ def calcular_nivel(puntos: int) -> str:
 def evaluar_evento(
     ticket: Ticket, cliente_id: int, session: Session
 ) -> Optional[EventoGamificacion]:
+    # Un ticket da puntos una sola vez: si se reabre y se vuelve a resolver, no se premia de nuevo.
+    ya_premiado = session.exec(
+        select(EventoGamificacion.id).where(EventoGamificacion.ticket_id == ticket.id)
+    ).first()
+    if ya_premiado is not None:
+        return None
+
     puntos = 0
     motivo = ""
 

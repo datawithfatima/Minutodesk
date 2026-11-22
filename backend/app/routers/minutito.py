@@ -46,6 +46,11 @@ router = APIRouter()
 
 MAX_MENSAJE = 2000
 PUNTOS_AUTOSERVICIO = 10
+# Tope diario de conversaciones que dan puntos. Pasado el tope, «Minutito lo resolvió» sigue
+# contando como resolución autónoma, pero ya no suma puntos: así los puntos no premian
+# marcar como resueltas conversaciones que no lo estaban.
+MAX_RESUELTAS_CON_PUNTOS_POR_DIA = 3
+MOTIVO_AUTOSERVICIO = "Resuelto con Minutito"
 # Las imágenes viajan al ticket como adjuntos, así que comparten su límite por ticket.
 EXTENSIONES_IMAGEN = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 NO_DISPONIBLE = "Minutito no está disponible en este momento. Puedes crear el ticket y lo atenderá el equipo."
@@ -342,22 +347,35 @@ def marcar_resuelta(
     """La persona confirma que Minutito resolvió su problema: cuenta como resolución
     autónoma, no se crea ticket y suma puntos de autoservicio.
 
-    Este clic alimenta el indicador del objetivo 2 (reportes.py). Como también da puntos
-    y no tiene tope diario, la métrica depende de la honestidad de quien confirma."""
+    Este clic alimenta el indicador del objetivo 2 (reportes.py). Para que los puntos no
+    incentiven a marcar conversaciones sin resolver, solo las primeras
+    MAX_RESUELTAS_CON_PUNTOS_POR_DIA de cada día dan puntos."""
     conversacion = _propia_y_abierta(session, conversacion_id, usuario)
     if not any(m.rol == "minutito" for m in _mensajes(session, conversacion.id)):
         raise HTTPException(status_code=400, detail="Primero conversa con Minutito.")
     conversacion.estado = "resuelta"
     conversacion.cerrado_en = datetime.now()
     session.add(conversacion)
-    session.add(
-        EventoGamificacion(cliente_id=usuario.id, puntos_otorgados=PUNTOS_AUTOSERVICIO, motivo="Resuelto con Minutito")
-    )
-    usuario.puntos += PUNTOS_AUTOSERVICIO
-    session.add(usuario)
+    inicio_del_dia = datetime.combine(conversacion.cerrado_en.date(), datetime.min.time())
+    premiadas_hoy = session.exec(
+        select(func.count())
+        .select_from(EventoGamificacion)
+        .where(
+            EventoGamificacion.cliente_id == usuario.id,
+            EventoGamificacion.motivo == MOTIVO_AUTOSERVICIO,
+            EventoGamificacion.creado_en >= inicio_del_dia,
+        )
+    ).one()
+    puntos = PUNTOS_AUTOSERVICIO if premiadas_hoy < MAX_RESUELTAS_CON_PUNTOS_POR_DIA else 0
+    if puntos:
+        session.add(EventoGamificacion(cliente_id=usuario.id, puntos_otorgados=puntos, motivo=MOTIVO_AUTOSERVICIO))
+        usuario.puntos += puntos
+        session.add(usuario)
     session.commit()
     session.refresh(conversacion)
-    return _a_lectura(session, conversacion)
+    lectura = _a_lectura(session, conversacion)
+    lectura.puntos_otorgados = puntos
+    return lectura
 
 
 @router.post("/conversaciones/{conversacion_id}/borrador", response_model=BorradorTicket)

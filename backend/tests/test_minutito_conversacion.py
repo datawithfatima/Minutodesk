@@ -89,6 +89,30 @@ def test_crear_ticket_desde_la_conversacion_la_enlaza(client, crear_cuenta, entr
     # resuelto por un técnico después de intentar con Minutito: 3 puntos
     client.patch(f"/tickets/{ticket_id}", json={"estado": "resuelto"}, headers=h_tec)
     assert client.get("/auth/yo", headers=h).json()["puntos"] == 3
+    # reabrirlo y volver a resolverlo no da puntos otra vez
+    client.patch(f"/tickets/{ticket_id}", json={"estado": "en_proceso"}, headers=h_tec)
+    client.patch(f"/tickets/{ticket_id}", json={"estado": "resuelto"}, headers=h_tec)
+    assert client.get("/auth/yo", headers=h).json()["puntos"] == 3
+
+
+def test_resolver_con_minutito_da_puntos_solo_hasta_el_tope_del_dia(client, crear_cuenta, entrar, monkeypatch):
+    from app.routers.minutito import MAX_RESUELTAS_CON_PUNTOS_POR_DIA, PUNTOS_AUTOSERVICIO
+
+    crear_cuenta("ana@ejemplo.com")
+    h = entrar("ana@ejemplo.com")
+    _respuestas(monkeypatch, ["Prueba reiniciar el equipo."])
+    otorgados = []
+    for _ in range(MAX_RESUELTAS_CON_PUNTOS_POR_DIA + 2):
+        conv = client.post("/minutito/conversaciones", headers=h).json()
+        _enviar(client, h, conv["id"], "no tengo wifi")
+        r = client.post(f"/minutito/conversaciones/{conv['id']}/resolver", headers=h)
+        assert r.status_code == 200 and r.json()["estado"] == "resuelta"
+        otorgados.append(r.json()["puntos_otorgados"])
+    assert otorgados == [PUNTOS_AUTOSERVICIO] * MAX_RESUELTAS_CON_PUNTOS_POR_DIA + [0, 0]
+    assert client.get("/auth/yo", headers=h).json()["puntos"] == PUNTOS_AUTOSERVICIO * MAX_RESUELTAS_CON_PUNTOS_POR_DIA
+    # pasado el tope, la conversación sigue contando como resolución autónoma
+    resumen = client.get("/reportes/resumen", headers=h).json()
+    assert resumen["conversaciones_resueltas"] == MAX_RESUELTAS_CON_PUNTOS_POR_DIA + 2
 
 
 def test_minutito_caido_avisa_y_la_conversacion_sigue_abierta(client, crear_cuenta, entrar, monkeypatch):

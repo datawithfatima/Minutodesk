@@ -77,8 +77,7 @@ function Historico() {
   return (
     <>
       <p className="-mt-2 mb-3 text-sm text-gray-500">
-        Tickets del export mensual, del {fechaCorta(datos.desde)} al {fechaCorta(datos.hasta)}. Última actualización:{" "}
-        {fechaCorta(datos.ultima_importacion)}.
+        {fechaCorta(datos.desde)} – {fechaCorta(datos.hasta)} · actualizado {fechaCorta(datos.ultima_importacion)}
       </p>
 
       <FranjaIndicadores
@@ -117,7 +116,6 @@ function Historico() {
       <div className="mt-4 grid grid-cols-1 gap-4">
         <ChartCard
           titulo="Tickets por mes"
-          subtitulo="Cuántas solicitudes se crearon cada mes"
           tabla={{ columnas: ["Mes", "Tickets"], filas: datos.por_mes.map((m) => [etiquetaMes(m.etiqueta), m.total]) }}
         >
           <ColumnChart
@@ -132,7 +130,6 @@ function Historico() {
 
         <ChartCard
           titulo="Tickets por estado"
-          subtitulo="Situación de todo el histórico"
           tabla={{ columnas: ["Estado", "Tickets"], filas: estados.map((e) => [e.etiqueta, e.valor]) }}
         >
           <FlujoEtapas etapas={estados} />
@@ -142,7 +139,7 @@ function Historico() {
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartCard
           titulo="Tickets por categoría"
-          subtitulo="Las 8 categorías con más solicitudes"
+          subtitulo="Top 8"
           tabla={{ columnas: ["Categoría", "Tickets"], filas: datos.por_categoria.map((c) => [c.etiqueta, c.total]) }}
         >
           <HBars datos={datos.por_categoria.map((c) => ({ etiqueta: c.etiqueta, valor: c.total }))} />
@@ -150,7 +147,7 @@ function Historico() {
 
         <ChartCard
           titulo="Tiempo medio de resolución"
-          subtitulo="Días en resolver los tickets creados cada mes"
+          subtitulo="Días, por mes de creación"
           tabla={{
             columnas: ["Mes", "Días"],
             filas: datos.resolucion_por_mes.map((p) => [etiquetaMes(p.etiqueta), p.valor ?? "—"]),
@@ -168,7 +165,6 @@ function Historico() {
       <ChartCard
         className="mt-4"
         titulo="Tickets por prioridad"
-        subtitulo="De menor a mayor urgencia"
         tabla={{ columnas: ["Prioridad", "Tickets"], filas: prioridades.map((p) => [p.etiqueta, p.valor]) }}
       >
         <StackedBar segmentos={prioridades} />

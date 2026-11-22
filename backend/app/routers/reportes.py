@@ -60,7 +60,20 @@ def _acierto_en_uso(session: Session) -> dict:
     tickets = session.exec(select(Ticket)).all()
     con_categoria = [t for t in tickets if t.categoria and t.categoria_predicha]
     con_tipo = [t for t in tickets if t.tipo and t.tipo_predicho]
+    # Los que superaron el umbral de confianza: son los que la plataforma clasifica sola,
+    # así que es el acierto comparable con la precisión del objetivo 1.
+    umbral = (cargar_metricas().get("categoria") or {}).get("umbral")
+    sobre_umbral = (
+        [t for t in con_categoria if (t.confianza_clasificacion or 0) >= umbral] if umbral is not None else []
+    )
     return {
+        "umbral": umbral,
+        "tickets_categoria_umbral": len(sobre_umbral),
+        "acierto_categoria_umbral": (
+            round(sum(t.categoria == t.categoria_predicha for t in sobre_umbral) / len(sobre_umbral), 6)
+            if sobre_umbral
+            else None
+        ),
         "tickets_categoria": len(con_categoria),
         "acierto_categoria": (
             round(sum(t.categoria == t.categoria_predicha for t in con_categoria) / len(con_categoria), 4)

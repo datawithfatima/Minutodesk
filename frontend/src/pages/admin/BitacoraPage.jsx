@@ -90,22 +90,18 @@ function Respaldos() {
             <p className={`mt-1 flex items-center gap-1.5 text-sm ${atrasado ? "text-amber-700" : "text-gray-600"}`}>
               {atrasado && <AlertTriangle size={14} aria-hidden="true" />}
               {estado.automatico
-                ? `Automático cada ${estado.cada_horas} h; se guardan los últimos ${estado.conservar}.`
-                : "El respaldo automático está apagado (RESPALDO_AUTOMATICO=0)."}
+                ? `Automático · cada ${estado.cada_horas} h · últimos ${estado.conservar}`
+                : "Automático apagado"}
             </p>
           </div>
         </div>
         {estado.copia_externa && (
           <p className="mt-3 flex items-center gap-1.5 text-sm text-green-700">
             <CloudUpload size={15} aria-hidden="true" />
-            Cada respaldo también se copia a tu OneDrive ({estado.copia_externa_respaldos} guardados allí).
+            Copia en OneDrive · {estado.copia_externa_respaldos}
           </p>
         )}
-        <p className="mt-4 rounded-md border border-dashed border-linea bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
-          Cada respaldo es una copia completa de la base, verificada al crearla. Se guardan en{" "}
-          <span className="break-all font-mono text-[11px] text-noche">{estado.carpeta}</span>. Para restaurar uno, detén el
-          backend y reemplaza <span className="font-mono text-[11px] text-noche">minutodesk.db</span> por la copia.
-        </p>
+        <p className="mt-4 break-all font-mono text-[11px] text-gray-500">{estado.carpeta}</p>
         <Button className="mt-4" onClick={crear} disabled={creando}>
           <HardDriveDownload size={16} aria-hidden="true" />
           {creando ? "Creando respaldo…" : "Crear respaldo ahora"}
@@ -296,13 +292,11 @@ export default function BitacoraPage() {
       <EncabezadoSeccion
         numero={1}
         titulo="Respaldos de la base de datos"
-        subtitulo="Copias automáticas para no perder tickets, conversaciones ni las cifras medidas."
       />
       <Respaldos />
       <EncabezadoSeccion
         numero={2}
         titulo="Libro de obra · bitácora de auditoría"
-        subtitulo="Quién hizo qué y cuándo: inicios de sesión, cambios de usuarios y áreas, acciones sobre tickets, descargas, exportaciones y respaldos. Nunca guarda contraseñas ni el texto de los mensajes."
       />
       <Bitacora />
       <div className="h-6" />

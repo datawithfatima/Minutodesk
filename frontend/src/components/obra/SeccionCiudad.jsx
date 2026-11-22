@@ -35,8 +35,7 @@ export default function SeccionCiudad() {
         <div>
           <h2 className="text-lg font-bold text-noche">Ciudad MinutoDesk</h2>
           <p className="text-sm text-gray-500">
-            Cada persona tiene su obra en la ciudad. Con nombre aparece el Top 5{" "}
-            {periodo === "mes" ? "de este mes" : "de siempre"}; las demás son de compañeros.
+            Top 5 {periodo === "mes" ? "del mes" : "histórico"}
           </p>
         </div>
         <div className="flex gap-1 rounded-lg border border-linea bg-superficie p-1 text-sm" role="tablist">
