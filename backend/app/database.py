@@ -3,6 +3,9 @@ import re
 from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine
 
+# Conexión a la base SQLite. La ruta es relativa a la carpeta desde la que se arranca el
+# backend: por eso iniciar.bat entra primero a backend/. Si el servidor se lanza desde
+# otra carpeta, SQLAlchemy crea allí una base vacía sin avisar.
 sqlite_file_name = "minutodesk.db"
 engine = create_engine(f"sqlite:///{sqlite_file_name}")
 

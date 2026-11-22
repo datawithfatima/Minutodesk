@@ -122,6 +122,10 @@ def evaluar_cv(nombre: str, textos: pd.Series, y: pd.Series) -> tuple[dict, str]
                 "tickets": int(m.sum()),
             })
     # Menor umbral (= mayor cobertura) con precisión >= objetivo y muestra suficiente.
+    # Nota metodológica: el umbral se elige y su precisión se reporta sobre las mismas
+    # predicciones de la validación cruzada, así que esa precisión es ligeramente
+    # optimista. Para una medida sin sesgo habría que reservar un conjunto aparte que no
+    # intervenga en la elección del umbral (o usar validación cruzada anidada).
     elegido = next(
         (p for p in por_umbral if p["precision"] >= PRECISION_OBJETIVO and p["tickets"] >= MIN_TICKETS_UMBRAL),
         None,

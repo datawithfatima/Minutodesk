@@ -1,5 +1,9 @@
 import { cerrarSesion, obtenerToken } from "./auth";
 
+// Capa de acceso a la API: todas las pantallas llaman al backend a través de este archivo.
+// Cada función agrega el token de sesión y, si la respuesta falla, manejarRespuesta
+// traduce el error a un mensaje en español (y cierra la sesión si el token venció).
+
 // En el mismo equipo usa localhost y desde otro equipo de la red, ese mismo host (la página
 // llega por el puerto 5173). Por el túnel de Cloudflare la página llega sin puerto: ahí el
 // backend se pide en /api, que el servidor de Vite reenvía al puerto 8000.
@@ -82,7 +86,10 @@ export const establecerPassword = ({ token, password }) =>
 
 // --- Tickets ---
 export const listarTickets = (filtros = {}) => get("/tickets", filtros);
-export const obtenerTicket = (id) => get(`/tickets/${id}`);
+// Si la dirección trae algo que no es un número (p. ej. /admin/tickets/abc), la función no
+// consulta al servidor: así el navegador no registra un error 422 en la consola.
+export const obtenerTicket = (id) =>
+  /^\d+$/.test(String(id)) ? get(`/tickets/${id}`) : Promise.reject(new Error("Ticket no encontrado."));
 // `tipo`, `categoria` y `prioridad` son opcionales (el chat con Minutito solo manda el texto).
 export const crearTicket = ({ texto, tipo, categoria, prioridad, conversacionId }) =>
   enviar("POST", "/tickets", { texto, tipo, categoria, prioridad, conversacion_id: conversacionId });
@@ -171,6 +178,9 @@ export async function hablarConMinutito(id, texto, alEscribir) {
     sinConexion();
   }
   if (!res.ok) await manejarRespuesta(res); // lanza el error con su mensaje
+  // El servidor responde en NDJSON: una línea JSON por fragmento. La función lee el cuerpo
+  // por partes, guarda en `buffer` la línea que llegó incompleta y procesa solo las
+  // completas; así el texto aparece en pantalla mientras el modelo lo va escribiendo.
   const lector = res.body.getReader();
   const decodificador = new TextDecoder();
   let buffer = "";

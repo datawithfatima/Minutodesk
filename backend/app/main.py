@@ -1,3 +1,12 @@
+"""Punto de entrada del backend de MinutoDesk (FastAPI).
+
+Este archivo arma la aplicación: configura CORS y las cabeceras de seguridad, registra
+los middlewares (bitácora de auditoría y límite de tamaño de las peticiones), conecta
+todos los routers de la API y, al arrancar, crea o actualiza la base de datos y lanza
+las tareas en segundo plano (avisos de plazo, respaldos y precarga de Minutito).
+Starlette ejecuta los middlewares en orden inverso al que se agregan: el último
+agregado (LimiteDeCuerpo) es el primero que recibe cada petición.
+"""
 import asyncio
 import json
 import os
@@ -196,6 +205,28 @@ app.include_router(historico.router, prefix="/historico", tags=["historico"])
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+
+@app.on_event("startup")
+async def silenciar_cierres_de_conexion_en_windows():
+    # En Windows, cuando el navegador cierra una conexión (p. ej. al cambiar de página),
+    # asyncio imprime en la terminal un «ConnectionResetError [WinError 10054]» con su
+    # traza completa. No es un fallo de MinutoDesk: es un aviso conocido de Python en
+    # Windows. Este manejador lo descarta y deja pasar cualquier otro error.
+    if os.name != "nt":
+        return
+    bucle = asyncio.get_running_loop()
+    anterior = bucle.get_exception_handler()
+
+    def manejar(loop, contexto):
+        if isinstance(contexto.get("exception"), ConnectionResetError):
+            return
+        if anterior is not None:
+            anterior(loop, contexto)
+        else:
+            loop.default_exception_handler(contexto)
+
+    bucle.set_exception_handler(manejar)
 
 
 @app.on_event("startup")

@@ -1,3 +1,17 @@
+"""Modelo de datos de MinutoDesk (tablas de SQLite definidas con SQLModel).
+
+Este módulo describe todas las tablas del sistema. Las principales son:
+- Area y Cliente: las áreas de la empresa y las cuentas (usuario, técnico o administrador).
+- Ticket: la solicitud central; guarda lo que predijo el clasificador (tipo_predicho,
+  categoria_predicha) junto a lo que confirmó la persona o el técnico, para poder medir
+  el acierto real del SVM en uso.
+- HistorialEstadoTicket, AsignacionTicket y PausaSla: la trazabilidad del ticket (cambios
+  de estado, tomas y liberaciones, pausas del plazo).
+- ConversacionMinutito y MensajeMinutito: las conversaciones con el asistente antes de que
+  exista un ticket; de ellas sale el indicador de resolución autónoma (objetivo 2).
+- EventoGamificacion: los puntos que recibe cada persona.
+- Auditoria y TokenAcceso: la bitácora y los enlaces de un solo uso para las contraseñas.
+"""
 from datetime import datetime
 from typing import Optional
 

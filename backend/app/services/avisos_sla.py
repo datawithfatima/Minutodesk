@@ -19,7 +19,11 @@ ESPERA_INICIAL = 30
 
 
 def revisar(session: Session, ahora: Optional[datetime] = None) -> int:
-    """Envía los avisos que falten y devuelve cuántos mandó."""
+    """Envía los avisos que falten y devuelve cuántos mandó.
+
+    Observación de la auditoría: los correos salen por SMTP dentro del ciclo y el commit
+    ocurre al final, así que mientras se envían la base queda bloqueada para escribir.
+    Con muchos avisos a la vez, otra petición podría recibir «database is locked»."""
     abiertos = list(session.exec(select(Ticket).where(Ticket.estado.in_(("abierto", "en_proceso")))))
     plazos = sla.calcular_varios(session, abiertos, ahora)
     enviados = 0

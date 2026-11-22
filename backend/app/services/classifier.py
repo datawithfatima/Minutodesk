@@ -55,6 +55,9 @@ def sugerir(texto: str, k: int = 3) -> dict:
 
 
 def clasificar_ticket(texto: str) -> dict:
+    """Clasifica el texto de un ticket nuevo. La función limpia el texto con el mismo
+    preprocesamiento del entrenamiento, lo convierte en vector TF-IDF y pide a los dos
+    modelos SVM calibrados la probabilidad de cada clase; se queda con la más alta."""
     vector = _vectorizer.transform([preprocesar_texto(texto)])
 
     proba_tipo = _modelo_tipo.predict_proba(vector)[0]

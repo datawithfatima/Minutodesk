@@ -228,6 +228,9 @@ def enviar_mensaje(
         raise HTTPException(status_code=400, detail=f"El mensaje es demasiado largo (máximo {MAX_MENSAJE} caracteres).")
     _controlar_ritmo(usuario.id)
     usuario_id = usuario.id
+    # Desde aquí la persona queda marcada como «con respuesta en curso» y se desmarca en el
+    # `finally` del generador. Observación de la auditoría: si algo falla antes de que la
+    # transmisión empiece, la marca no se quita hasta reiniciar el backend.
     respondiendo.add(usuario_id)
 
     nuevo = MensajeMinutito(conversacion_id=conversacion.id, rol="usuario", texto=texto)
@@ -337,7 +340,10 @@ def marcar_resuelta(
     session: Session = Depends(get_session),
 ):
     """La persona confirma que Minutito resolvió su problema: cuenta como resolución
-    autónoma, no se crea ticket y suma puntos de autoservicio."""
+    autónoma, no se crea ticket y suma puntos de autoservicio.
+
+    Este clic alimenta el indicador del objetivo 2 (reportes.py). Como también da puntos
+    y no tiene tope diario, la métrica depende de la honestidad de quien confirma."""
     conversacion = _propia_y_abierta(session, conversacion_id, usuario)
     if not any(m.rol == "minutito" for m in _mensajes(session, conversacion.id)):
         raise HTTPException(status_code=400, detail="Primero conversa con Minutito.")

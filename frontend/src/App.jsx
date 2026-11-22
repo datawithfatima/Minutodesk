@@ -38,6 +38,11 @@ function Raiz() {
   return <Navigate to={usuario.debe_cambiar_password ? "/cambiar-password" : rutaInicio(usuario.rol)} replace />;
 }
 
+// Mapa de rutas del portal. Cada rol (usuario, técnico, administrador) tiene su propio
+// panel, protegido por RequireAuth, que redirige al login a quien no tiene sesión o rol.
+// En las bandejas de tickets, la ruta índice declara element={null} a propósito: la lista
+// se dibuja en TicketsWorkspace y, sin ticket elegido, el detalle queda vacío. Si se omite
+// element, React Router muestra una advertencia en la consola del navegador.
 export default function App() {
   return (
     <Routes>
@@ -65,7 +70,7 @@ export default function App() {
         <Route path="/tecnico" element={<TecnicoLayout />}>
           <Route index element={<Navigate to="reportes" replace />} />
           <Route path="tickets" element={<TicketsWorkspace base="/tecnico/tickets" />}>
-            <Route index />
+            <Route index element={null} />
             <Route path=":id" element={<TicketDetailPage />} />
           </Route>
           <Route
@@ -78,7 +83,7 @@ export default function App() {
               />
             }
           >
-            <Route index />
+            <Route index element={null} />
             <Route path=":id" element={<TicketDetailPage />} />
           </Route>
           <Route path="historico" element={<HistoricoPage />} />
@@ -93,7 +98,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<ReportesPage />} />
           <Route path="tickets" element={<TicketsWorkspace base="/admin/tickets" />}>
-            <Route index />
+            <Route index element={null} />
             <Route path=":id" element={<TicketDetailPage />} />
           </Route>
           <Route
@@ -106,7 +111,7 @@ export default function App() {
               />
             }
           >
-            <Route index />
+            <Route index element={null} />
             <Route path=":id" element={<TicketDetailPage />} />
           </Route>
           <Route path="historico" element={<HistoricoPage />} />

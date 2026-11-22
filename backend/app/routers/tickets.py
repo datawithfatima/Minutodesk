@@ -145,6 +145,11 @@ def crear_ticket(
             )
     if data.categoria is not None:
         _validar_categoria(data.categoria)
+    # Flujo de creación: el SVM clasifica siempre el texto, aunque la persona ya haya
+    # elegido tipo y categoría. Ambas versiones se guardan por separado (lo predicho y lo
+    # confirmado) para que Reportes pueda comparar y medir el acierto real del clasificador.
+    # Después, la asignación automática sugiere un técnico según la categoría, se registra
+    # el estado inicial en el historial y se avisa por correo en segundo plano.
     prediccion = clasificar_ticket(texto)
 
     ticket = Ticket(
@@ -384,6 +389,10 @@ def actualizar_ticket(
     usuario: Cliente = Depends(requerir_personal),
     session: Session = Depends(get_session),
 ):
+    # Punto central de gestión del personal: cambia estado, prioridad, tipo, categoría o
+    # técnico. Antes de tocar nada valida los valores y que el ticket no lo atienda otro
+    # técnico (toma.py). Al resolver revisa que no haya aprobaciones pendientes, otorga
+    # los puntos de gamificación y resuelve los tickets afectados si este es el principal.
     ticket = session.get(Ticket, ticket_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
